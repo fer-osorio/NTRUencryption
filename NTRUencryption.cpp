@@ -37,15 +37,16 @@ NTRUPolynomial result[2]) const {
     const int dividendDegree = this->degree();
     const int divisorDegree  = t.degree();
     int degreeDiff;                                                              // Difference between degrees
-    int remainderDegree;
-    int leadCoeffDivndInv;                                                       // Inverse (modulus q) of leading coefficient of the dividend
+    int remDeg;                                                                 // Remainder degree
+    int leadCoeffDivsrInv;                                                       // Inverse (modulus q) of leading coefficient of the divisor
+    int i;                                                                      // For counting
 
     if(dividendDegree < divisorDegree) {                                        // Case dividend has smaller degree than divisor
         result[0] = 0; result[1] = *this;
         return;
     }
     try{
-        leadCoeffDivndInv = invModq(this->coefficients[dividendDegree]);
+        leadCoeffDivsrInv = invModq(t.coefficients[dividendDegree]);
     } catch(char* excp) {
         std::cout << "\nIn NTRUencryption.cpp, function void NTRUencryption::"
         "NTRUPolynomial::division(const NTRUPolynomial t,NTRUPolynomial resul"
@@ -53,13 +54,27 @@ NTRUPolynomial result[2]) const {
         throw excp;
     }                                                                           // At this point we know leading coefficient has an inverse in Zq
     degreeDiff = dividendDegree - divisorDegree;                                 // At this point we know degreeDiff >= 0
-    remainderDegree = divisorDegree;
+    remDeg = divisorDegree;
     result[1] = *this;                                                          // Initializing remainder with dividend (this)
     result[0] = 0;                                                              // Setting quotient as zero
 
-    while(degreeDiff >= 0) {
+    for(;degreeDiff >= 0; degreeDiff = remDeg - divisorDegree) {
         result[0].coefficients[degreeDiff] =
-        leadCoeffDivndInv * result[1].coefficients[remainderDegree];
+        leadCoeffDivsrInv * result[1].coefficients[remDeg];                       // Putting new coefficient in the quotient
+
+        for(i = remDeg; i >= degreeDiff; i--)
+            result[1].coefficients[i] -= modq(
+            result[0].coefficients[degreeDiff] * t.coefficients[i - degreeDiff]);   // Updating remainder
+
+        while(result[1].coefficients[remDeg] < 0)
+            result[1].coefficients[remDeg] += q;                                 // In case of negative difference (congruent with 0 mod q)
+
+        if(result[1].coefficients[remDeg] != 0)                                  // No congruence with 0 mod q, throwing exception
+            throw "\nIn NTRUencryption.cpp, function void NTRUencryption::NTRU"
+            "Polynomial::division(const NTRUPolynomial t,NTRUPolynomial result"
+            "[2]) const. result[1].coefficients[remDeg] != 0\n";                 // At this point we know result[1].coefficients[remDeg] = 0
+
+        while(remDeg > 0 && result[1].coefficients[--remDeg] == 0) {}            // Updating value of the degree of the remainder
     }
 }
 
@@ -68,7 +83,7 @@ int NTRUencryption::invModq(int t) {
 	int bit = 1;															    // Single bit; it will 'run' trough the bits of exp
 	int r = (t = modq(t));                                                      // Making sure 0 <= t < q. Assigning to r
 	if((t & 1) == 0) throw "\nIn NTRUencryption.cpp, function int NTRUencrypti"
-	"on::invModq(int t). No inverse modulus q for even numbers.\n";
+	    "on::invModq(int t). No inverse modulus q for even numbers.\n";
 	for(; (exp & bit) != 0; bit <<= 1) {                                        // Using exponentiation algorithm to find the inverse
 		(r *= r) *= t;                                                          // Enhanced for this particular case (q-1 has the form 111...111)
 		r = modq(r);
