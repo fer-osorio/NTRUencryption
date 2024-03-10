@@ -16,7 +16,7 @@ NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator *
         for(j = 0; j <= i; j++)
             r.coefficients[i] += modq(this->coefficients[j]*t.coefficients[i-j]);  // Some optimization through a 64 bits buffer can be implemented here
         for(; j < N; j++)
-            r.coefficients[i] += modq(this->coefficients[j]*t.coefficients[N+i-j]);// And here
+            r.coefficients[i]+=modq(this->coefficients[j]*t.coefficients[N+i-j]);  // And here
     }
     return r;
 }
@@ -24,9 +24,9 @@ NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator *
 void NTRUencryption::NTRUPolynomial::division(const NTRUPolynomial t,
 NTRUPolynomial result[2]) const {
     if(t == 0) {
-        throw "\nIn NTRUencryption.cpp, function void NTRUencryption::NTRUPolyn"
-        "omial::division(const NTRUPolynomial t,NTRUPolynomial result[2]) const"
-        ". Division by zero...\n";
+        throw "\nIn NTRUencryption.cpp, function void NTRUencryption::NTRUPoly"
+        "nomial::division(const NTRUPolynomial t, NTRUPolynomial result[2]) co"
+        "nst. Division by zero...\n";
         return;
     }
     if(*this == 0) {                                                            // Case zero divided by anything
@@ -78,6 +78,27 @@ NTRUPolynomial result[2]) const {
     }
 }
 
+void NTRUencryption::NTRUPolynomial::print() const{
+    char start[] = "0   [";                                                     // Start of the string will be printed
+    char numBuf[10];                                                            // Buffer necessary for the int -> string conversion
+    int qlen, strLen;                                                           // q length in characters, start length in characters
+    int i = 0,j = 0;
+    int deg = this->degree();
+    uintToString((unsigned)q, numBuf);                                          // Conversion from number to string
+    qlen =  len(numBuf);
+    strLen = len(start);
+    std::cout << start;
+    do {
+        uintToString(this->coefficients[i], numBuf);                             // Optimize by returning the length of the string
+        strLen = len(numBuf);
+        std::cout << numBuf;                                                    // Printing current coefficient
+        printSpaces(unsigned(qlen - strLen));                                   // Padding with spaces
+        if(i < deg) std::cout << ',';
+        if(i != 0 && (i & 31) == 0 && i != deg) std::cout << '\n';              // Since 2^5 = 32, then i&31 = i % 32
+    }while(++i <= deg);
+    std::cout << ']';
+}
+
 int NTRUencryption::invModq(int t) {
     const int exp = (q >> 1) - 1;											    // exp = q/2 - 1
 	int bit = 1;															    // Single bit; it will 'run' trough the bits of exp
@@ -89,4 +110,21 @@ int NTRUencryption::invModq(int t) {
 		r = modq(r);
 	}
 	return r;
+}
+
+int uintToString(unsigned n, char* dest) {
+    unsigned i = 0, j = 0;
+    char buff = 0;
+    do {
+        buff = (char)(n % DECIMAL_BASE);                                         // Taking last current digit
+        dest[i++] = buff + 48;                                                   // Saving last current digit
+        n -= (unsigned)buff; n /= DECIMAL_BASE;                                  // Taking out last current digit from the number n
+    } while(n > 0);
+    dest[i--] = 0;                                                              // Putting a zero at the end and returning one place
+    for(; j < i; j++,i--) {                                                     // The number is backwards; reversing the order of the digits
+        buff = dest[j];
+        dest[j] = dest[i];
+        dest[i] = buff;
+    }
+    return 0;
 }

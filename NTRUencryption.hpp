@@ -1,6 +1,8 @@
 // Operating with the polynomials in the ring Zp[x]/x^N-1.
 #include<iostream>
 
+#define DECIMAL_BASE 10
+
 class NTRUencryption {
 	public:
 	enum NTRU_N {_509_  = 509,  _677_  = 677,  _701_  = 701,  _821_ = 821};		// All the possible values for the N
@@ -44,6 +46,10 @@ class NTRUencryption {
 			while(this->coefficients[--deg] == 0 && deg > 0) {}
 			return deg;
 		}
+		void print() const;
+		inline void println() const {
+			print(); std::cout<<'\n';
+		}
 	};
 	inline static int modq(int t) {												// returns t mod q using bit wise operations. The result will be positive
 		while(t < 0) t += q;													// Adding q till we get t positive. This won't affect the result
@@ -67,3 +73,25 @@ class NTRUencryption {
 		}
 	}
 };
+
+																				// Functions for printing
+
+inline static int len(char* str) {												// Length of a string
+	int l = -1;
+	while(str[++l] != 0) {}
+	return l;
+}
+
+int static uintToString(unsigned n, char* dest);
+
+inline static int copyString(const char* origin,char* dest) {
+    int i = 0;                                                                  // Counting variable. At the end it will contain the length of the origin string
+    for(; origin[i] != 0; i++) {dest[i] = origin[i];}                           // Coping element by element
+    dest[i] = 0;                                                                // End of string.
+    return i;                                                                   // Returning string length
+}
+
+inline static int printSpaces(unsigned t) {
+	while(t-- > 0) std::cout << ' ' ;
+	return 0;
+}
