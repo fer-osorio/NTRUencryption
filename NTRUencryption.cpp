@@ -2,17 +2,17 @@
 
 NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator +
 (const NTRUPolynomial& t) const {
-    NTRUencryption::NTRUPolynomial r;                                           // Initializing with zeros
-    for(int i = 0; i < N; i++)
+    NTRUencryption::NTRUPolynomial r(this->N, this->q);                         // Initializing with zeros
+    for(int i = 0; i < r.N; i++)
         r.coefficients[i] = modq(this->coefficients[i] + t.coefficients[i]);       // Addition element by element. The addition is performed in the Zp group
     return r;
 }
 
 NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator *
 (const NTRUPolynomial& t) const {
-    NTRUencryption::NTRUPolynomial r;                                           // Initializing with zeros
+    NTRUencryption::NTRUPolynomial r(this->N, this->q);                         // Initializing with zeros
     int i, j;
-    for(i = 0; i < N; i++) {                                                    // Convolution process
+    for(i = 0; i < r.N; i++) {                                                  // Convolution process
         for(j = 0; j <= i; j++)
             r.coefficients[i] += modq(this->coefficients[j]*t.coefficients[i-j]);  // Some optimization through a 64 bits buffer can be implemented here
         for(; j < N; j++)
@@ -99,15 +99,15 @@ void NTRUencryption::NTRUPolynomial::print() const{
     std::cout << ']';
 }
 
-int NTRUencryption::invModq(int t) {
-    const int exp = (q >> 1) - 1;											    // exp = q/2 - 1
+int NTRUencryption::NTRUPolynomial::invModq(int t) const{
+    const int exp = (this->q >> 1) - 1;											// exp = q/2 - 1
 	int bit = 1;															    // Single bit; it will 'run' trough the bits of exp
-	int r = (t = modq(t));                                                      // Making sure 0 <= t < q. Assigning to r
+	int r = (t = this->modq(t));                                                // Making sure 0 <= t < q. Assigning to r
 	if((t & 1) == 0) throw "\nIn NTRUencryption.cpp, function int NTRUencrypti"
 	    "on::invModq(int t). No inverse modulus q for even numbers.\n";
 	for(; (exp & bit) != 0; bit <<= 1) {                                        // Using exponentiation algorithm to find the inverse
 		(r *= r) *= t;                                                          // Enhanced for this particular case (q-1 has the form 111...111)
-		r = modq(r);
+		r = this->modq(r);
 	}
 	return r;
 }

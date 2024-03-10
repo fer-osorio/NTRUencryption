@@ -7,18 +7,19 @@ class NTRUencryption {
 	public:
 	enum NTRU_N {_509_  = 509,  _677_  = 677,  _701_  = 701,  _821_ = 821};		// All the possible values for the N
 	enum NTRU_q {_2048_ = 2048, _4096_ = 4096, _8192_ = 8192};					// All the possible values for the q
-	static const NTRU_N N;
-	static const NTRU_q q;
+	const NTRU_N N;
+	const NTRU_q q;
+
+	NTRUencryption(NTRU_N _N_, NTRU_q _q_): N(_N_), q(_q_) {}
 
 	private:																	// Private types and attributes
-	enum log2NTRUq {_11 = 11, _12 = 12, _13 = 13};								// For each possible q: log_2(q)
-	static const log2NTRUq L2NTRU_q;
-
 	struct NTRUPolynomial {														// Representation of the polynomials
 		int* coefficients = NULL;												// Coefficients of the polynomial
+		const NTRU_N N;
+		const NTRU_q q;
 
-		inline NTRUPolynomial() {												// Constructor, initialized polynomial with zeros
-			this->coefficients = new int[N];
+		inline NTRUPolynomial(NTRU_N _N_, NTRU_q _q_): N(_N_), q(_q_) {			// Constructor, initialized polynomial with zeros
+			this->coefficients = new int[this->N];
 			for(int i = 0; i < N; i++) this->coefficients[i] = 0;
 		}
 		inline ~NTRUPolynomial() {
@@ -31,7 +32,8 @@ class NTRUencryption {
 
 		inline NTRUPolynomial& operator = (const NTRUPolynomial& t) {			// Assignment
 			if(this != &t)                                                    	// Guarding against self assignment
-        		for(int i=0; i<N; i++) this->coefficients[i] = t.coefficients[i];
+        		for(int i = 0; i < this->N; i++)
+        			this->coefficients[i] = t.coefficients[i];
     		return *this;
 		}
 		inline NTRUPolynomial& operator = (int t) {								// Assignment with single integer
@@ -42,21 +44,21 @@ class NTRUencryption {
 			return this->degree() == 0 && this->coefficients[0] == t;
 		}
 		inline int degree() const {												// Returns degree of polynomial
-			int deg = N;
+			int deg = this->N;
 			while(this->coefficients[--deg] == 0 && deg > 0) {}
 			return deg;
 		}
 		void print() const;
+
 		inline void println() const {
 			print(); std::cout<<'\n';
 		}
+		inline int modq(int t) const{											// returns t mod q using bit wise operations. The result will be positive
+			while(t < 0) t += q;												// Adding q till we get t positive. This won't affect the result
+    		return t &= q-1;													// Since q is a power of 2, the expression t &= q-1 is equivalent to t %= q
+		}
+		int invModq(int t) const;												// Calculates inverse modulus q
 	};
-	inline static int modq(int t) {												// returns t mod q using bit wise operations. The result will be positive
-		while(t < 0) t += q;													// Adding q till we get t positive. This won't affect the result
-    	return t &= q-1;														// Since q is a power of 2, the expression t &= q-1 is equivalent to t %= q
-	}
-
-	static int invModq(int t);													// Calculates inverse modulus q}
 
 	inline static int _3inverseModq(NTRU_q _q_) {
 		switch(_q_) {
@@ -73,15 +75,12 @@ class NTRUencryption {
 		}
 	}
 };
-
 																				// Functions for printing
-
 inline static int len(char* str) {												// Length of a string
 	int l = -1;
 	while(str[++l] != 0) {}
 	return l;
 }
-
 int static uintToString(unsigned n, char* dest);
 
 inline static int copyString(const char* origin,char* dest) {
@@ -90,7 +89,6 @@ inline static int copyString(const char* origin,char* dest) {
     dest[i] = 0;                                                                // End of string.
     return i;                                                                   // Returning string length
 }
-
 inline static int printSpaces(unsigned t) {
 	while(t-- > 0) std::cout << ' ' ;
 	return 0;
