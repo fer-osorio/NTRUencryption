@@ -1,22 +1,26 @@
 #include"NTRUencryption.hpp"
 
-NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator +
-(const NTRUPolynomial& t) const {
-    NTRUencryption::NTRUPolynomial r(this->N, this->q);                         // Initializing with zeros
-    for(int i = 0; i < r.N; i++)
-        r.coefficients[i] = modq(this->coefficients[i] + t.coefficients[i]);       // Addition element by element. The addition is performed in the Zp group
+NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator+
+(const NTRUPolynomial& t) const{
+    NTRUencryption::NTRUPolynomial r(this->max_N(t), this->max_q(t));           // Initializing with zeros
+    NTRU_N _N_ = this->min_N(t);                                                // Adding till the smallest 'N'
+    for(int i = 0; i < _N_; i++)
+        r.coefficients[i] = r.modq(this->coefficients[i] + t.coefficients[i]);  // Addition element by element. The addition is performed in the Zp group
     return r;
 }
 
 NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator *
 (const NTRUPolynomial& t) const {
-    NTRUencryption::NTRUPolynomial r(this->N, this->q);                         // Initializing with zeros
-    int i, j;
+    NTRUencryption::NTRUPolynomial r(this->max_N(t), this->max_q(t));           // Initializing with zeros
+    NTRU_N _N_ = this->min_N(t);
+    int i, j, k;
     for(i = 0; i < r.N; i++) {                                                  // Convolution process
-        for(j = 0; j <= i; j++)
-            r.coefficients[i] += modq(this->coefficients[j]*t.coefficients[i-j]);  // Some optimization through a 64 bits buffer can be implemented here
-        for(; j < N; j++)
-            r.coefficients[i]+=modq(this->coefficients[j]*t.coefficients[N+i-j]);  // And here
+        for(j = 0; j <= i && j < _N_ && (k = i - j) < _N_; j++)
+            r.coefficients[i] +=                                                // Some optimization through a 64 bits buffer can be implemented here
+            r.modq(this->coefficients[j] * t.coefficients[k]);
+        for(j = i + r.N -_N_+ 1; j < _N_ && (k = r.N+i-j) < _N_; j++)
+            r.coefficients[i] +=                                                // And here
+            r.modq(this->coefficients[j] * t.coefficients[k]);
     }
     return r;
 }
@@ -128,3 +132,4 @@ int uintToString(unsigned n, char* dest) {
     }
     return 0;
 }
+
