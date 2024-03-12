@@ -1,48 +1,61 @@
 #include"NTRUencryption.hpp"
 
 NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator+
-(const NTRUPolynomial& t) const{
-    NTRUencryption::NTRUPolynomial r(this->max_N(t), this->max_q(t));           // Initializing with zeros
-    NTRU_N _N_ = this->min_N(t);                                                // Adding till the smallest 'N'
-    for(int i = 0; i < _N_; i++)
-        r.coefficients[i] = r.modq(this->coefficients[i] + t.coefficients[i]);  // Addition element by element. The addition is performed in the Zp group
+(const NTRUPolynomial& P) const{
+    NTRUencryption::NTRUPolynomial r(this->max_N(P), this->max_q(P));           // Initializing polynomial with the biggest coefficients
+    const NTRUencryption::NTRUPolynomial *small, *big;
+    int i;
+
+    if(this->N < P.N) { small = this; big = &P; }                               // 'small' points to the polynomial with the smallest N, 'big' points to the
+	else { small = &P; big = &P; }                                              // polynomial with the biggest N
+
+    for(i = 0; i < small->N; i++)
+        r.coefficients[i] = r.modq(this->coefficients[i] + P.coefficients[i]);  // Addition element by element till the smallest degree of the arguments
+    for(; i < big->N; i++)
+        r.coefficients[i] = big->coefficients[i];                               // Just copying, equivalent to filling with zeros the small polynomial
     return r;
 }
 
-NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator *
-(const NTRUPolynomial& t) const {
-    NTRUencryption::NTRUPolynomial r(this->max_N(t), this->max_q(t));           // Initializing with zeros
-    NTRU_N _N_ = this->min_N(t);
+NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator*
+(const NTRUPolynomial& P) const{
+    NTRUencryption::NTRUPolynomial r(this->max_N(P), this->max_q(P));           // Initializing with zeros
+    const NTRUencryption::NTRUPolynomial *small, *big;
     int i, j, k;
+
+    if(this->N < P.N) { small = this; big = &P; }                               // 'small' points to the polynomial with the smallest N, 'big' points to the
+	else { small = &P; big = &P; }                                              // polynomial with the biggest N
+
     for(i = 0; i < r.N; i++) {                                                  // Convolution process
-        for(j = 0; j <= i && j < _N_ && (k = i - j) < _N_; j++)
-            r.coefficients[i] +=                                                // Some optimization through a 64 bits buffer can be implemented here
-            r.modq(this->coefficients[j] * t.coefficients[k]);
-        for(j = i + r.N -_N_+ 1; j < _N_ && (k = r.N+i-j) < _N_; j++)
-            r.coefficients[i] +=                                                // And here
-            r.modq(this->coefficients[j] * t.coefficients[k]);
+        k = min(i, small->N);
+        for(j = 0; j <= k; j++) r.coefficients[i]+=                             // Some optimization through a 64 bits buffer can be implemented here
+            r.modq(small->coefficients[j] * big->coefficients[i-j]);
+        for(; j < small->N; j++) r.coefficients[i] +=                           // And here
+            r.modq(small->coefficients[j] * big->coefficients[r.N + i-j]);
+        r.coefficients[i] = r.modq(r.coefficients[i]);
     }
     return r;
 }
 
-void NTRUencryption::NTRUPolynomial::division(const NTRUPolynomial t,
+void NTRUencryption::NTRUPolynomial::division(const NTRUPolynomial P,
 NTRUPolynomial result[2]) const {
-    if(t == 0) {
+    if(P == 0) {
         throw "\nIn NTRUencryption.cpp, function void NTRUencryption::NTRUPoly"
-        "nomial::division(const NTRUPolynomial t, NTRUPolynomial result[2]) co"
+        "nomial::division(const NTRUPolynomial P, NTRUPolynomial result[2]) co"
         "nst. Division by zero...\n";
-        return;
     }
+    NTRU_N _N_ = this->max_N(P);
+    NTRU_q _q_ = this->max_q(P);                                                // We'll work in the 'biggest' polynomial ring
     if(*this == 0) {                                                            // Case zero divided by anything
-        result[0] = 0; result[1] = 0;
+        result[0] = NTRUPolynomial(_N_,_q_);                                    // Zero polynomial
+        result[1] = NTRUPolynomial(_N_,_q_);                                    // Zero polynomial
         return;
     }
 
     const int dividendDegree = this->degree();
-    const int divisorDegree  = t.degree();
-    int degreeDiff;                                                              // Difference between degrees
+    const int divisorDegree  = P.degree();
+    int degreeDiff;                                                             // Difference between degrees
     int remDeg;                                                                 // Remainder degree
-    int leadCoeffDivsrInv;                                                       // Inverse (modulus q) of leading coefficient of the divisor
+    int leadCoeffDivsrInv;                                                      // Inverse (modulus q) of leading coefficient of the divisor
     int i;                                                                      // For counting
 
     if(dividendDegree < divisorDegree) {                                        // Case dividend has smaller degree than divisor
@@ -50,35 +63,35 @@ NTRUPolynomial result[2]) const {
         return;
     }
     try{
-        leadCoeffDivsrInv = invModq(t.coefficients[dividendDegree]);
+        leadCoeffDivsrInv = invModq(P.coefficients[dividendDegree]);
     } catch(char* excp) {
         std::cout << "\nIn NTRUencryption.cpp, function void NTRUencryption::"
-        "NTRUPolynomial::division(const NTRUPolynomial t,NTRUPolynomial resul"
+        "NTRUPolynomial::division(const NTRUPolynomial P,NTRUPolynomial resul"
         "t[2]) const\n";
         throw excp;
     }                                                                           // At this point we know leading coefficient has an inverse in Zq
-    degreeDiff = dividendDegree - divisorDegree;                                 // At this point we know degreeDiff >= 0
+    degreeDiff = dividendDegree - divisorDegree;                                // At this point we know degreeDiff >= 0
     remDeg = divisorDegree;
-    result[1] = *this;                                                          // Initializing remainder with dividend (this)
-    result[0] = 0;                                                              // Setting quotient as zero
+    result[1] = NTRUPolynomial(_N_, _q_); result[1].copyCoefficients(*this);    // Initializing remainder with dividend (this)
+    result[0] = NTRUPolynomial(_N_, _q_);
 
     for(;degreeDiff >= 0; degreeDiff = remDeg - divisorDegree) {
         result[0].coefficients[degreeDiff] =
-        leadCoeffDivsrInv * result[1].coefficients[remDeg];                       // Putting new coefficient in the quotient
+        leadCoeffDivsrInv * result[1].coefficients[remDeg];                     // Putting new coefficient in the quotient
 
         for(i = remDeg; i >= degreeDiff; i--)
-            result[1].coefficients[i] -= modq(
-            result[0].coefficients[degreeDiff] * t.coefficients[i - degreeDiff]);   // Updating remainder
+            result[1].coefficients[i] -= result[1].modq(
+            result[0].coefficients[degreeDiff] * P.coefficients[i-degreeDiff]); // Updating remainder
 
         while(result[1].coefficients[remDeg] < 0)
-            result[1].coefficients[remDeg] += q;                                 // In case of negative difference (congruent with 0 mod q)
+            result[1].coefficients[remDeg] += q;                                // In case of negative difference (congruent with 0 mod q)
 
-        if(result[1].coefficients[remDeg] != 0)                                  // No congruence with 0 mod q, throwing exception
+        if(result[1].coefficients[remDeg] != 0)                                 // No congruence with 0 mod q, throwing exception
             throw "\nIn NTRUencryption.cpp, function void NTRUencryption::NTRU"
-            "Polynomial::division(const NTRUPolynomial t,NTRUPolynomial result"
-            "[2]) const. result[1].coefficients[remDeg] != 0\n";                 // At this point we know result[1].coefficients[remDeg] = 0
+            "Polynomial::division(const NTRUPolynomial P,NTRUPolynomial result"
+            "[2]) const. result[1].coefficients[remDeg] != 0\n";                // At this point we know result[1].coefficients[remDeg] = 0
 
-        while(remDeg > 0 && result[1].coefficients[--remDeg] == 0) {}            // Updating value of the degree of the remainder
+        while(remDeg > 0 && result[1].coefficients[--remDeg] == 0) {}           // Updating value of the degree of the remainder
     }
 }
 
@@ -120,9 +133,9 @@ int uintToString(unsigned n, char* dest) {
     unsigned i = 0, j = 0;
     char buff = 0;
     do {
-        buff = (char)(n % DECIMAL_BASE);                                         // Taking last current digit
-        dest[i++] = buff + 48;                                                   // Saving last current digit
-        n -= (unsigned)buff; n /= DECIMAL_BASE;                                  // Taking out last current digit from the number n
+        buff = (char)(n % DECIMAL_BASE);                                        // Taking last current digit
+        dest[i++] = buff + 48;                                                  // Saving last current digit
+        n -= (unsigned)buff; n /= DECIMAL_BASE;                                 // Taking out last current digit from the number n
     } while(n > 0);
     dest[i--] = 0;                                                              // Putting a zero at the end and returning one place
     for(; j < i; j++,i--) {                                                     // The number is backwards; reversing the order of the digits
