@@ -20,7 +20,11 @@ class NTRUencryption {
 
 		inline NTRUPolynomial(NTRU_N _N_, NTRU_q _q_): N(_N_), q(_q_) {			// Constructor, initialized polynomial with zeros
 			this->coefficients = new int[this->N];
-			for(int i = 0; i < N; i++) this->coefficients[i] = 0;
+			for(int i = 0; i < this->N; i++) this->coefficients[i] = 0;
+		}
+		inline NTRUPolynomial(NTRUPolynomial& P): N(P.N), q(P.q) {
+			this->coefficients = new int[P.N];
+			for(int i=0; i<P.N; i++) this->coefficients[i] = P.coefficients[i];
 		}
 		inline ~NTRUPolynomial() {
 			if(this->coefficients != NULL) delete [] this->coefficients;
@@ -59,6 +63,16 @@ class NTRUencryption {
 		}
 		int invModq(int t) const;												// Calculates inverse modulus q
 	};
+
+	inline NTRUPolynomial& polMaxN(NTRUPolynomial& P, NTRUPolynomial& Q) {		// Returns reference to the polynomial with maximum degree
+		if(P.N < Q.N) return Q;
+		return P;
+	}
+
+	inline NTRU_N minN(NTRUPolynomial& P, NTRUPolynomial& Q) {
+		if(P.N < Q.N) return P.N;
+		return Q.N;
+	}
 
 	inline static int _3inverseModq(NTRU_q _q_) {
 		switch(_q_) {
