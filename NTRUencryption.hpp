@@ -62,17 +62,20 @@ class NTRUencryption {
     		return t &= q-1;													// Since q is a power of 2, the expression t &= q-1 is equivalent to t %= q
 		}
 		int invModq(int t) const;												// Calculates inverse modulus q
+
+		inline NTRU_N min_N(const NTRUPolynomial& P) const{
+			if(this->N < P.N) return this->N;
+			return P.N;
+		}
+		inline NTRU_N max_N(const NTRUPolynomial& P) const{
+			if(this->N < P.N) return P.N;
+			return this->N;
+		}
+		inline NTRU_q max_q(const NTRUPolynomial& P) const{
+			if(this->q < P.q) return P.q;
+			return this->q;
+		}
 	};
-
-	inline NTRUPolynomial& polMaxN(NTRUPolynomial& P, NTRUPolynomial& Q) {		// Returns reference to the polynomial with maximum degree
-		if(P.N < Q.N) return Q;
-		return P;
-	}
-
-	inline NTRU_N minN(NTRUPolynomial& P, NTRUPolynomial& Q) {
-		if(P.N < Q.N) return P.N;
-		return Q.N;
-	}
 
 	inline static int _3inverseModq(NTRU_q _q_) {
 		switch(_q_) {
