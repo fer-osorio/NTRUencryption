@@ -32,12 +32,12 @@ class NTRUencryption {
 																				// Arithmetic
 		NTRUPolynomial operator + (const NTRUPolynomial&) const;				// Addition element by element
 		NTRUPolynomial operator * (const NTRUPolynomial&) const;				// Multiplication will coincide with convolution
-		void division(const NTRUPolynomial t, NTRUPolynomial result[2]) const;	// Computes quotient and remainder between this and t, saves the result in result[2]
+		void division(const NTRUPolynomial P, NTRUPolynomial result[2]) const;	// Computes quotient and remainder between this and P, saves the result in result[2]
 
-		inline NTRUPolynomial& operator = (const NTRUPolynomial& t) {			// Assignment
-			if(this != &t)                                                    	// Guarding against self assignment
+		inline NTRUPolynomial& operator = (const NTRUPolynomial& P) {			// Assignment
+			if(this != &P)                                                    	// Guarding against self assignment
         		for(int i = 0; i < this->N; i++)
-        			this->coefficients[i] = t.coefficients[i];
+        			this->coefficients[i] = P.coefficients[i];
     		return *this;
 		}
 		inline NTRUPolynomial& operator = (int t) {								// Assignment with single integer
@@ -57,6 +57,8 @@ class NTRUencryption {
 		inline void println() const {
 			print(); std::cout<<'\n';
 		}
+
+		private:
 		inline int modq(int t) const{											// returns t mod q using bit wise operations. The result will be positive
 			while(t < 0) t += q;												// Adding q till we get t positive. This won't affect the result
     		return t &= q-1;													// Since q is a power of 2, the expression t &= q-1 is equivalent to t %= q
@@ -74,6 +76,14 @@ class NTRUencryption {
 		inline NTRU_q max_q(const NTRUPolynomial& P) const{
 			if(this->q < P.q) return P.q;
 			return this->q;
+		}
+		inline int min(int a, int b) const{
+			if(a < b) return a;
+			return b;
+		}
+		inline void copyCoefficients(const NTRUPolynomial& P) {
+			NTRU_N _N_ = this->min_N(P);
+			for(int i=0; i<_N_; i++) this->coefficients[i]=P.coefficients[i];
 		}
 	};
 
