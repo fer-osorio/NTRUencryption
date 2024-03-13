@@ -1,21 +1,14 @@
 #include"NTRUencryption.hpp"
+#include<random>
 
-static int uintToString(unsigned n, char* dest) {
-    unsigned i = 0, j = 0;
-    char buff = 0;
-    do {
-        buff = (char)(n % DECIMAL_BASE);                                        // Taking last current digit
-        dest[i++] = buff + 48;                                                  // Saving last current digit
-        n -= (unsigned)buff; n /= DECIMAL_BASE;                                 // Taking out last current digit from the number n
-    } while(n > 0);
-    dest[i--] = 0;                                                              // Putting a zero at the end and returning one place
-    for(; j < i; j++,i--) {                                                     // The number is backwards; reversing the order of the digits
-        buff = dest[j];
-        dest[j] = dest[i];
-        dest[i] = buff;
-    }
-    return 0;
-}
+class RandInt {                                                                 // Little class for random integers. Taken from The C++ Programming Language 4th
+    public:                                                                     // Edition Bjarne Stroustrup
+    RandInt(int low, int high): dist{low,high} {}
+    int operator()() { return dist(re); }                                       // Draw an int
+    private:
+    std::default_random_engine re;
+    std::uniform_int_distribution<> dist;
+};
 
 NTRUencryption::NTRUencryption(NTRUencryption::NTRU_N _N_, NTRUencryption::
 NTRU_q _q_): N(_N_), q(_q_) {
@@ -167,4 +160,10 @@ int NTRUencryption::NTRUPolynomial::invModq(int t) const{
 		r = this->modq(r);
 	}
 	return r;
+}
+
+void NTRUencryption::NTRUPolynomial::thisCoeffOddRandom() {
+    RandInt rn{1, (q-1)>>2};                                                    // Random integers from 1 to (q-1)/2
+    for(int i = 0; i < this->N; i++)
+        this->coefficients[i] = (rn()<<1) + 1;                                  // Assigning rn()*2 + 1. This number is odd, bigger than zero and smaller than q
 }

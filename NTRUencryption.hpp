@@ -65,6 +65,8 @@ class NTRUencryption {
 			while(t < 0) t += q;												// Adding q till we get t positive. This won't affect the result
     		return t &= q-1;													// Since q is a power of 2, the expression t &= q-1 is equivalent to t %= q
 		}
+		void thisCoeffOddRandom();												// Assigns a random odd integer between 0 and q to each coefficient
+
 		private:
 		inline NTRU_N min_N(const NTRUPolynomial& P) const{
 			if(this->N < P.N) return this->N;
@@ -110,6 +112,23 @@ inline static int len(char* str) {												// Length of a string
 	int l = -1;
 	while(str[++l] != 0) {}
 	return l;
+}
+
+static int uintToString(unsigned n, char* dest) {								// String representation of unsigned integer
+    unsigned i = 0, j = 0;
+    char buff = 0;
+    do {
+        buff = (char)(n % DECIMAL_BASE);                                        // Taking last current digit
+        dest[i++] = buff + 48;                                                  // Saving last current digit
+        n -= (unsigned)buff; n /= DECIMAL_BASE;                                 // Taking out last current digit from the number n
+    } while(n > 0);
+    dest[i--] = 0;                                                              // Putting a zero at the end and returning one place
+    for(; j < i; j++,i--) {                                                     // The number is backwards; reversing the order of the digits
+        buff = dest[j];
+        dest[j] = dest[i];
+        dest[i] = buff;
+    }
+    return 0;
 }
 
 inline static int copyString(const char* origin,char* dest) {
