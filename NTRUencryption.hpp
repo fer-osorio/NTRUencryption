@@ -10,8 +10,6 @@ class NTRUencryption {
 	const NTRU_N N;
 	const NTRU_q q;
 
-	NTRUencryption(NTRU_N _N_, NTRU_q _q_): N(_N_), q(_q_) {}
-
 	private:																	// Private types and attributes
 	struct NTRUPolynomial {														// Representation of the polynomials
 		int* coefficients = NULL;												// Coefficients of the polynomial
@@ -29,7 +27,10 @@ class NTRUencryption {
 		inline ~NTRUPolynomial() {
 			if(this->coefficients != NULL) delete [] this->coefficients;
 		}
-																				// Arithmetic
+
+		private: inline NTRUPolynomial(): N(_509_), q(_2048_) {}				// Setting default constructor as private.
+
+		public:																	// Arithmetic
 		NTRUPolynomial operator + (const NTRUPolynomial&) const;				// Addition element by element
 		NTRUPolynomial operator * (const NTRUPolynomial&) const;				// Multiplication will coincide with convolution
 		void division(const NTRUPolynomial P, NTRUPolynomial result[2]) const;	// Computes quotient and remainder between this and P, saves the result in result[2]
@@ -87,6 +88,8 @@ class NTRUencryption {
 		}
 	};
 
+	public: NTRUencryption(NTRU_N _N_, NTRU_q _q_);
+
 	inline static int _3inverseModq(NTRU_q _q_) {
 		switch(_q_) {
 			case _2048_:return 683;												//  3*683  mod 2048 = 1
@@ -108,7 +111,6 @@ inline static int len(char* str) {												// Length of a string
 	while(str[++l] != 0) {}
 	return l;
 }
-int static uintToString(unsigned n, char* dest);
 
 inline static int copyString(const char* origin,char* dest) {
     int i = 0;                                                                  // Counting variable. At the end it will contain the length of the origin string

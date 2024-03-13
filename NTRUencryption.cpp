@@ -1,5 +1,30 @@
 #include"NTRUencryption.hpp"
 
+static int uintToString(unsigned n, char* dest) {
+    unsigned i = 0, j = 0;
+    char buff = 0;
+    do {
+        buff = (char)(n % DECIMAL_BASE);                                        // Taking last current digit
+        dest[i++] = buff + 48;                                                  // Saving last current digit
+        n -= (unsigned)buff; n /= DECIMAL_BASE;                                 // Taking out last current digit from the number n
+    } while(n > 0);
+    dest[i--] = 0;                                                              // Putting a zero at the end and returning one place
+    for(; j < i; j++,i--) {                                                     // The number is backwards; reversing the order of the digits
+        buff = dest[j];
+        dest[j] = dest[i];
+        dest[i] = buff;
+    }
+    return 0;
+}
+
+NTRUencryption::NTRUencryption(NTRUencryption::NTRU_N _N_, NTRUencryption::
+NTRU_q _q_): N(_N_), q(_q_) {
+    NTRUPolynomial Npol(_N_, _q_);
+    Npol.println();
+    Npol.coefficients[Npol.N-1] = 1;
+    Npol.println();
+}
+
 NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator+
 (const NTRUPolynomial& P) const{
     NTRUencryption::NTRUPolynomial r(this->max_N(P), this->max_q(P));           // Initializing polynomial with the biggest coefficients
@@ -99,19 +124,25 @@ void NTRUencryption::NTRUPolynomial::print() const{
     char start[] = "0   [";                                                     // Start of the string will be printed
     char numBuf[10];                                                            // Buffer necessary for the int -> string conversion
     int qlen, strLen;                                                           // q length in characters, start length in characters
-    int i = 0,j = 0;
+    int i = 0, j = 0;
     int deg = this->degree();
     uintToString((unsigned)q, numBuf);                                          // Conversion from number to string
     qlen =  len(numBuf);
     strLen = len(start);
     std::cout << start;
     do {
-        uintToString(this->coefficients[i], numBuf);                             // Optimize by returning the length of the string
-        strLen = len(numBuf);
+        if(i != 0 && (i & 31) == 0 && i != deg) {                               // Since 2^5 = 32, then i&31 = i % 32
+            std::cout << '\n';
+            j++; uintToString((unsigned)j, numBuf);
+            std::cout << numBuf;                                                // Printing current coefficient
+            strLen = len(numBuf);
+            printSpaces(unsigned(qlen - strLen + 1));                           // Padding with spaces
+        }
+        uintToString((unsigned)this->coefficients[i], numBuf);                  // Optimize by returning the length of the string
         std::cout << numBuf;                                                    // Printing current coefficient
+        strLen = len(numBuf);
         printSpaces(unsigned(qlen - strLen));                                   // Padding with spaces
         if(i < deg) std::cout << ',';
-        if(i != 0 && (i & 31) == 0 && i != deg) std::cout << '\n';              // Since 2^5 = 32, then i&31 = i % 32
     }while(++i <= deg);
     std::cout << ']';
 }
@@ -128,21 +159,3 @@ int NTRUencryption::NTRUPolynomial::invModq(int t) const{
 	}
 	return r;
 }
-
-int uintToString(unsigned n, char* dest) {
-    unsigned i = 0, j = 0;
-    char buff = 0;
-    do {
-        buff = (char)(n % DECIMAL_BASE);                                        // Taking last current digit
-        dest[i++] = buff + 48;                                                  // Saving last current digit
-        n -= (unsigned)buff; n /= DECIMAL_BASE;                                 // Taking out last current digit from the number n
-    } while(n > 0);
-    dest[i--] = 0;                                                              // Putting a zero at the end and returning one place
-    for(; j < i; j++,i--) {                                                     // The number is backwards; reversing the order of the digits
-        buff = dest[j];
-        dest[j] = dest[i];
-        dest[i] = buff;
-    }
-    return 0;
-}
-
