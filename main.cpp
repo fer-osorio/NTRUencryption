@@ -18,11 +18,10 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#include <iostream>
-#include <cstdlib>
+#include"NTRUencryption.hpp"
 
 int main(int argc, char* argv[])
 {
-  std::cout << "Hello, World!\n";
-  return EXIT_SUCCESS;
+  NTRUencryption e(NTRUencryption::_509_, NTRUencryption:: _2048_);
+  return 0;
 }
