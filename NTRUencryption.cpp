@@ -19,10 +19,19 @@ static int uintToString(unsigned n, char* dest) {
 
 NTRUencryption::NTRUencryption(NTRUencryption::NTRU_N _N_, NTRUencryption::
 NTRU_q _q_): N(_N_), q(_q_) {
+    int upperBound = _q_ >> 1, i, k, inv_k;
     NTRUPolynomial Npol(_N_, _q_);
     Npol.println();
     Npol.coefficients[Npol.N-1] = 1;
     Npol.println();
+    for(i = 0; i < upperBound; i++) {
+        k = (i << 1) + 1;
+        inv_k = Npol.invModq(k);
+        std::cout << "(" << k << ")^-1 = " << inv_k << " | ";
+        std::cout << k << "*" << inv_k << " mod " << _q_ << " = ";
+        std::cout << Npol.modq(k*inv_k) << '\n';
+        if(Npol.modq(k*inv_k) != 1) std::cout << "\nSomething went wrong...\n";
+    }
 }
 
 NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator+

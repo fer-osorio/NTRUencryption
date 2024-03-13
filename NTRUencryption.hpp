@@ -59,13 +59,13 @@ class NTRUencryption {
 			print(); std::cout<<'\n';
 		}
 
-		private:
+		int invModq(int t) const;												// Calculates inverse modulus q
+
 		inline int modq(int t) const{											// returns t mod q using bit wise operations. The result will be positive
 			while(t < 0) t += q;												// Adding q till we get t positive. This won't affect the result
     		return t &= q-1;													// Since q is a power of 2, the expression t &= q-1 is equivalent to t %= q
 		}
-		int invModq(int t) const;												// Calculates inverse modulus q
-
+		private:
 		inline NTRU_N min_N(const NTRUPolynomial& P) const{
 			if(this->N < P.N) return this->N;
 			return P.N;
