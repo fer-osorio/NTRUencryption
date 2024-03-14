@@ -28,9 +28,9 @@ class NTRUencryption {
 			if(this->coefficients != NULL) delete [] this->coefficients;
 		}
 
-		private: inline NTRUPolynomial(): N(_509_), q(_2048_) {}				// Setting default constructor as private.
+		inline NTRUPolynomial(): N(_509_), q(_2048_) {}				// Setting default constructor as private.
 
-		public:																	// Arithmetic
+		// Arithmetic
 		NTRUPolynomial operator + (const NTRUPolynomial&) const;				// Addition element by element
 		NTRUPolynomial operator * (const NTRUPolynomial&) const;				// Multiplication will coincide with convolution
 		void division(const NTRUPolynomial P, NTRUPolynomial result[2]) const;	// Computes quotient and remainder between this and P, saves the result in result[2]
@@ -53,10 +53,10 @@ class NTRUencryption {
 			while(this->coefficients[--deg] == 0 && deg > 0) {}
 			return deg;
 		}
-		void print() const;
+		void print(const char* name = "") const;
 
-		inline void println() const {
-			print(); std::cout<<'\n';
+		inline void println(const char* name = "") const {
+			print(name); std::cout<<'\n';
 		}
 
 		int invModq(int t) const;												// Calculates inverse modulus q
@@ -65,7 +65,7 @@ class NTRUencryption {
 			while(t < 0) t += q;												// Adding q till we get t positive. This won't affect the result
     		return t &= q-1;													// Since q is a power of 2, the expression t &= q-1 is equivalent to t %= q
 		}
-		void thisCoeffOddRandom();												// Assigns a random odd integer between 0 and q to each coefficient
+		void thisCoeffOddRandom(int deg);										// Assigns a random odd integer between 0 and q to each coefficient till deg
 
 		private:
 		inline NTRU_N min_N(const NTRUPolynomial& P) const{

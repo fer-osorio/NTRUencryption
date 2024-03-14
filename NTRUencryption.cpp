@@ -12,19 +12,31 @@ class RandInt {                                                                 
 
 NTRUencryption::NTRUencryption(NTRUencryption::NTRU_N _N_, NTRUencryption::
 NTRU_q _q_): N(_N_), q(_q_) {
-    int upperBound = _q_ >> 1, i, k, inv_k;
-    NTRUPolynomial Npol(_N_, _q_);
-    Npol.println();
-    Npol.coefficients[Npol.N-1] = 1;
-    Npol.println();
-    for(i = 0; i < upperBound; i++) {
+    //int upperBound = _q_ >> 1, i, k, inv_k;
+    NTRUPolynomial Np0(_N_, _q_), Np1(_N_, _q_);
+    NTRUPolynomial quorem[2];
+    int sz = this->N >> 2;
+    int szplus = sz + 99;
+    //Np0.println();
+    Np0.coefficients[szplus] = 3;
+    //Np0.println(); std::cout << '\n';
+    /*for(i = 0; i < upperBound; i++) {
         k = (i << 1) + 1;
-        inv_k = Npol.invModq(k);
+        inv_k = Np0.invModq(k);
         std::cout << "(" << k << ")^-1 = " << inv_k << " | ";
         std::cout << k << "*" << inv_k << " mod " << _q_ << " = ";
-        std::cout << Npol.modq(k*inv_k) << '\n';
-        if(Npol.modq(k*inv_k) != 1) std::cout << "\nSomething went wrong...\n";
-    }
+        std::cout << Np0.modq(k*inv_k) << '\n';
+        if(Np0.modq(k*inv_k) != 1) std::cout << "\nSomething went wrong...\n";
+    }*/
+    std::cout << '\n';
+    Np0.thisCoeffOddRandom(sz);
+    Np1.thisCoeffOddRandom(sz);
+    Np0.println("\nNp0");
+    Np1.println("\nNp1");
+    try {Np0.division(Np1, quorem);}
+    catch(char* exp) {std::cout << exp;}
+    quorem[0].print("\nquotient");
+    quorem[1].print("\nremainder");
 }
 
 NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator+
@@ -91,11 +103,11 @@ NTRUPolynomial result[2]) const {
     }
     try{
         leadCoeffDivsrInv = invModq(P.coefficients[dividendDegree]);
-    } catch(char* excp) {
+    } catch(char* exp) {
         std::cout << "\nIn NTRUencryption.cpp, function void NTRUencryption::"
         "NTRUPolynomial::division(const NTRUPolynomial P,NTRUPolynomial resul"
         "t[2]) const\n";
-        throw excp;
+        throw;
     }                                                                           // At this point we know leading coefficient has an inverse in Zq
     degreeDiff = dividendDegree - divisorDegree;                                // At this point we know degreeDiff >= 0
     remDeg = divisorDegree;
@@ -122,7 +134,7 @@ NTRUPolynomial result[2]) const {
     }
 }
 
-void NTRUencryption::NTRUPolynomial::print() const{
+void NTRUencryption::NTRUPolynomial::print(const char* name) const{
     char start[] = "0   [";                                                     // Start of the string will be printed
     char numBuf[10];                                                            // Buffer necessary for the int -> string conversion
     int qlen, strLen;                                                           // q length in characters, start length in characters
@@ -131,6 +143,7 @@ void NTRUencryption::NTRUPolynomial::print() const{
     uintToString((unsigned)q, numBuf);                                          // Conversion from number to string
     qlen =  len(numBuf);
     strLen = len(start);
+    std::cout << name << " = \n";
     std::cout << start;
     do {
         if(i != 0 && (i & 31) == 0 && i != deg) {                               // Since 2^5 = 32, then i&31 = i % 32
@@ -162,8 +175,9 @@ int NTRUencryption::NTRUPolynomial::invModq(int t) const{
 	return r;
 }
 
-void NTRUencryption::NTRUPolynomial::thisCoeffOddRandom() {
-    RandInt rn{1, (q-1)>>2};                                                    // Random integers from 1 to (q-1)/2
-    for(int i = 0; i < this->N; i++)
+void NTRUencryption::NTRUPolynomial::thisCoeffOddRandom(int deg) {
+    RandInt rn{0, (q-1)>>2};                                                    // Random integers from 0 to (q-1)/2
+    if(deg < 0 || deg >= this->N) deg = this->N - 1;
+    for(int i = 0; i <= deg; i++)
         this->coefficients[i] = (rn()<<1) + 1;                                  // Assigning rn()*2 + 1. This number is odd, bigger than zero and smaller than q
 }
