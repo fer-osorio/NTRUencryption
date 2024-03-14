@@ -34,9 +34,9 @@ NTRU_q _q_): N(_N_), q(_q_) {
     Np0.println("\nNp0");
     Np1.println("\nNp1");
     try {Np0.division(Np1, quorem);}
-    catch(char* exp) {std::cout << exp;}
-    quorem[0].print("\nquotient");
-    quorem[1].print("\nremainder");
+    catch(const char* exp) {std::cout << exp;}
+    quorem[0].println("\nquotient");
+    quorem[1].println("\nremainder");
 }
 
 NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator+
@@ -102,35 +102,41 @@ NTRUPolynomial result[2]) const {
         return;
     }
     try{
-        leadCoeffDivsrInv = invModq(P.coefficients[dividendDegree]);
-    } catch(char* exp) {
+        //std::cout<<'\n'<<P.coefficients[divisorDegree]<<divisorDegree<<'\n';  // Debugging purposes
+        leadCoeffDivsrInv = invModq(P.coefficients[divisorDegree]);
+    } catch(const char* exp) {
         std::cout << "\nIn NTRUencryption.cpp, function void NTRUencryption::"
         "NTRUPolynomial::division(const NTRUPolynomial P,NTRUPolynomial resul"
         "t[2]) const\n";
         throw;
     }                                                                           // At this point we know leading coefficient has an inverse in Zq
     degreeDiff = dividendDegree - divisorDegree;                                // At this point we know degreeDiff >= 0
-    remDeg = divisorDegree;
-    result[1] = NTRUPolynomial(_N_, _q_); result[1].copyCoefficients(*this);    // Initializing remainder with dividend (this)
+    remDeg = dividendDegree;
+    result[1] = NTRUPolynomial(_N_, _q_);
+    result[1].copyCoefficients(*this);                                          // Initializing remainder with dividend (this)
     result[0] = NTRUPolynomial(_N_, _q_);
 
     for(;degreeDiff >= 0; degreeDiff = remDeg - divisorDegree) {
-        result[0].coefficients[degreeDiff] =
-        leadCoeffDivsrInv * result[1].coefficients[remDeg];                     // Putting new coefficient in the quotient
+        //std::cout << "\nremDeg = " << remDeg << ", degreeDiff = "             // Debugging
+        //<< degreeDiff << std::endl;                                           // Purposes
+        result[0].coefficients[degreeDiff] = result[0].modq(
+        leadCoeffDivsrInv * result[1].coefficients[remDeg]);                    // Putting new coefficient in the quotient
 
-        for(i = remDeg; i >= degreeDiff; i--)
-            result[1].coefficients[i] -= result[1].modq(
-            result[0].coefficients[degreeDiff] * P.coefficients[i-degreeDiff]); // Updating remainder
+        for(i = remDeg; i >= degreeDiff; i--) {                                 // Updating remainder
+            result[1].coefficients[i] -= result[0].coefficients[degreeDiff]*
+            P.coefficients[i-degreeDiff];
+            result[1].coefficients[i]=result[1].modq(result[1].coefficients[i]);
+        }
 
         while(result[1].coefficients[remDeg] < 0)
-            result[1].coefficients[remDeg] += q;                                // In case of negative difference (congruent with 0 mod q)
+            result[1].coefficients[remDeg] += this->q;                          // In case of negative difference (congruent with 0 mod q)
 
         if(result[1].coefficients[remDeg] != 0)                                 // No congruence with 0 mod q, throwing exception
             throw "\nIn NTRUencryption.cpp, function void NTRUencryption::NTRU"
             "Polynomial::division(const NTRUPolynomial P,NTRUPolynomial result"
             "[2]) const. result[1].coefficients[remDeg] != 0\n";                // At this point we know result[1].coefficients[remDeg] = 0
 
-        while(remDeg > 0 && result[1].coefficients[--remDeg] == 0) {}           // Updating value of the degree of the remainder
+        while(remDeg >= 0 && result[1].coefficients[remDeg--] == 0) {}          // Updating value of the degree of the remainder
     }
 }
 
@@ -151,12 +157,12 @@ void NTRUencryption::NTRUPolynomial::print(const char* name) const{
             j++; uintToString((unsigned)j, numBuf);
             std::cout << numBuf;                                                // Printing current coefficient
             strLen = len(numBuf);
-            printSpaces(unsigned(qlen - strLen + 1));                           // Padding with spaces
+            printSpaces((unsigned)this->max(qlen - strLen + 1,0));              // Padding with spaces
         }
         uintToString((unsigned)this->coefficients[i], numBuf);                  // Optimize by returning the length of the string
         std::cout << numBuf;                                                    // Printing current coefficient
         strLen = len(numBuf);
-        printSpaces(unsigned(qlen - strLen));                                   // Padding with spaces
+        printSpaces((unsigned)this->max(qlen - strLen ,0));                     // Padding with spaces
         if(i < deg) std::cout << ',';
     }while(++i <= deg);
     std::cout << ']';

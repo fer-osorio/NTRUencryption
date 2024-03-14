@@ -37,6 +37,8 @@ class NTRUencryption {
 
 		inline NTRUPolynomial& operator = (const NTRUPolynomial& P) {			// Assignment
 			if(this != &P)                                                    	// Guarding against self assignment
+				if(this->coefficients == NULL)
+					this->coefficients = new int[this->N];
         		for(int i = 0; i < this->N; i++)
         			this->coefficients[i] = P.coefficients[i];
     		return *this;
@@ -83,6 +85,10 @@ class NTRUencryption {
 		inline int min(int a, int b) const{
 			if(a < b) return a;
 			return b;
+		}
+		inline int max(int a, int b) const{
+			if(a < b) return b;
+			return a;
 		}
 		inline void copyCoefficients(const NTRUPolynomial& P) {
 			NTRU_N _N_ = this->min_N(P);
