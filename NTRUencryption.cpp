@@ -1,9 +1,12 @@
 #include"NTRUencryption.hpp"
 #include<random>
+#include<ctime>
+
+static unsigned _seed_ = (unsigned)time(NULL);
 
 class RandInt {                                                                 // Little class for random integers. Taken from The C++ Programming Language 4th
     public:                                                                     // Edition Bjarne Stroustrup
-    RandInt(int low, int high): dist{low,high} {}
+    RandInt(int low, int high, unsigned seed): re{seed}, dist{low,high} {}
     int operator()() { return dist(re); }                                       // Draw an int
     private:
     std::default_random_engine re;
@@ -16,9 +19,9 @@ NTRU_q _q_): N(_N_), q(_q_) {
     NTRUPolynomial Np0(_N_, _q_), Np1(_N_, _q_);
     NTRUPolynomial quorem[2];
     int sz = this->N >> 2;
-    int szplus = sz + 99;
+    int szplus = sz + 100;
     //Np0.println();
-    Np0.coefficients[szplus] = 3;
+    //Np0.coefficients[szplus] = 3;
     //Np0.println(); std::cout << '\n';
     /*for(i = 0; i < upperBound; i++) {
         k = (i << 1) + 1;
@@ -29,7 +32,7 @@ NTRU_q _q_): N(_N_), q(_q_) {
         if(Np0.modq(k*inv_k) != 1) std::cout << "\nSomething went wrong...\n";
     }*/
     std::cout << '\n';
-    Np0.thisCoeffOddRandom(sz);
+    Np0.thisCoeffOddRandom(szplus);
     Np1.thisCoeffOddRandom(sz);
     Np0.println("\nNp0");
     Np1.println("\nNp1");
@@ -37,6 +40,8 @@ NTRU_q _q_): N(_N_), q(_q_) {
     catch(const char* exp) {std::cout << exp;}
     quorem[0].println("\nquotient");
     quorem[1].println("\nremainder");
+    if(Np1*quorem[0] + quorem[1] == Np0)
+        std::cout << "\nSuccesful division.\n";
 }
 
 NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator+
@@ -62,7 +67,7 @@ NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator*
     int i, j, k;
 
     if(this->N < P.N) { small = this; big = &P; }                               // 'small' points to the polynomial with the smallest N, 'big' points to the
-	else { small = &P; big = &P; }                                              // polynomial with the biggest N
+	else { small = &P; big = this; }                                              // polynomial with the biggest N
 
     for(i = 0; i < r.N; i++) {                                                  // Convolution process
         k = min(i, small->N);
@@ -136,7 +141,7 @@ NTRUPolynomial result[2]) const {
             "Polynomial::division(const NTRUPolynomial P,NTRUPolynomial result"
             "[2]) const. result[1].coefficients[remDeg] != 0\n";                // At this point we know result[1].coefficients[remDeg] = 0
 
-        while(remDeg >= 0 && result[1].coefficients[remDeg--] == 0) {}          // Updating value of the degree of the remainder
+        while(remDeg >= 0 && result[1].coefficients[remDeg] == 0) remDeg--;     // Updating value of the degree of the remainder
     }
 }
 
@@ -182,7 +187,7 @@ int NTRUencryption::NTRUPolynomial::invModq(int t) const{
 }
 
 void NTRUencryption::NTRUPolynomial::thisCoeffOddRandom(int deg) {
-    RandInt rn{0, (q-1)>>2};                                                    // Random integers from 0 to (q-1)/2
+    RandInt rn{0, (q-1)>>2, _seed_++};                                          // Random integers from 0 to (q-1)/2
     if(deg < 0 || deg >= this->N) deg = this->N - 1;
     for(int i = 0; i <= deg; i++)
         this->coefficients[i] = (rn()<<1) + 1;                                  // Assigning rn()*2 + 1. This number is odd, bigger than zero and smaller than q

@@ -13,8 +13,8 @@ class NTRUencryption {
 	private:																	// Private types and attributes
 	struct NTRUPolynomial {														// Representation of the polynomials
 		int* coefficients = NULL;												// Coefficients of the polynomial
-		const NTRU_N N;
-		const NTRU_q q;
+		NTRU_N N;
+		NTRU_q q;
 
 		inline NTRUPolynomial(NTRU_N _N_, NTRU_q _q_): N(_N_), q(_q_) {			// Constructor, initialized polynomial with zeros
 			this->coefficients = new int[this->N];
@@ -36,11 +36,14 @@ class NTRUencryption {
 		void division(const NTRUPolynomial P, NTRUPolynomial result[2]) const;	// Computes quotient and remainder between this and P, saves the result in result[2]
 
 		inline NTRUPolynomial& operator = (const NTRUPolynomial& P) {			// Assignment
-			if(this != &P)                                                    	// Guarding against self assignment
+			if(this != &P) {                                                    // Guarding against self assignment
+				this->N = P.N;
+				this->q = P.q;
 				if(this->coefficients == NULL)
 					this->coefficients = new int[this->N];
         		for(int i = 0; i < this->N; i++)
         			this->coefficients[i] = P.coefficients[i];
+        	}
     		return *this;
 		}
 		inline NTRUPolynomial& operator = (int t) {								// Assignment with single integer
@@ -69,6 +72,14 @@ class NTRUencryption {
 		}
 		void thisCoeffOddRandom(int deg);										// Assigns a random odd integer between 0 and q to each coefficient till deg
 
+		inline bool operator == (const NTRUPolynomial& P) {
+			if(this->N == P.N && this->q == P.q) {
+				for(int i = 0; i < this->N; i++)
+					if(this->coefficients[i] != P.coefficients[i]) return false;
+				return true;
+			}
+			else return false;
+		}
 		private:
 		inline NTRU_N min_N(const NTRUPolynomial& P) const{
 			if(this->N < P.N) return this->N;
@@ -120,7 +131,7 @@ inline static int len(char* str) {												// Length of a string
 	return l;
 }
 
-static int uintToString(unsigned n, char* dest) {								// String representation of unsigned integer
+inline static int uintToString(unsigned n, char* dest) {								// String representation of unsigned integer
     unsigned i = 0, j = 0;
     char buff = 0;
     do {
