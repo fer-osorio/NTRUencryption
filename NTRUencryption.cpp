@@ -13,40 +13,40 @@ class RandInt {                                                                 
     std::uniform_int_distribution<> dist;
 };
 
-NTRUencryption::NTRUencryption(NTRUencryption::NTRU_N _N_, NTRUencryption::
-NTRU_q _q_): N(_N_), q(_q_) {
-    //int upperBound = _q_ >> 1, i, k, inv_k;
-    NTRUPolynomial Np0(_N_, _q_), Np1(_N_, _q_);
-    NTRUPolynomial quorem[2];
-    int sz = this->N >> 2;
-    int szplus = sz + 100;
-    //Np0.println();
-    //Np0.coefficients[szplus] = 3;
-    //Np0.println(); std::cout << '\n';
-    /*for(i = 0; i < upperBound; i++) {
-        k = (i << 1) + 1;
-        inv_k = Np0.invModq(k);
-        std::cout << "(" << k << ")^-1 = " << inv_k << " | ";
-        std::cout << k << "*" << inv_k << " mod " << _q_ << " = ";
-        std::cout << Np0.modq(k*inv_k) << '\n';
-        if(Np0.modq(k*inv_k) != 1) std::cout << "\nSomething went wrong...\n";
-    }*/
-    std::cout << '\n';
-    Np0.thisCoeffOddRandom(szplus);
-    Np1.thisCoeffOddRandom(sz);
-    Np0.println("\nNp0");
-    Np1.println("\nNp1");
-    try {Np0.division(Np1, quorem);}
-    catch(const char* exp) {std::cout << exp;}
-    quorem[0].println("\nquotient");
-    quorem[1].println("\nremainder");
-    if(Np1*quorem[0] + quorem[1] == Np0)
-        std::cout << "\nSuccesful division.\n";
-}
+
+NTRUencryption::NTRUPolynomial::NTRUPolynomial(NTRU_N _N_,NTRU_q _q_,int ones,
+int negOnes, NTRU_p _p_): N(_N_), q(_q_) {
+    int i, j;
+    RandInt rn{0, N-1, _seed_++};                                               // Random integers from 0 to N-1
+
+    if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and negOnes. In particular the
+    if(negOnes < 0) negOnes = -negOnes;                                         // inequality ones + negOnes < N must follow
+    while(ones + negOnes >= this->N) {                                          // Dividing by two till getting inside the allowed range
+        ones <<= 1;                                                             // ...
+        negOnes <<= 1;                                                          // ...
+    }
+
+	this->coefficients = new int[this->N];
+	for(i = 0; i < this->N; i++) this->coefficients[i] = 0;
+	while(ones > 0) {                                                           // Putting the ones first
+        j = rn();
+        if(this->coefficients[j] == 0) {
+            this->coefficients[j] = 1;
+            ones--;
+        }
+	}
+	while(negOnes > 0) {                                                        // Then the negative ones
+        j = rn();
+        if(this->coefficients[j] == 0) {
+            this->coefficients[j] = 2;                                          // Two is congruent with -1 modulo 3
+            negOnes--;
+        }
+	}
+}                                                                               // Maybe is some room for optimization using JV theorem
 
 NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator+
 (const NTRUPolynomial& P) const{
-    NTRUencryption::NTRUPolynomial r(this->max_N(P), this->max_q(P));           // Initializing polynomial with the biggest coefficients
+    NTRUencryption::NTRUPolynomial r(this->max_N(P), this->max_q(P));           // Initializing result in the "biggest polynomial ring"
     const NTRUencryption::NTRUPolynomial *small, *big;
     int i;
 
@@ -60,6 +60,22 @@ NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator+
     return r;
 }
 
+NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator-
+(const NTRUPolynomial& P) const{
+    NTRUencryption::NTRUPolynomial r(this->max_N(P), this->max_q(P));           // Initializing result in the "biggest polynomial ring"
+    const NTRUencryption::NTRUPolynomial *small, *big;
+    int i;
+
+    if(this->N < P.N) { small = this; big = &P; }                               // 'small' points to the polynomial with the smallest N, 'big' points to the
+	else { small = &P; big = &P; }                                              // polynomial with the biggest N
+
+    for(i = 0; i < small->N; i++)
+        r.coefficients[i] = r.modq(this->coefficients[i] - P.coefficients[i]);  // Addition element by element till the smallest degree of the arguments
+    for(; i < big->N; i++)
+        r.coefficients[i] = big->coefficients[i];                               // Just copying, equivalent to filling with zeros the small polynomial
+    return r;
+}
+
 NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator*
 (const NTRUPolynomial& P) const{
     NTRUencryption::NTRUPolynomial r(this->max_N(P), this->max_q(P));           // Initializing with zeros
@@ -67,7 +83,7 @@ NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator*
     int i, j, k;
 
     if(this->N < P.N) { small = this; big = &P; }                               // 'small' points to the polynomial with the smallest N, 'big' points to the
-	else { small = &P; big = this; }                                              // polynomial with the biggest N
+	else { small = &P; big = this; }                                            // polynomial with the biggest N
 
     for(i = 0; i < r.N; i++) {                                                  // Convolution process
         k = min(i, small->N);
@@ -80,7 +96,7 @@ NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator*
     return r;
 }
 
-void NTRUencryption::NTRUPolynomial::division(const NTRUPolynomial P,
+void NTRUencryption::NTRUPolynomial::division(const NTRUPolynomial& P,
 NTRUPolynomial result[2]) const {
     if(P == 0) {
         throw "\nIn NTRUencryption.cpp, function void NTRUencryption::NTRUPoly"
@@ -133,9 +149,6 @@ NTRUPolynomial result[2]) const {
             result[1].coefficients[i]=result[1].modq(result[1].coefficients[i]);
         }
 
-        while(result[1].coefficients[remDeg] < 0)
-            result[1].coefficients[remDeg] += this->q;                          // In case of negative difference (congruent with 0 mod q)
-
         if(result[1].coefficients[remDeg] != 0)                                 // No congruence with 0 mod q, throwing exception
             throw "\nIn NTRUencryption.cpp, function void NTRUencryption::NTRU"
             "Polynomial::division(const NTRUPolynomial P,NTRUPolynomial result"
@@ -143,6 +156,45 @@ NTRUPolynomial result[2]) const {
 
         while(remDeg >= 0 && result[1].coefficients[remDeg] == 0) remDeg--;     // Updating value of the degree of the remainder
     }
+}
+
+NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::gcd(const        // EEDA will mean Extended Euclidean Division Algorithm
+NTRUPolynomial& P,  NTRUPolynomial Bezout[2]) const{                            // Bezout[2] will hold the Bezout coefficients
+    NTRU_N _N_ = this->max_N(P);
+    NTRU_q _q_ = this->max_q(P);
+    NTRUPolynomial _gcd_(_N_, _q_);                                             // Initializing result in the "biggest polynomial ring"
+    NTRUPolynomial remainders, quoRem[2];
+    NTRUPolynomial BezoutBuffer[2];
+    const NTRUPolynomial *big;                                                  // Points to polynomial with biggest degree
+    const NTRUPolynomial *small;                                                // Points to polynomial with smallest degree
+
+    if(this->degree() < P.degree()) {
+        _gcd_.copyCoefficients(P);                                              // Initializing gcd with the polynomial with biggest degree
+        remainders = *this;                                                     // Initializing remainders with the polynomial with smallest degree
+        big = &P;                                                               // This if-else is a small optimization. It will save one division in some cases
+        small = this;
+    } else {
+	    _gcd_.copyCoefficients(*this);
+	    remainders = P;
+	    big = this;
+	    small = &P;
+	}
+    Bezout[0].N = _N_; Bezout[0].q = _q_; Bezout[0] = 1;                        // Initializing first Bezout coefficient as 1 Bezout[0] = u
+    BezoutBuffer[0].N = _N_; BezoutBuffer[0].q = _q_; BezoutBuffer[0] = 0;      // Initializing as 0 BezoutBuffer[0] = x
+	while(remainders != 0) {
+        try{ _gcd_.division(remainders, quoRem); }
+        catch(const char* exp) {
+            std::cout << "\nIn NTRUencryption.cpp; function NTRUencryption::"
+            "NTRUPolynomial::gcd(const NTRUPolynomial& P) const\n";
+            throw;
+        }
+        BezoutBuffer[1] = Bezout[0] - quoRem[0]*BezoutBuffer[0];                // BezoutBuffer[1] = s
+        Bezout[0] = BezoutBuffer[0]; _gcd_ = remainders;
+        BezoutBuffer[0] = BezoutBuffer[1]; remainders = quoRem[1];
+	}
+    (_gcd_- (*big) * Bezout[0]).division(*small, quoRem);                       // Computing the second Bezout coefficient
+    Bezout[1] = quoRem[0];                                                      // ...
+	return _gcd_;
 }
 
 void NTRUencryption::NTRUPolynomial::print(const char* name) const{
@@ -187,8 +239,29 @@ int NTRUencryption::NTRUPolynomial::invModq(int t) const{
 }
 
 void NTRUencryption::NTRUPolynomial::thisCoeffOddRandom(int deg) {
-    RandInt rn{0, (q-1)>>2, _seed_++};                                          // Random integers from 0 to (q-1)/2
+    RandInt rn{0, (this->q-1)>>2, _seed_++};                                    // Random integers from 0 to (q-1)/4
     if(deg < 0 || deg >= this->N) deg = this->N - 1;
     for(int i = 0; i <= deg; i++)
         this->coefficients[i] = (rn()<<1) + 1;                                  // Assigning rn()*2 + 1. This number is odd, bigger than zero and smaller than q
+}
+
+NTRUencryption::NTRUencryption(NTRUencryption::NTRU_N _N_, NTRUencryption::
+NTRU_q _q_, NTRU_p _p_, int _d_): N(_N_), q(_q_), p(_p_), d(_d_) {
+    NTRUPolynomial Np0(_N_, _q_), Np1(_N_, _q_);
+    NTRUPolynomial quorem[2], Bezout[2], gcd;
+    int sz = this->N >> 2;
+    int szplus = sz + 100;
+    Np0.thisCoeffOddRandom(szplus);
+    Np1.thisCoeffOddRandom(sz);
+    std::cout << '\n';
+    Np0.println("\nNp0");
+    Np1.println("\nNp1");
+    try {Np0.division(Np1, quorem);}
+    catch(const char* exp) {std::cout << exp;}
+    quorem[0].println("\nquotient");
+    quorem[1].println("\nremainder");
+    if(Np1*quorem[0] + quorem[1] == Np0 && Np1.degree() > quorem[1].degree())
+        std::cout << "\nSuccesful division.\n";
+    try{gcd = Np0.gcd(Np1,Bezout);gcd.println("gcd(Np0,Np1)");}
+    catch(const char* exp) {std::cout << exp;}
 }
