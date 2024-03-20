@@ -8,10 +8,6 @@ class NTRUencryption {
 	enum NTRU_N {_509_  = 509,  _677_  = 677,  _701_  = 701,  _821_ = 821 };	// All the possible values for the N
 	enum NTRU_q {_2048_ = 2048, _4096_ = 4096, _8192_ = 8192 };					// All the possible values for the q
 	enum NTRU_p {_3_	= 3 };
-	const NTRU_N N;
-	const NTRU_q q;
-	const NTRU_p p;
-	const int 	 d;
 
 	private:																	// Private types and attributes
 	struct NTRUPolynomial {														// Representation of the polynomials
@@ -20,10 +16,16 @@ class NTRUencryption {
 		NTRU_q q;
 		NTRU_p p;
 
-		NTRUPolynomial(NTRU_N _N_, NTRU_q _q_, int ones = 0, int negOnes = 0,	// Ones and negOnes will dictate the amount of 1 and -1 respectively
-		NTRU_p _p_=_3_);
+		static const int Z3addition[3][3];										// Addition table of the Z3 ring (integers modulo 3)
+		static const int Z3subtraction[3][3];									// Subtraction table of the Z3 ring (integers modulo 3)
+		static const int Z3product[3][3];										// Product table of the Z3 ring (integers modulo 3)
 
-		inline NTRUPolynomial(NTRUPolynomial& P): N(P.N), q(P.q) {
+		inline NTRUPolynomial(): N(_509_), q(_2048_) {}							// Initializing N and q, coefficients is left as zero
+
+		NTRUPolynomial(NTRU_N _N_, NTRU_q _q_, int ones = 0, int negOnes = 0,	// Ones and negOnes will dictate the amount of 1 and -1 respectively
+					   NTRU_p _p_=_3_);
+
+		inline NTRUPolynomial(const NTRUPolynomial& P):N(P.N), q(P.q), p(P.p) {
 			this->coefficients = new int[P.N];
 			for(int i=0; i<P.N; i++) this->coefficients[i] = P.coefficients[i];
 		}
@@ -31,15 +33,14 @@ class NTRUencryption {
 			if(this->coefficients != NULL) delete [] this->coefficients;
 		}
 
-		inline NTRUPolynomial(): N(_509_), q(_2048_) {}							// Initializing N and q, coefficients is left as zero
-
 		// Arithmetic
 		NTRUPolynomial operator + (const NTRUPolynomial&) const;				// Addition element by element
 		NTRUPolynomial operator - (const NTRUPolynomial&) const;				// Subtraction element by element
 		NTRUPolynomial operator * (const NTRUPolynomial&) const;				// Multiplication will coincide with convolution
-		void division(const NTRUPolynomial& P, NTRUPolynomial result[2]) const;	// Computes quotient and remainder between this and P, saves the result in result[2]
-		NTRUPolynomial gcd(const NTRUPolynomial&,								// Greatest common divisor
-								 NTRUPolynomial Bezout[2])const;				// Bezout coefficients are polynomials u and v such that u*a + v*b = gcd(a,b)
+
+		void divisionZ3(const NTRUPolynomial& P,NTRUPolynomial result[2])const;	// Division assuming the polynomials has its elements in Z3
+		NTRUPolynomial gcdXNminus1Z3(NTRUPolynomial Bezout[2]) const;			// Greatest common divisor between X^N-1 and P. Coefficients in Z3
+									 											// Bezout coefficients are polynomials u and v such that u*a + v*b = gcd(a,b)
 
 		inline NTRUPolynomial& operator = (const NTRUPolynomial& P) {			// Assignment
 			if(this != &P) {                                                    // Guarding against self assignment
@@ -131,8 +132,20 @@ class NTRUencryption {
 		}
 	};
 
-	public:
+	public:																		// Attributes
+	const NTRU_N N;
+	const NTRU_q q;
+	const NTRU_p p;
+	const int 	 d;
+
 	NTRUencryption(NTRU_N _N_, NTRU_q _q_, NTRU_p _p_ = _3_, int _d_ = 0);
+
+	private:
+	NTRUPolynomial publicKey;
+	NTRUPolynomial privateKey;
+	NTRUPolynomial privateKeyInvp;												// Private key inverse modulo p
+
+	void setPrivateKeyAndInverse();												// Creates private key and inverse of the private key
 
 	inline static int _3inverseModq(NTRU_q _q_) {
 		switch(_q_) {

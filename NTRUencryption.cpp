@@ -2,6 +2,17 @@
 #include<random>
 #include<ctime>
 
+const int NTRUencryption::NTRUPolynomial::Z3addition[3][3]   = {{0, 1, 2},      // Addition table of the Z3 ring (integers modulo 3)
+                                                                {1, 2, 0},      // ...
+                                                                {2, 0, 1}};     // ...
+
+const int NTRUencryption::NTRUPolynomial::Z3subtraction[3][3]= {{0, 2, 1},      // Addition table of the Z3 ring (integers modulo 3)
+                                                                {1, 0, 2},      // ...
+                                                                {2, 1, 0}};     // ...
+
+const int NTRUencryption::NTRUPolynomial::Z3product[3][3]    = {{0, 0, 0},      // Product table of the Z3 ring (integers modulo 3)
+                                                                {0, 1, 2},      // ...
+                                                                {0, 2, 1}};     // ...
 static unsigned _seed_ = (unsigned)time(NULL);
 
 class RandInt {                                                                 // Little class for random integers. Taken from The C++ Programming Language 4th
@@ -18,14 +29,12 @@ NTRUencryption::NTRUPolynomial::NTRUPolynomial(NTRU_N _N_,NTRU_q _q_,int ones,
 int negOnes, NTRU_p _p_): N(_N_), q(_q_) {
     int i, j;
     RandInt rn{0, N-1, _seed_++};                                               // Random integers from 0 to N-1
-
     if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and negOnes. In particular the
     if(negOnes < 0) negOnes = -negOnes;                                         // inequality ones + negOnes < N must follow
     while(ones + negOnes >= this->N) {                                          // Dividing by two till getting inside the allowed range
         ones <<= 1;                                                             // ...
         negOnes <<= 1;                                                          // ...
     }
-
 	this->coefficients = new int[this->N];
 	for(i = 0; i < this->N; i++) this->coefficients[i] = 0;
 	while(ones > 0) {                                                           // Putting the ones first
@@ -96,7 +105,7 @@ NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::operator*
     return r;
 }
 
-void NTRUencryption::NTRUPolynomial::division(const NTRUPolynomial& P,
+void NTRUencryption::NTRUPolynomial::divisionZ3(const NTRUPolynomial& P,
 NTRUPolynomial result[2]) const {
     if(P == 0) {
         throw "\nIn NTRUencryption.cpp, function void NTRUencryption::NTRUPoly"
@@ -115,14 +124,14 @@ NTRUPolynomial result[2]) const {
     const int divisorDegree  = P.degree();
     int degreeDiff;                                                             // Difference between degrees
     int remDeg;                                                                 // Remainder degree
-    int leadCoeffDivsrInv;                                                      // Inverse (modulus q) of leading coefficient of the divisor
+    const int leadCoeffDivsrInv = P.coefficients[divisorDegree];                // In Z3, each element is its own inverse
     int i;                                                                      // For counting
 
     if(dividendDegree < divisorDegree) {                                        // Case dividend has smaller degree than divisor
         result[0] = 0; result[1] = *this;
         return;
     }
-    try{
+    /*try{
         //std::cout<<'\n'<<P.coefficients[divisorDegree]<<divisorDegree<<'\n';  // Debugging purposes
         leadCoeffDivsrInv = invModq(P.coefficients[divisorDegree]);
     } catch(const char* exp) {
@@ -130,7 +139,7 @@ NTRUPolynomial result[2]) const {
         "NTRUPolynomial::division(const NTRUPolynomial P,NTRUPolynomial resul"
         "t[2]) const\n";
         throw;
-    }                                                                           // At this point we know leading coefficient has an inverse in Zq
+    }*/                                                                           // At this point we know leading coefficient has an inverse in Zq
     degreeDiff = dividendDegree - divisorDegree;                                // At this point we know degreeDiff >= 0
     remDeg = dividendDegree;
     result[1] = NTRUPolynomial(_N_, _q_);
@@ -140,13 +149,13 @@ NTRUPolynomial result[2]) const {
     for(;degreeDiff >= 0; degreeDiff = remDeg - divisorDegree) {
         //std::cout << "\nremDeg = " << remDeg << ", degreeDiff = "             // Debugging
         //<< degreeDiff << std::endl;                                           // Purposes
-        result[0].coefficients[degreeDiff] = result[0].modq(
-        leadCoeffDivsrInv * result[1].coefficients[remDeg]);                    // Putting new coefficient in the quotient
+        result[0].coefficients[degreeDiff] = Z3product[
+        leadCoeffDivsrInv][result[1].coefficients[remDeg]];                     // Putting new coefficient in the quotient
 
         for(i = remDeg; i >= degreeDiff; i--) {                                 // Updating remainder
-            result[1].coefficients[i] -= result[0].coefficients[degreeDiff]*
-            P.coefficients[i-degreeDiff];
-            result[1].coefficients[i]=result[1].modq(result[1].coefficients[i]);
+            result[1].coefficients[i] =
+            Z3subtraction[result[1].coefficients[i]][Z3product[
+            result[0].coefficients[degreeDiff]][P.coefficients[i-degreeDiff]]];
         }
 
         if(result[1].coefficients[remDeg] != 0)                                 // No congruence with 0 mod q, throwing exception
@@ -158,13 +167,14 @@ NTRUPolynomial result[2]) const {
     }
 }
 
-NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::gcd(const        // EEDA will mean Extended Euclidean Division Algorithm
-NTRUPolynomial& P,  NTRUPolynomial Bezout[2]) const{                            // Bezout[2] will hold the Bezout coefficients
-    NTRU_N _N_ = this->max_N(P);
-    NTRU_q _q_ = this->max_q(P);
-    NTRUPolynomial _gcd_(_N_, _q_);                                             // Initializing result in the "biggest polynomial ring"
-    NTRUPolynomial remainders, quoRem[2];
+NTRUencryption::NTRUPolynomial NTRUencryption::NTRUPolynomial::gcdXNminus1Z3(   // EEDA will mean Extended Euclidean Division Algorithm
+NTRUPolynomial Bezout[2]) const{                                                // Bezout[2] will hold the Bezout coefficients
+    NTRUPolynomial _gcd_;                                                       // Initializing result in the "biggest polynomial ring"
+    NTRUPolynomial remainders;
     NTRUPolynomial BezoutBuffer[2];
+    NTRUPolynomial quoRem[2] = {NTRUPolynomial(this->N, this->q),
+                                NTRUPolynomial(this->N, this->q)};
+
     const NTRUPolynomial *big;                                                  // Points to polynomial with biggest degree
     const NTRUPolynomial *small;                                                // Points to polynomial with smallest degree
 
@@ -182,7 +192,7 @@ NTRUPolynomial& P,  NTRUPolynomial Bezout[2]) const{                            
     Bezout[0].N = _N_; Bezout[0].q = _q_; Bezout[0] = 1;                        // Initializing first Bezout coefficient as 1 Bezout[0] = u
     BezoutBuffer[0].N = _N_; BezoutBuffer[0].q = _q_; BezoutBuffer[0] = 0;      // Initializing as 0 BezoutBuffer[0] = x
 	while(remainders != 0) {
-        try{ _gcd_.division(remainders, quoRem); }
+        try{ _gcd_.divisionZ3(remainders, quoRem); }
         catch(const char* exp) {
             std::cout << "\nIn NTRUencryption.cpp; function NTRUencryption::"
             "NTRUPolynomial::gcd(const NTRUPolynomial& P) const\n";
@@ -192,7 +202,7 @@ NTRUPolynomial& P,  NTRUPolynomial Bezout[2]) const{                            
         Bezout[0] = BezoutBuffer[0]; _gcd_ = remainders;
         BezoutBuffer[0] = BezoutBuffer[1]; remainders = quoRem[1];
 	}
-    (_gcd_- (*big) * Bezout[0]).division(*small, quoRem);                       // Computing the second Bezout coefficient
+    (_gcd_- (*big) * Bezout[0]).divisionZ3(*small, quoRem);                       // Computing the second Bezout coefficient
     Bezout[1] = quoRem[0];                                                      // ...
 	return _gcd_;
 }
@@ -247,7 +257,9 @@ void NTRUencryption::NTRUPolynomial::thisCoeffOddRandom(int deg) {
 
 NTRUencryption::NTRUencryption(NTRUencryption::NTRU_N _N_, NTRUencryption::
 NTRU_q _q_, NTRU_p _p_, int _d_): N(_N_), q(_q_), p(_p_), d(_d_) {
-    NTRUPolynomial Np0(_N_, _q_), Np1(_N_, _q_);
+    this->privateKey = NTRUPolynomial(_N_, _q_, _d_+ 1, _d_);                   // Polynomial f
+
+    /*NTRUPolynomial Np0(_N_, _q_), Np1(_N_, _q_);
     NTRUPolynomial quorem[2], Bezout[2], gcd;
     int sz = this->N >> 2;
     int szplus = sz + 100;
@@ -263,5 +275,5 @@ NTRU_q _q_, NTRU_p _p_, int _d_): N(_N_), q(_q_), p(_p_), d(_d_) {
     if(Np1*quorem[0] + quorem[1] == Np0 && Np1.degree() > quorem[1].degree())
         std::cout << "\nSuccesful division.\n";
     try{gcd = Np0.gcd(Np1,Bezout);gcd.println("gcd(Np0,Np1)");}
-    catch(const char* exp) {std::cout << exp;}
+    catch(const char* exp) {std::cout << exp;}*/
 }
