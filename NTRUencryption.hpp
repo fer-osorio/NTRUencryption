@@ -15,6 +15,7 @@ class NTRUencryption {
 		private:
 		NTRU_N N;
 		NTRU_p p = _3_;
+		int* permutation = NULL;
 
 		public:
 		static const int Z3addition[3][3];										// Addition table of the Z3 ring (integers modulo 3)
@@ -33,6 +34,7 @@ class NTRUencryption {
 
 		inline NTRU_N getN() { return this->N; }
 		inline NTRU_p getp() { return this->p; }
+		void setPermutation();
 
 		// Arithmetic
 		NTRUPolyZp operator + (const NTRUPolyZp&) const;						// Addition element by element
@@ -46,13 +48,14 @@ class NTRUencryption {
 
 		inline NTRUPolyZp& operator = (const NTRUPolyZp& P) {					// Assignment
 			if(this != &P) {                                                    // Guarding against self assignment
-				if(this->coefficients == NULL)
+				if(this->coefficients == NULL) {
 					this->coefficients = new int[P.N];
-				else if(this->N != P.N) {
+					this->N = P.N;
+				} else if(this->N != P.N) {
 					delete [] this->coefficients;
 					this->coefficients = new int[P.N];
+					this->N = P.N;
 				}
-				this->N = P.N;
         		for(int i = 0; i < P.N; i++)
         			this->coefficients[i] = P.coefficients[i];
         	}
@@ -146,10 +149,10 @@ class NTRUencryption {
 
 	private:
 	//NTRUPolyZp publicKey;
-	NTRUPolyZp privateKey;
+	//NTRUPolyZp privateKey;
 	//NTRUPolyZp privateKeyInvp;												// Private key inverse modulo p
 
-	void setPrivateKeyAndInverse();												// Creates private key and inverse of the private key
+	void setPrivateKeyAndInv();													// Creates private key and inverse of the private key
 
 	inline static int _3inverseModq(NTRU_q _q_) {
 		switch(_q_) {
