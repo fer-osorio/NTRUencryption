@@ -28,7 +28,7 @@ class RandInt {                                                                 
 NTRUencryption::NTRUPolyZp::NTRUPolyZp(NTRU_N _N_,int ones, int negOnes,
 NTRU_p _p_): N(_N_), p(_p_) {
     int i, j;
-    RandInt rn{0, _N_-1, _seed_++};                                               // Random integers from 0 to N-1
+    RandInt rn{0, _N_-1, _seed_++};                                             // Random integers from 0 to N-1
     if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and negOnes. In particular the
     if(negOnes < 0) negOnes = -negOnes;                                         // inequality ones + negOnes < N must follow
     while(ones + negOnes >= this->N) {                                          // Dividing by two till getting inside the allowed range
@@ -54,10 +54,30 @@ NTRU_p _p_): N(_N_), p(_p_) {
 }                                                                               // Maybe is some room for optimization using JV theorem
 
 void NTRUencryption::NTRUPolyZp::setPermutation() {                             // Naive way of setting a permutation
-    int i;
-    if(this->permutation == NULL) this->permutation = new int[this->N];
-    for(i = 0; i < this->N; i++) this->permutation[i] = -1;
-
+    int i, j, k, *tmp = new int[this->N];
+    RandInt rn{0, 0x7FFFFFFF, _seed_++};                                        // Random integers from 0 to the maximum number for and int
+    if(this->permutation==NULL) this->permutation = new int[this->N];
+    for(i = 0; i < this->N; i++)  tmp[i] = i;
+    for(i = 0, j = this->N; i < this->N; i++, j--) {
+        k = rn()%j;
+        this->permutation[i] = tmp[k];
+        tmp[k] = tmp[j-1];
+    }
+    delete[] tmp;
+}
+                                                                                // Implementation of the permutation
+void NTRUencryption::NTRUPolyZp::permute() {
+	int i;
+	if(this->permutation == NULL) this->setPermutation();
+	if(this->coeffCopy   == NULL) {                                             // If there is no a copy, create the copy
+	    this->coeffCopy = new int[this->N];
+	    for(i = 0; i < this->N; i++)
+	        this->coeffCopy[i]=this->coefficients[i];
+	}
+	for(i = 0; i < this->N; i++)                                                // Permute coefficients
+		this->coefficients[i] = this->coeffCopy[permutation[i]];
+	for(i = 0; i < this->N; i++)                                                // Copy coefficients
+		this->coeffCopy[i] = this->coefficients[i];
 }
 
 NTRUencryption::NTRUPolyZp NTRUencryption::NTRUPolyZp::operator +
@@ -187,17 +207,16 @@ NTRUPolyZp result[2]) const{
 
 NTRUencryption::NTRUPolyZp NTRUencryption::NTRUPolyZp::gcdXNminus1(             // EEDA will mean Extended Euclidean Division Algorithm
 NTRUPolyZp Bezout[2]) const{                                                    // Bezout[2] will hold the Bezout coefficients
-    NTRUPolyZp _gcd_;                                                           // Initializing result in the "biggest polynomial ring"
+    NTRUPolyZp gcd;                                                             // Initializing result in the "biggest polynomial ring"
     NTRUPolyZp remainders;
     NTRUPolyZp Bezout_0_Buff[2];
     NTRUPolyZp Bezout_1_Buff[2];
-    NTRUPolyZp quoRem[2] = {NTRUPolyZp(this->N),
-                            NTRUPolyZp(this->N)};
+    NTRUPolyZp quoRem[2] = {NTRUPolyZp(this->N), NTRUPolyZp(this->N)};
     int deg = this->degree(), i, j, k, l;                                       // Degree of this and some variables for counting
     int leadCoeff = this->coefficients[deg];                                    // Lead coefficient of this polynomial
 
     quoRem[0].coefficients[this->N-deg] = leadCoeff;                            // Start of division algorithm between virtual polynomial x^N-1 and this
-    for(i = deg-1, j = this->N - 1; i >= 0; i--, j--) {                         // First coefficient of quotient and first subtraction
+    for(i = deg-1, j = this->N - 1; i >= 0; i--, j--) {                           // First coefficient of quotient and first subtraction
         quoRem[1].coefficients[j] =
         Z3subtraction[0][Z3product[ leadCoeff ][ this->coefficients[i]] ];
     }
@@ -209,6 +228,7 @@ NTRUPolyZp Bezout[2]) const{                                                    
             Z3subtraction[ quoRem[1].coefficients[l] ]
             [Z3product[ quoRem[0].coefficients[i] ][ this->coefficients[k] ]];
         }
+        //if(quoRem[1].coefficients[j] != 0) std::cout << "Something went wrong\n";
         while(quoRem[1].coefficients[j] == 0) {j--;};
     }
     quoRem[1].coefficients[0] = Z3subtraction[quoRem[1].coefficients[0]][1];    // Subtracting the -1 that is at the end of the polynomial x^N-1
@@ -230,10 +250,10 @@ NTRUPolyZp Bezout[2]) const{                                                    
     Bezout[1] = Bezout_1_Buff[0];
     Bezout_1_Buff[0] = Bezout_1_Buff[1];
 
-    _gcd_ = quoRem[0];
+    gcd = quoRem[0];
     remainders = quoRem[1];
 	while(remainders != 0) {
-        try{ _gcd_.division(remainders, quoRem); }
+        try{ gcd.division(remainders, quoRem); }
         catch(const char* exp) {
             std::cout << "\nIn NTRUencryption.cpp; function NTRUencryption::"
             "NTRUPolyZp::gcd(const NTRUPolyZp& P) const\n";
@@ -245,10 +265,10 @@ NTRUPolyZp Bezout[2]) const{                                                    
         Bezout[1] = Bezout_1_Buff[0];
         Bezout_0_Buff[0] = Bezout_0_Buff[1];
         Bezout_1_Buff[0] = Bezout_1_Buff[1];
-        _gcd_ = remainders;
+        gcd = remainders;
         remainders = quoRem[1];
 	}
-	return _gcd_;
+	return gcd;
 }
 
 void NTRUencryption::NTRUPolyZp::print(const char* name) const{
@@ -325,6 +345,21 @@ NTRU_q _q_, int _d_, NTRU_p _p_): N(_N_), q(_q_), d(_d_), p(_p_) {
 
     try{ gcd = Np0.gcdXNminus1(Bezout); gcd.println("\ngcd(Np0,x^N-1)"); }
     catch(const char* exp) {std::cout << exp;}
+
+    this->setPrivateKeyAndInv();
 }
 
-void NTRUencryption::setPrivateKeyAndInv() {}
+void NTRUencryption::setPrivateKeyAndInv() {
+    privateKey = NTRUPolyZp(this->N, this->N / 3 + 1, this->N / 3);
+    NTRUPolyZp bezout[2];
+    NTRUPolyZp _gcdXminus1_ = privateKey.gcdXNminus1(bezout);
+
+    while(_gcdXminus1_ != 1) {
+        _gcdXminus1_.println("_gcdXminus1_");
+        privateKey.permute();
+        _gcdXminus1_ = privateKey.gcdXNminus1(bezout);
+    }
+    _gcdXminus1_.println("_gcdXminus1_");
+    bezout[1].println("private key inverse");
+    (bezout[1]*privateKey).println("privateKey*bezout[1]");
+}

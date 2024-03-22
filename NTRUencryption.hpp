@@ -16,6 +16,9 @@ class NTRUencryption {
 		NTRU_N N;
 		NTRU_p p = _3_;
 		int* permutation = NULL;
+		int* coeffCopy 	 = NULL;												// Copy of the coefficients. Useful at the moment of permute the coefficients
+
+		void setPermutation();
 
 		public:
 		static const int Z3addition[3][3];										// Addition table of the Z3 ring (integers modulo 3)
@@ -30,11 +33,14 @@ class NTRUencryption {
 		NTRUPolyZp(NTRU_N _N_, int ones=0, int negOnes=0, NTRU_p _p_=_3_);		// Ones and negOnes will dictate the amount of 1 and -1 respectively
 		inline ~NTRUPolyZp() {
 			if(this->coefficients != NULL) delete [] this->coefficients;
+			if(this->permutation  != NULL) delete [] this->permutation;
+			if(this->coeffCopy 	  != NULL) delete [] this->coeffCopy;
 		}
 
 		inline NTRU_N getN() { return this->N; }
 		inline NTRU_p getp() { return this->p; }
-		void setPermutation();
+
+		void permute();
 
 		// Arithmetic
 		NTRUPolyZp operator + (const NTRUPolyZp&) const;						// Addition element by element
@@ -149,7 +155,7 @@ class NTRUencryption {
 
 	private:
 	//NTRUPolyZp publicKey;
-	//NTRUPolyZp privateKey;
+	NTRUPolyZp privateKey;
 	//NTRUPolyZp privateKeyInvp;												// Private key inverse modulo p
 
 	void setPrivateKeyAndInv();													// Creates private key and inverse of the private key
