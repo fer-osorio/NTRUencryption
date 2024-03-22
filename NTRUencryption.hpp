@@ -9,7 +9,7 @@ class NTRUencryption {
 	enum NTRU_p {_3_	= 3 };
 
 	private:																	// Private types and attributes
-	struct ZpPolymodXminus1 {													// Representation of the polynomials with coefficients in Zp (integer modulus p)
+	struct ZpPolymodXminus1 {													// Representation of the polynomials in Zp[x]/(x^N-1)
 		int* coefficients = NULL;												// Coefficients of the polynomial
 
 		private:
@@ -18,13 +18,103 @@ class NTRUencryption {
 		int* permutation = NULL;
 		int* coeffCopy 	 = NULL;												// Copy of the coefficients. Useful at the moment of permute the coefficients
 
-		void setPermutation();
-
 		public:
 		static const int Z3addition[3][3];										// Addition table of the Z3 ring (integers modulo 3)
 		static const int Z3subtraction[3][3];									// Subtraction table of the Z3 ring (integers modulo 3)
 		static const int Z3product[3][3];										// Product table of the Z3 ring (integers modulo 3)
 
+		private: struct ZpPolynomial {											// Representation of the polynomials in Zp[x]
+			int* coefficients = NULL;
+			NTRU_p p = _3_;
+			int  degree;
+
+			inline ZpPolynomial(int _degree_, NTRU_p _p_ = _3_)
+			: degree(_degree_), p(_p_) {
+				int _coeffAmount_  = this->coeffAmount(), i;
+				this->coefficients = new int[_coeffAmount_];
+				for(i = 0; i < _coeffAmount_; i++)
+					this->coefficients[i] = 0;
+			}
+			inline ZpPolynomial(const ZpPolynomial& P): p(P.p),
+			degree(P.degree) {
+				int _coeffAmount_  = this->coeffAmount(), i;
+				this->coefficients = new int[_coeffAmount_];
+				for(i = 0; i < _coeffAmount_; i++)
+					this->coefficients[i] = P.coefficients[i];
+			}
+			inline ZpPolynomial(const ZpPolymodXminus1& P): p(P.p),
+			degree(P.degree()) {
+				int _coeffAmount_  = this->coeffAmount(), i;
+				this->coefficients = new int[_coeffAmount_];
+				for(i = 0; i < _coeffAmount_; i++)
+					this->coefficients[i] = P.coefficients[i];
+			}
+			inline ~ZpPolynomial() {
+				if(this->coefficients != NULL) delete[] this->coefficients;
+			}
+
+			inline ZpPolynomial& operator = (const ZpPolynomial& P) {
+				if(this != &P) {
+					int _coeffAmount_ = P.coeffAmount(), i;
+					if(this->degree != P.degree) {
+						delete[] this->coefficients;
+						this->coefficients = new int[P.coeffAmount()];
+						this->degree = P.degree;
+					}
+					this->p = P.p;
+					for(i = 0; i < _coeffAmount_; i++)
+						this->coefficients[i] = P.coefficients[i];
+				}
+				return *this;
+			}
+
+			inline ZpPolynomial operator - (const ZpPolynomial& P) const{
+				const ZpPolynomial *small, *big;
+    			ZpPolynomial r(this->maxDeg(P));                         		// Initializing result with zeros
+    			int i, smallCoeffAmount, bigCoeffAmount;
+
+    			if(this->degree < P.degree) { small = this; big = &P; }         // 'small' points to the polynomial with the smallest degree, 'big' points to the
+				else { small = &P; big = this; }                                // polynomial with the biggest degree
+
+				smallCoeffAmount = small->coeffAmount();
+				bigCoeffAmount   = big->coeffAmount();
+    			for(i = 0; i < smallCoeffAmount; i++)
+        			r.coefficients[i] =
+        			Z3subtraction[this->coefficients[i]][P.coefficients[i]];    // Subtraction element by element till the smallest degree of the arguments
+    			for(; i < bigCoeffAmount; i++)
+        			r.coefficients[i] = big->coefficients[i];                   // Just copying, equivalent to filling with zeros the small polynomial
+
+        		if(small->degree == big->degree) {								// If degree are different, there is a possibility of r[r.degree] == 0
+        			while(r.coefficients[r.degree] == 0 && r.degree > 0) {
+        				r.degree--;												// Fitting the polynomial to its degree
+        				r = ZpPolynomial(r);
+        			}
+        		}
+    			return r;
+			}
+
+			inline ZpPolynomial operator * (const ZpPolynomial& P) const{
+				ZpPolynomial r(this->degree + P.degree);
+				int i,j,k;
+				for(i = 0; i <= this->degree; i++) {
+					if(this->coefficients[i] != 0)
+					for(j = 0; j <= P.degree; j++) {
+						if(P.coefficients[j] != 0)
+						r.coefficients[i+j] = Z3addition[r.coefficients[i+j]]
+						[Z3product[this->coefficients[i]][P.coefficients[j]]];
+					}
+				}
+				return r;
+			}
+
+			inline int coeffAmount() const {return this->degree + 1;}
+			inline int maxDeg(const ZpPolynomial& P) const{
+				if(this->degree > P.degree) return this->degree;
+				return P.degree;
+			}
+		};
+
+		public:
 		inline ZpPolymodXminus1(): N(_509_) {}									// Initializing N, coefficients is left as NULL
 		inline ZpPolymodXminus1(const ZpPolymodXminus1& P): N(P.N), p(P.p) {
 			this->coefficients = new int[P.N];
@@ -39,7 +129,7 @@ class NTRUencryption {
 
 		inline NTRU_N getN() { return this->N; }
 		inline NTRU_p getp() { return this->p; }
-
+		void setPermutation();
 		void permute();
 
 		// Arithmetic
@@ -140,9 +230,10 @@ class NTRUencryption {
 			if(a < b) return b;
 			return a;
 		}
-		inline void copyCoefficients(const ZpPolymodXminus1& P) {
-			NTRU_N _N_ = this->min_N(P);
-			for(int i=0; i<_N_; i++) this->coefficients[i]=P.coefficients[i];
+		inline void copyCoefficients(const ZpPolynomial& P) {
+			int upperlimit = this->min(this->N, P.degree), i;
+			for(i = 0; i < upperlimit; i++)
+				this->coefficients[i]=P.coefficients[i];
 		}
 	};
 

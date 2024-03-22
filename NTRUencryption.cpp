@@ -221,6 +221,7 @@ ZpPolymodXminus1 Bezout[2]) const{                                              
         quoRem[1].coefficients[j] =
         Z3subtraction[0][Z3product[ leadCoeff ][ this->coefficients[i]] ];
     }
+    quoRem[1].coefficients[0] = 2;                                              // Putting the -1 that is at the end of the polynomial x^N-1
     for(i = this->N-1 - deg, j = this->N-1; j >= deg; i = j - deg) {            // Continuing with division algorithm; i is the place of the next coefficient of
         quoRem[0].coefficients[i] =                                             // the quotient, j is the degree of the remainders.
         Z3product[leadCoeff][quoRem[1].coefficients[j]];
@@ -231,7 +232,7 @@ ZpPolymodXminus1 Bezout[2]) const{                                              
         }
         while(quoRem[1].coefficients[j] == 0) {j--;};
     }
-    quoRem[1].coefficients[0] = Z3subtraction[quoRem[1].coefficients[0]][1];    // Subtracting the -1 that is at the end of the polynomial x^N-1
+    //quoRem[1].coefficients[0] = Z3subtraction[quoRem[1].coefficients[0]][1];    // Subtracting the -1 that is at the end of the polynomial x^N-1
                                                                                 // End of division algorithm between virtual polynomial x^N-1 and this
 
     Bezout[0].N = this->N; Bezout[0] = 1;                                       // u[0] = 1
@@ -250,7 +251,7 @@ ZpPolymodXminus1 Bezout[2]) const{                                              
     Bezout[1] = Bezout_1_Buff[0];
     Bezout_1_Buff[0] = Bezout_1_Buff[1];
 
-    gcd = quoRem[0];
+    gcd = *this;
     remainders = quoRem[1];
 	while(remainders != 0) {
         try{ gcd.division(remainders, quoRem); }
@@ -259,6 +260,9 @@ ZpPolymodXminus1 Bezout[2]) const{                                              
             "ZpPolymodXminus1::gcd(const ZpPolymodXminus1& P) const\n";
             throw;
         }
+        std::cout << "quoRem[0].degree() = " << quoRem[0].degree() << "\n";
+        std::cout << "Bezout_0_Buff[0].degree() = " << Bezout_0_Buff[0].degree() << "\n";
+        std::cout << "Bezout_1_Buff[0].degree() = " << Bezout_1_Buff[0].degree() << "\n";
         Bezout_0_Buff[1] = Bezout[0] - quoRem[0]*Bezout_0_Buff[0];              // u[k+2] = u[k] - q[k+2]*u[k+1]
         Bezout_1_Buff[1] = Bezout[1] - quoRem[0]*Bezout_1_Buff[0];              // v[k+2] = v[k] - q[k+2]*v[k+1]
         Bezout[0] = Bezout_0_Buff[0];
@@ -327,7 +331,7 @@ NTRU_q _q_, int _d_, NTRU_p _p_): N(_N_), q(_q_), d(_d_), p(_p_) {
     /*this->privateKey = ZpPolymodXminus1(_N_,_d_+ 1, _d_);                     // Polynomial f
     this->privateKey.println("Private key");*/
 
-    ZpPolymodXminus1 Np0(_N_,_d_+ 21, _d_+ 2), Np1(_N_, _d_- 1, _d_- 20);
+    /*ZpPolymodXminus1 Np0(_N_,_d_+ 21, _d_+ 2), Np1(_N_, _d_- 1, _d_- 20);
     ZpPolymodXminus1 quorem[2], Bezout[2], gcd;
 
     std::cout << '\n';
@@ -344,7 +348,7 @@ NTRU_q _q_, int _d_, NTRU_p _p_): N(_N_), q(_q_), d(_d_), p(_p_) {
         std::cout << "\nSuccesful division.\n";
 
     try{ gcd = Np0.gcdXNminus1(Bezout); gcd.println("\ngcd(Np0,x^N-1)"); }
-    catch(const char* exp) {std::cout << exp;}
+    catch(const char* exp) {std::cout << exp;}*/
 
     this->setPrivateKeyAndInv();
 }
@@ -355,11 +359,11 @@ void NTRUencryption::setPrivateKeyAndInv() {
     ZpPolymodXminus1 _gcdXminus1_ = privateKey.gcdXNminus1(bezout);
 
     while(_gcdXminus1_ != 1) {
-        _gcdXminus1_.println("_gcdXminus1_");
+        _gcdXminus1_.println("\n_gcdXminus1_");
         privateKey.permute();
         _gcdXminus1_ = privateKey.gcdXNminus1(bezout);
     }
-    _gcdXminus1_.println("_gcdXminus1_");
+    _gcdXminus1_.println("\n_gcdXminus1_");
     bezout[1].println("private key inverse");
     (bezout[1]*privateKey).println("privateKey*bezout[1]");
 }
