@@ -9,7 +9,7 @@ class NTRUencryption {
 	enum NTRU_p {_3_	= 3 };
 
 	private:																	// Private types and attributes
-	struct NTRUPolyZp {															// Representation of the polynomials with coefficients in Zp (integer modulus p)
+	struct ZpPolymodXminus1 {													// Representation of the polynomials with coefficients in Zp (integer modulus p)
 		int* coefficients = NULL;												// Coefficients of the polynomial
 
 		private:
@@ -25,13 +25,13 @@ class NTRUencryption {
 		static const int Z3subtraction[3][3];									// Subtraction table of the Z3 ring (integers modulo 3)
 		static const int Z3product[3][3];										// Product table of the Z3 ring (integers modulo 3)
 
-		inline NTRUPolyZp(): N(_509_) {}										// Initializing N, coefficients is left as NULL
-		inline NTRUPolyZp(const NTRUPolyZp& P): N(P.N), p(P.p) {
+		inline ZpPolymodXminus1(): N(_509_) {}									// Initializing N, coefficients is left as NULL
+		inline ZpPolymodXminus1(const ZpPolymodXminus1& P): N(P.N), p(P.p) {
 			this->coefficients = new int[P.N];
 			for(int i=0; i<P.N; i++) this->coefficients[i] = P.coefficients[i];
 		}
-		NTRUPolyZp(NTRU_N _N_, int ones=0, int negOnes=0, NTRU_p _p_=_3_);		// Ones and negOnes will dictate the amount of 1 and -1 respectively
-		inline ~NTRUPolyZp() {
+		ZpPolymodXminus1(NTRU_N _N_,int ones=0,int negOnes=0,NTRU_p _p_=_3_);	// Ones and negOnes will dictate the amount of 1 and -1 respectively
+		inline ~ZpPolymodXminus1() {
 			if(this->coefficients != NULL) delete [] this->coefficients;
 			if(this->permutation  != NULL) delete [] this->permutation;
 			if(this->coeffCopy 	  != NULL) delete [] this->coeffCopy;
@@ -43,16 +43,17 @@ class NTRUencryption {
 		void permute();
 
 		// Arithmetic
-		NTRUPolyZp operator + (const NTRUPolyZp&) const;						// Addition element by element
-		NTRUPolyZp operator - (const NTRUPolyZp&) const;						// Subtraction element by element
-		NTRUPolyZp operator * (const NTRUPolyZp&) const;						// Multiplication will coincide with convolution
-		NTRUPolyZp& operator -= (const NTRUPolyZp&);
+		ZpPolymodXminus1  operator +  (const ZpPolymodXminus1&) const;			// Addition element by element
+		ZpPolymodXminus1  operator -  (const ZpPolymodXminus1&) const;			// Subtraction element by element
+		ZpPolymodXminus1  operator *  (const ZpPolymodXminus1&) const;			// Multiplication will coincide with convolution
+		ZpPolymodXminus1& operator -= (const ZpPolymodXminus1&);
 
-		void division(const NTRUPolyZp& P,NTRUPolyZp result[2]) const;			// Division assuming the polynomials has its elements in Z3
-		NTRUPolyZp gcdXNminus1(NTRUPolyZp Bezout[2]) const;						// Greatest common divisor between X^N-1 and P. Coefficients in Z3
+		void division(const ZpPolymodXminus1& P,ZpPolymodXminus1 rslt[2])const;	// Division assuming the polynomials has its elements in Z3
+																				// The quotient and the remainder are saved in rslt
+		ZpPolymodXminus1 gcdXNminus1(ZpPolymodXminus1 Bezout[2]) const;			// Greatest common divisor between X^N-1 and P. Coefficients in Z3
 									 											// Bezout coefficients are polynomials u and v such that u*a + v*b = gcd(a,b)
 
-		inline NTRUPolyZp& operator = (const NTRUPolyZp& P) {					// Assignment
+		inline ZpPolymodXminus1& operator = (const ZpPolymodXminus1& P) {		// Assignment
 			if(this != &P) {                                                    // Guarding against self assignment
 				if(this->coefficients == NULL) {
 					this->coefficients = new int[P.N];
@@ -67,7 +68,7 @@ class NTRUencryption {
         	}
     		return *this;
 		}
-		inline NTRUPolyZp& operator = (int t) {									// Assignment with single integer
+		inline ZpPolymodXminus1& operator = (int t) {							// Assignment with single integer
 			if(this->coefficients == NULL)
 				this->coefficients = new int[this->N];							// Dealing with already initialized object, so this->N is well defined
 			if(t < 0) t = -t;
@@ -101,15 +102,15 @@ class NTRUencryption {
 		inline bool operator != (int t) const {									// Comparison with a single integer
 			return this->degree() != 0 || this->coefficients[0] != t;
 		}
-		inline bool operator == (const NTRUPolyZp& P) {
+		inline bool operator == (const ZpPolymodXminus1& P) {
 			if(this->N == P.N && this->p == P.p) {								// The comparison this->p == P.p is naive, but maybe will be useful in the future
 				for(int i = 0; i < this->N; i++)
-					if(this->coefficients[i] != P.coefficients[i]) return false;
+					if(this->coefficients[i]!=P.coefficients[i]) return false;
 				return true;
 			}
 			else return false;
 		}
-		inline bool operator != (const NTRUPolyZp& P) {
+		inline bool operator != (const ZpPolymodXminus1& P) {
 			if(this->N == P.N && this->p == P.p) {								// The comparison this->p != P.p is naive, but maybe will be useful in the future
 				for(int i = 0; i < this->N; i++)
 					if(this->coefficients[i] != P.coefficients[i]) return true;
@@ -119,15 +120,15 @@ class NTRUencryption {
 		}
 
 		private:
-		inline NTRU_N min_N(const NTRUPolyZp& P) const{
+		inline NTRU_N min_N(const ZpPolymodXminus1& P) const{
 			if(this->N < P.N) return this->N;
 			return P.N;
 		}
-		inline NTRU_N max_N(const NTRUPolyZp& P) const{
+		inline NTRU_N max_N(const ZpPolymodXminus1& P) const{
 			if(this->N < P.N) return P.N;
 			return this->N;
 		}
-		/*inline NTRU_q max_q(const NTRUPolyZp& P) const{
+		/*inline NTRU_q max_q(const ZpPolymodXminus1& P) const{
 			if(this->q < P.q) return P.q;
 			return this->q;
 		}*/
@@ -139,7 +140,7 @@ class NTRUencryption {
 			if(a < b) return b;
 			return a;
 		}
-		inline void copyCoefficients(const NTRUPolyZp& P) {
+		inline void copyCoefficients(const ZpPolymodXminus1& P) {
 			NTRU_N _N_ = this->min_N(P);
 			for(int i=0; i<_N_; i++) this->coefficients[i]=P.coefficients[i];
 		}
@@ -154,9 +155,9 @@ class NTRUencryption {
 	NTRUencryption(NTRU_N _N_, NTRU_q _q_, int _d_ = 0, NTRU_p _p_ = _3_);
 
 	private:
-	//NTRUPolyZp publicKey;
-	NTRUPolyZp privateKey;
-	//NTRUPolyZp privateKeyInvp;												// Private key inverse modulo p
+	//ZpPolymodXminus1 publicKey;
+	ZpPolymodXminus1 privateKey;
+	//ZpPolymodXminus1 privateKeyInvp;											// Private key inverse modulo p
 
 	void setPrivateKeyAndInv();													// Creates private key and inverse of the private key
 
@@ -192,7 +193,7 @@ inline static int intToString(int n, char* dest) {								// String representati
     do {
         buff = (char)(n % DECIMAL_BASE);                                        // Taking last current digit
         dest[i++] = buff + 48;                                                  // Saving last current digit
-        n -= (int)buff; n /= DECIMAL_BASE;                                 // Taking out last current digit from the number n
+        n -= (int)buff; n /= DECIMAL_BASE;                                 		// Taking out last current digit from the number n
     } while(n > 0);
     l = i;
     dest[i--] = 0;                                                              // Putting a zero at the end and returning one place
