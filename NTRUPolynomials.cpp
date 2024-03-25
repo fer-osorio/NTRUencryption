@@ -1,18 +1,18 @@
-#include"NTRUencryption.hpp"
+#include"NTRUPolynomials.hpp"
 #include<random>
 #include<ctime>
 
-const int NTRUencryption::ZpPolynomial::Z3addition[3][3] = {{0, 1, 2},          // Addition table of the Z3 ring (integers modulo 3)
-                                                            {1, 2, 0},          // ...
-                                                            {2, 0, 1}};         // ...
+const int NTRU_ZpPolynomial::Z3addition[3][3] = {{0, 1, 2},          // Addition table of the Z3 ring (integers modulo 3)
+                                                 {1, 2, 0},          // ...
+                                                 {2, 0, 1}};         // ...
 
-const int NTRUencryption::ZpPolynomial::Z3subtraction[3][3] = {{0, 2, 1},       // Addition table of the Z3 ring (integers modulo 3)
-                                                               {1, 0, 2},       // ...
-                                                               {2, 1, 0}};      // ...
+const int NTRU_ZpPolynomial::Z3subtraction[3][3] = {{0, 2, 1},       // Addition table of the Z3 ring (integers modulo 3)
+                                                    {1, 0, 2},       // ...
+                                                    {2, 1, 0}};      // ...
 
-const int NTRUencryption::ZpPolynomial::Z3product[3][3] = {{0, 0, 0},           // Product table of the Z3 ring (integers modulo 3)
-                                                           {0, 1, 2},           // ...
-                                                           {0, 2, 1}};          // ...
+const int NTRU_ZpPolynomial::Z3product[3][3] = {{0, 0, 0},           // Product table of the Z3 ring (integers modulo 3)
+                                                {0, 1, 2},           // ...
+                                                {0, 2, 1}};          // ...
 static unsigned _seed_ = (unsigned)time(NULL);
 
 class RandInt {                                                                 // Little class for random integers. Taken from The C++ Programming Language 4th
@@ -24,8 +24,8 @@ class RandInt {                                                                 
     std::uniform_int_distribution<> dist;
 };
 
-NTRUencryption::ZpPolynomial::ZpPolModXmns1(NTRU_N _N_,int ones,int negOnes,
-NTRU_p _p_): N(_N_), p(_p_) {
+/*NTRU_ZpPolynomial::ZpPolModXNmns1(NTRU_N _N_,int ones,int negOnes,NTRU_p _p_):
+N(_N_), p(_p_) {
     int i, j;
     RandInt rn{0, _N_-1, _seed_++};                                             // Random integers from 0 to N-1
     if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and negOnes. In particular the
@@ -50,9 +50,9 @@ NTRU_p _p_): N(_N_), p(_p_) {
             negOnes--;
         }
 	}
-}                                                                               // Maybe is some room for optimization using JV theorem
+}*/                                                                               // Maybe is some room for optimization using JV theorem
 
-void NTRUencryption::ZpPolynomial::setPermutation() {                       // Naive way of setting a permutation
+void NTRU_ZpPolynomial::ZpPolModXNmns1::setPermutation() {                       // Naive way of setting a permutation
     int i, j, k, *tmp = new int[this->N];
     RandInt rn{0, 0x7FFFFFFF, _seed_++};                                        // Random integers from 0 to the maximum number for and int
     if(this->permutation==NULL) this->permutation = new int[this->N];
@@ -65,7 +65,7 @@ void NTRUencryption::ZpPolynomial::setPermutation() {                       // N
     delete[] tmp;
 }
                                                                                 // Implementation of the permutation
-void NTRUencryption::ZpPolynomial::permute() {
+void NTRU_ZpPolynomial::ZpPolModXNmns1::permute() {
 	int i;
 	if(this->permutation == NULL) this->setPermutation();
 	if(this->coeffCopy   == NULL) {                                             // If there is no a copy, create the copy
@@ -79,10 +79,10 @@ void NTRUencryption::ZpPolynomial::permute() {
 		this->coeffCopy[i] = this->coefficients[i];
 }
 
-NTRUencryption::ZpPolynomia NTRUencryption::ZpPolynomial::operator +
-(const ZpPolynomial& P) const{
-    NTRUencryption::ZpPolynomial r(this->max_N(P));                         // Initializing result in the "biggest polynomial ring"
-    const NTRUencryption::ZpPolynomial *small, *big;
+NTRU_ZpPolynomial::ZpPolModXNmns1 NTRU_ZpPolynomial::ZpPolModXNmns1::operator +
+(const ZpPolModXNmns1& P) const{
+    ZpPolModXNmns1 r(max_N(this->N, P.N));                         // Initializing result in the "biggest polynomial ring"
+    const ZpPolModXNmns1 *small, *big;
     int i;
 
     if(this->N < P.N) { small = this; big = &P; }                               // 'small' points to the polynomial with the smallest N, 'big' points to the
@@ -95,10 +95,10 @@ NTRUencryption::ZpPolynomia NTRUencryption::ZpPolynomial::operator +
     return r;
 }
 
-NTRUencryption::ZpPolynomial NTRUencryption::ZpPolynomial::operator -
-(const ZpPolynomial& P) const{
-    const NTRUencryption::ZpPolynomial *small, *big;
-    NTRUencryption::ZpPolynomial r(this->max_N(P));                         // Initializing result in the "biggest polynomial ring"
+NTRU_ZpPolynomial::ZpPolModXNmns1 NTRU_ZpPolynomial::ZpPolModXNmns1::operator -
+(const ZpPolModXNmns1& P) const{
+    const ZpPolModXNmns1 *small, *big;
+    ZpPolModXNmns1 r(max_N(this->N, P.N));                         // Initializing result in the "biggest polynomial ring"
     int i;
 
     if(this->N < P.N) { small = this; big = &P; }                               // 'small' points to the polynomial with the smallest N, 'big' points to the
@@ -112,10 +112,10 @@ NTRUencryption::ZpPolynomial NTRUencryption::ZpPolynomial::operator -
     return r;
 }
 
-NTRUencryption::ZpPolynomial NTRUencryption::ZpPolynomial::operator *
-(const ZpPolynomial& P) const{
-    NTRUencryption::ZpPolynomial r(this->max_N(P));                         // Initializing with zeros
-    const NTRUencryption::ZpPolynomial *small, *big;
+NTRU_ZpPolynomial::ZpPolModXNmns1 NTRU_ZpPolynomial::ZpPolModXNmns1::operator *
+(const ZpPolModXNmns1& P) const{
+    ZpPolModXNmns1 r(max_N(this->N, P.N));                         // Initializing with zeros
+    const ZpPolModXNmns1 *small, *big;
     int i, j, k;
 
     if(this->N < P.N) { small = this; big = &P; }                               // 'small' points to the polynomial with the smallest N, 'big' points to the
@@ -133,31 +133,31 @@ NTRUencryption::ZpPolynomial NTRUencryption::ZpPolynomial::operator *
     return r;
 }
 
-NTRUencryption::ZpPolynomial& NTRUencryption::ZpPolynomial::operator -=
-(const ZpPolynomial& P) {
-    NTRU_N _N_ = this->min_N(P);                                                // The limit will be till the smallest N
+NTRU_ZpPolynomial::ZpPolModXNmns1& NTRU_ZpPolynomial::ZpPolModXNmns1::operator-=
+(const ZpPolModXNmns1& P) {
+    NTRU_N _N_ = min_N(this->N, P.N);                                                // The limit will be till the smallest N
     for(int i = 0; i < _N_; i++)
         this->coefficients[i] =
             Z3subtraction[ this->coefficients[i] ][ P.coefficients[i] ];
     return *this;
 }
 
-void NTRUencryption::ZpPolynomial::division(const ZpPolynomial& P,
-ZpPolynomial result[2]) const{
+void NTRU_ZpPolynomial::division(const NTRU_ZpPolynomial& P, NTRU_ZpPolynomial
+result[2]) const{
     if(P == 0) {
-        throw "\nIn NTRUencryption.cpp, function void NTRUencryption::NTRUPoly"
-        "nomial::division(const ZpPolynomial P,ZpPolynomial result[2])"
+        throw "\nIn NTRUencryption.cpp, function void NTRUPoly"
+        "nomial::division(const NTRU_ZpPolynomial P,NTRU_ZpPolynomial result[2])"
         " const. Division by zero...\n";
     }
-    NTRU_N _N_ = this->max_N(P);                                                // We'll work in the 'biggest' polynomial ring
+    //NTRU_N _N_ = max_N(this->N,P.N);                                                // We'll work in the 'biggest' polynomial ring
     if(*this == 0) {                                                            // Case zero divided by anything
-        result[0] = ZpPolynomial(_N_);                                      // Zero polynomial
-        result[1] = ZpPolynomial(_N_);                                      // Zero polynomial
+        result[0] = NTRU_ZpPolynomial(0);                                      // Zero polynomial
+        result[1] = NTRU_ZpPolynomial(0);                                      // Zero polynomial
         return;
     }
 
-    const int dividendDegree = this->degree();
-    const int divisorDegree  = P.degree();
+    const int dividendDegree = this->degree;
+    const int divisorDegree  = P.degree;
     int degreeDiff;                                                             // Difference between degrees
     int remDeg;                                                                 // Remainder degree
     const int leadCoeffDivsrInv = P.coefficients[divisorDegree];                // In Z3, each element is its own inverse
@@ -171,17 +171,16 @@ ZpPolynomial result[2]) const{
         //std::cout<<'\n'<<P.coefficients[divisorDegree]<<divisorDegree<<'\n';  // Debugging purposes
         leadCoeffDivsrInv = invModq(P.coefficients[divisorDegree]);
     } catch(const char* exp) {
-        std::cout << "\nIn NTRUencryption.cpp, function void NTRUencryption::"
-        "ZpPolynomial::division(const ZpPolynomial P,ZpPolynomial resul"
+        std::cout << "\nIn NTRUencryption.cpp, function void "
+        "NTRU_ZpPolynomial::division(const NTRU_ZpPolynomial P,NTRU_ZpPolynomial resul"
         "t[2]) const\n";
         throw;
     }*/                                                                         // At this point we know leading coefficient has an inverse in Zq
 
     degreeDiff = dividendDegree - divisorDegree;                                // At this point we know degreeDiff >= 0
     remDeg = dividendDegree;
-    result[1] = ZpPolynomial(_N_);
-    result[1].copyCoefficients(*this);                                          // Initializing remainder with dividend (this)
-    result[0] = ZpPolynomial(_N_);
+    result[1] = *this;                                                          // Initializing remainder with dividend (this)
+    result[0] = NTRU_ZpPolynomial(degreeDiff);
 
     for(;degreeDiff >= 0; degreeDiff = remDeg - divisorDegree) {
         //std::cout << "\nremDeg = " << remDeg << ", degreeDiff = "             // Debugging
@@ -196,23 +195,24 @@ ZpPolynomial result[2]) const{
         }
 
         if(result[1].coefficients[remDeg] != 0)                                 // No congruence with 0 mod q, throwing exception
-            throw "\nIn NTRUencryption.cpp, function void NTRUencryption::NTRU"
-            "Polynomial::division(const ZpPolynomial P,ZpPolynomial "
+            throw "\nIn NTRUencryption.cpp, function void NTRU"
+            "Polynomial::division(const NTRU_ZpPolynomial P,NTRU_ZpPolynomial "
             "result[2]) const. result[1].coefficients[remDeg] != 0\n";          // At this point we know result[1].coefficients[remDeg] = 0
 
         while(remDeg >= 0 && result[1].coefficients[remDeg] == 0) remDeg--;     // Updating value of the degree of the remainder
     }
+    result[1].degree = remDeg;                                                  // Adjusting the polynomial in order to have no zeros to the left
+    result[1] = NTRU_ZpPolynomial(result[1]);
 }
 
-NTRUencryption::ZpPolynomial NTRUencryption::ZpPolynomial::gcdXNminus1( // EEDA will mean Extended Euclidean Division Algorithm
-ZpPolynomial Bezout[2]) const{                                              // Bezout[2] will hold the Bezout coefficients
-    ZpPolynomial gcd;                                                       // Initializing result in the "biggest polynomial ring"
-    ZpPolynomial remainders;
-    ZpPolynomial Bezout_0_Buff[2];
-    ZpPolynomial Bezout_1_Buff[2];
-    ZpPolynomial quoRem[2] = {ZpPolynomial(this->N),
-                                  ZpPolynomial(this->N)};
-    int deg = this->degree(), i, j, k, l;                                       // Degree of this and some variables for counting
+NTRU_ZpPolynomial NTRU_ZpPolynomial::gcdXNminus1(NTRU_ZpPolynomial Bezout[2])   // Bezout[2] will hold the Bezout coefficients
+const{                                                                          // EEDA will mean Extended Euclidean Division Algorithm
+    NTRU_ZpPolynomial gcd;                                                      // Initializing result in the "biggest polynomial ring
+    NTRU_ZpPolynomial remainders;
+    NTRU_ZpPolynomial Bezout_0_Buff[2];
+    NTRU_ZpPolynomial Bezout_1_Buff[2];
+    NTRU_ZpPolynomial quoRem[2];
+    int deg = this->degree, i, j, k, l;                                       // Degree of this and some variables for counting
     int leadCoeff = this->coefficients[deg];                                    // Lead coefficient of this polynomial
 
     quoRem[0].coefficients[this->N-deg] = leadCoeff;                            // Start of division algorithm between virtual polynomial x^N-1 and this
@@ -255,8 +255,8 @@ ZpPolynomial Bezout[2]) const{                                              // B
 	while(remainders != 0) {
         try{ gcd.division(remainders, quoRem); }
         catch(const char* exp) {
-            std::cout << "\nIn NTRUencryption.cpp; function NTRUencryption::"
-            "ZpPolynomial::gcd(const ZpPolynomial& P) const\n";
+            std::cout << "\nIn NTRUencryption.cpp; function "
+            "NTRU_ZpPolynomial::gcd(const NTRU_ZpPolynomial& P) const\n";
             throw;
         }
         std::cout << "quoRem[0].degree() = " << quoRem[0].degree() << "\n";
@@ -274,7 +274,7 @@ ZpPolynomial Bezout[2]) const{                                              // B
 	return gcd;
 }
 
-void NTRUencryption::ZpPolynomial::print(const char* name) const{
+void NTRU_ZpPolynomial::print(const char* name) const{
     char start[] = "0   [";                                                     // Start of the string will be printed
     char numBuf[10];                                                            // Buffer necessary for the int -> string conversion
     int qlen, strLen;                                                           // q length in characters, start length in characters
@@ -305,7 +305,7 @@ void NTRUencryption::ZpPolynomial::print(const char* name) const{
     std::cout << ']';
 }
 
-/*int NTRUencryption::ZpPolynomial::invModq(int t) const{
+/*int NTRU_ZpPolynomial::invModq(int t) const{
     const int exp = (this->q >> 1) - 1;											// exp = q/2 - 1
 	int bit = 1;															    // Single bit; it will 'run' trough the bits of exp
 	int r = (t = this->modq(t));                                                // Making sure 0 <= t < q. Assigning to r
@@ -318,20 +318,20 @@ void NTRUencryption::ZpPolynomial::print(const char* name) const{
 	return r;
 }*/
 
-/*void NTRUencryption::ZpPolynomial::thisCoeffOddRandom(int deg) {
+/*void NTRU_ZpPolynomial::thisCoeffOddRandom(int deg) {
     RandInt rn{0, (this->q-1)>>2, _seed_++};                                    // Random integers from 0 to (q-1)/4
     if(deg < 0 || deg >= this->N) deg = this->N - 1;
     for(int i = 0; i <= deg; i++)
         this->coefficients[i] = (rn()<<1) + 1;                                  // Assigning rn()*2 + 1. This number is odd, bigger than zero and smaller than q
 }*/
 
-NTRUencryption::NTRUencryption(NTRUencryption::NTRU_N _N_, NTRUencryption::
+NTRUencryption(NTRU_N _N_,
 NTRU_q _q_, int _d_, NTRU_p _p_): N(_N_), q(_q_), d(_d_), p(_p_) {
-    /*this->privateKey = ZpPolynomial(_N_,_d_+ 1, _d_);                     // Polynomial f
+    /*this->privateKey = NTRU_ZpPolynomial(_N_,_d_+ 1, _d_);                     // Polynomial f
     this->privateKey.println("Private key");*/
 
-    /*ZpPolynomial Np0(_N_,_d_+ 21, _d_+ 2), Np1(_N_, _d_- 1, _d_- 20);
-    ZpPolynomial quorem[2], Bezout[2], gcd;
+    /*NTRU_ZpPolynomial Np0(_N_,_d_+ 21, _d_+ 2), Np1(_N_, _d_- 1, _d_- 20);
+    NTRU_ZpPolynomial quorem[2], Bezout[2], gcd;
 
     std::cout << '\n';
     Np0.println("\nNp0");
@@ -352,10 +352,10 @@ NTRU_q _q_, int _d_, NTRU_p _p_): N(_N_), q(_q_), d(_d_), p(_p_) {
     this->setPrivateKeyAndInv();
 }
 
-void NTRUencryption::setPrivateKeyAndInv() {
-    privateKey = ZpPolynomial(this->N, this->N / 3 + 1, this->N / 3);
-    ZpPolynomial bezout[2];
-    ZpPolynomial _gcdXminus1_ = privateKey.gcdXNminus1(bezout);
+void setPrivateKeyAndInv() {
+    privateKey = NTRU_ZpPolynomial(this->N, this->N / 3 + 1, this->N / 3);
+    NTRU_ZpPolynomial bezout[2];
+    NTRU_ZpPolynomial _gcdXminus1_ = privateKey.gcdXNminus1(bezout);
 
     while(_gcdXminus1_ != 1) {
         _gcdXminus1_.println("\n_gcdXminus1_");
