@@ -2,17 +2,17 @@
 #include<random>
 #include<ctime>
 
-const int NTRUencryption::ZpPolynomial::Z3addition[3][3] = {{0, 1, 2},      // Addition table of the Z3 ring (integers modulo 3)
-                                                                {1, 2, 0},      // ...
-                                                                {2, 0, 1}};     // ...
+const int NTRUencryption::ZpPolynomial::Z3addition[3][3] = {{0, 1, 2},          // Addition table of the Z3 ring (integers modulo 3)
+                                                            {1, 2, 0},          // ...
+                                                            {2, 0, 1}};         // ...
 
-const int NTRUencryption::ZpPolynomial::Z3subtraction[3][3] = {{0, 2, 1},   // Addition table of the Z3 ring (integers modulo 3)
-                                                                   {1, 0, 2},   // ...
-                                                                   {2, 1, 0}};  // ...
+const int NTRUencryption::ZpPolynomial::Z3subtraction[3][3] = {{0, 2, 1},       // Addition table of the Z3 ring (integers modulo 3)
+                                                               {1, 0, 2},       // ...
+                                                               {2, 1, 0}};      // ...
 
-const int NTRUencryption::ZpPolynomial::Z3product[3][3] = {{0, 0, 0},       // Product table of the Z3 ring (integers modulo 3)
-                                                               {0, 1, 2},       // ...
-                                                               {0, 2, 1}};      // ...
+const int NTRUencryption::ZpPolynomial::Z3product[3][3] = {{0, 0, 0},           // Product table of the Z3 ring (integers modulo 3)
+                                                           {0, 1, 2},           // ...
+                                                           {0, 2, 1}};          // ...
 static unsigned _seed_ = (unsigned)time(NULL);
 
 class RandInt {                                                                 // Little class for random integers. Taken from The C++ Programming Language 4th
@@ -24,9 +24,8 @@ class RandInt {                                                                 
     std::uniform_int_distribution<> dist;
 };
 
-
-NTRUencryption::ZpPolynomial::ZpPolynomial(NTRU_N _N_,int ones,
-int negOnes, NTRU_p _p_): N(_N_), p(_p_) {
+NTRUencryption::ZpPolynomial::ZpPolModXmns1(NTRU_N _N_,int ones,int negOnes,
+NTRU_p _p_): N(_N_), p(_p_) {
     int i, j;
     RandInt rn{0, _N_-1, _seed_++};                                             // Random integers from 0 to N-1
     if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and negOnes. In particular the
@@ -80,7 +79,7 @@ void NTRUencryption::ZpPolynomial::permute() {
 		this->coeffCopy[i] = this->coefficients[i];
 }
 
-NTRUencryption::ZpPolynomial NTRUencryption::ZpPolynomial::operator +
+NTRUencryption::ZpPolynomia NTRUencryption::ZpPolynomial::operator +
 (const ZpPolynomial& P) const{
     NTRUencryption::ZpPolynomial r(this->max_N(P));                         // Initializing result in the "biggest polynomial ring"
     const NTRUencryption::ZpPolynomial *small, *big;
