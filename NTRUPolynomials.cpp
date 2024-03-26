@@ -142,6 +142,47 @@ NTRU_ZpPolynomial::ZpPolModXNmns1& NTRU_ZpPolynomial::ZpPolModXNmns1::operator-=
     return *this;
 }
 
+NTRU_ZpPolynomial NTRU_ZpPolynomial::operator - (const NTRU_ZpPolynomial& P)
+const{
+    const NTRU_ZpPolynomial *small, *big;
+	NTRU_ZpPolynomial r(this->maxDeg(P));                         			// Initializing result with zeros
+	int i, smallCoeffAmount, bigCoeffAmount;
+
+	if(this->degree < P.degree) { small = this; big = &P; }         	// 'small' points to the polynomial with the smallest degree, 'big' points to the
+	else { small = &P; big = this; }                                	// polynomial with the biggest degree
+	smallCoeffAmount = small->coeffAmount();
+	bigCoeffAmount   = big->coeffAmount();
+
+    for(i = 0; i < smallCoeffAmount; i++)
+    	r.coefficients[i] =
+    	Z3subtraction[this->coefficients[i]][P.coefficients[i]];    	// Subtraction element by element till the smallest degree of the arguments
+    for(; i < bigCoeffAmount; i++)
+    	r.coefficients[i] = big->coefficients[i];                   	// Just copying, equivalent to filling with zeros the small polynomial
+
+    if(small->degree == big->degree) {									// If degree are different, there is a possibility of r[r.degree] == 0
+        while(r.coefficients[r.degree] == 0 && r.degree > 0) {
+        	r.degree--;													// Fitting the polynomial to its degree
+        	r = NTRU_ZpPolynomial(r);
+        }
+    }
+    return r;
+}
+
+NTRU_ZpPolynomial NTRU_ZpPolynomial::operator * (const NTRU_ZpPolynomial& P)
+const{
+    NTRU_ZpPolynomial r(this->degree + P.degree);
+	int i,j,k;
+	for(i = 0; i <= this->degree; i++) {
+		if(this->coefficients[i] != 0)
+		for(j = 0; j <= P.degree; j++) {
+			if(P.coefficients[j] != 0)
+			r.coefficients[i+j] = Z3addition[r.coefficients[i+j]]
+			[Z3product[this->coefficients[i]][P.coefficients[j]]];
+		}
+	}
+	return r;
+}
+
 void NTRU_ZpPolynomial::division(const NTRU_ZpPolynomial& P, NTRU_ZpPolynomial
 result[2]) const{
     if(P == 0) {
