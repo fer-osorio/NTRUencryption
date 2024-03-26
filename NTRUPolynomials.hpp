@@ -9,8 +9,8 @@ enum NTRU_p {_3_	= 3 };
 struct NTRU_ZpPolynomial {														// Representation of the polynomials in Zp[x] (coefficients in integers mod p)
 	private:
 	int* coefficients = NULL;													// Coefficients of the polynomial
-	int  degree;
 	NTRU_p p = _3_;
+	int  degree;
 
 	public:
 	static const int Z3addition[3][3];											// Addition table of the Z3 ring (integers modulo 3)
@@ -34,7 +34,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 				this->coefficients[i] = P.coefficients[i];
 		}
 
-		ZpPolModXNmns1(NTRU_N _N_, int ones=0, int negOnes=0, NTRU_p _p_=_3_);	// Ones and negOnes will dictate the amount of 1 and -1 respectively
+		ZpPolModXNmns1(NTRU_N _N_, int ones=0, int twos=0, NTRU_p _p_=_3_);		// Ones and twos will dictate the amount of 1 and 2 respectively
 
 		inline ~ZpPolModXNmns1() {
 			if(this->coefficients != NULL) delete [] this->coefficients;
@@ -75,7 +75,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 		}
 		ZpPolModXNmns1& operator = (const ZpPolModXNmns1& P);					// Assignment
 
-		ZpPolModXNmns1& operator = (const NTRU_ZpPolynomial& P);			// Assignment from NTRU_ZpPolynomial to ZpPolModXNmns1
+		ZpPolModXNmns1& operator = (const NTRU_ZpPolynomial& P);				// Assignment from NTRU_ZpPolynomial to ZpPolModXNmns1
 
 		inline ZpPolModXNmns1& operator = (int t) {								// Assignment with single integer
 			if(this->coefficients == NULL)
@@ -112,19 +112,22 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 		inline void println(const char* name = "") const{
 			print(name); std::cout<<'\n';
 		}
+		void test(int d);
 	};
 
+	private: inline NTRU_ZpPolynomial(): degree(-1) {}
 
-	private: inline NTRU_ZpPolynomial() {this->degree = -1;}
-
-	public: inline NTRU_ZpPolynomial(int _degree_, NTRU_p _p_ = _3_)
-	: degree(_degree_),	p(_p_) {												// Initializes with zeros
+	private: inline NTRU_ZpPolynomial(int _degree_, NTRU_p _p_)					// Second argument is used only to avoid ambiguity
+	: p(_p_),  degree(_degree_) {												// Initializes with zeros
 		int _coeffAmount_  = this->coeffAmount(), i;
 		this->coefficients = new int[_coeffAmount_];
 		for(i = 0; i < _coeffAmount_; i++)
 			this->coefficients[i] = 0;
 	}
+
 	public:
+	NTRU_ZpPolynomial(int zeros, int ones, int twos);							// Creates a polynomial with the amount of zeros (+1), ones and twos specified
+
 	inline NTRU_ZpPolynomial(const NTRU_ZpPolynomial& P): p(P.p),
 	degree(P.degree) {
 		int _coeffAmount_  = this->coeffAmount(), i;
@@ -157,15 +160,23 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 	NTRU_ZpPolynomial operator + (const NTRU_ZpPolynomial& P) const;
 	NTRU_ZpPolynomial operator - (const NTRU_ZpPolynomial& P) const;
 
-	inline NTRU_ZpPolynomial operator - () const {
+	inline NTRU_ZpPolynomial operator - () const{
 		NTRU_ZpPolynomial r = *this;
 		for(int i = 0; i <= r.degree; i++)
 			r.coefficients[i] = Z3subtraction[0][r.coefficients[i]];
 		return r;
 	}
-
 	NTRU_ZpPolynomial operator * (const NTRU_ZpPolynomial& P) const;
 
+	inline bool operator == (const NTRU_ZpPolynomial& P) {
+		if(this->degree == P.degree && this->p == P.p) {						// The comparison this->p == P.p is naive, but maybe will be useful in the future
+			for(int i = 0; i <= this->degree; i++)
+				if(this->coefficients[i] != P.coefficients[i])
+					return false;
+			return true;
+		}
+		else return false;
+	}
 	inline bool operator != (int t) const {										// Comparison with a single integer
 		return this->degree != 0 || this->coefficients[0] != t;
 	}
@@ -195,12 +206,4 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 	inline void println(const char* name = "") const{
 		print(name); std::cout<<'\n';
 	}
-	friend void test();
 };
-
-																				// Functions for printing
-inline static int len(char* str) {												// Length of a string
-	int l = -1;
-	while(str[++l] != 0) {}
-	return l;
-}
