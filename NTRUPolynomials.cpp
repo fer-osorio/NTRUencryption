@@ -205,15 +205,15 @@ result[2]) const{
     result[1] = NTRU_ZpPolynomial(result[1]);
 }
 
-NTRU_ZpPolynomial NTRU_ZpPolynomial::gcdXNminus1(NTRU_ZpPolynomial Bezout[2])   // Bezout[2] will hold the Bezout coefficients
-const{                                                                          // EEDA will mean Extended Euclidean Division Algorithm
-    NTRU_ZpPolynomial gcd;                                                      // Initializing result in the "biggest polynomial ring
+NTRU_ZpPolynomial NTRU_ZpPolynomial::ZpPolModXNmns1::
+gcdXNmns1(ZpPolModXNmns1& thisBezout) const{                                    // EEDA will mean Extended Euclidean Division Algorithm
+    NTRU_ZpPolynomial gcd, _thisBezout_;                                        // Initializing result in the "biggest polynomial ring
     NTRU_ZpPolynomial remainders;
-    NTRU_ZpPolynomial Bezout_0_Buff[2];
-    NTRU_ZpPolynomial Bezout_1_Buff[2];
-    NTRU_ZpPolynomial quoRem[2];
-    int deg = this->degree, i, j, k, l;                                       // Degree of this and some variables for counting
+    NTRU_ZpPolynomial tmp[2];
+    int deg = this->degree(), i, j, k, l;                                       // Degree of this and some variables for counting
     int leadCoeff = this->coefficients[deg];                                    // Lead coefficient of this polynomial
+    NTRU_ZpPolynomial quoRem[2] = { NTRU_ZpPolynomial(this->N-deg),
+                                    NTRU_ZpPolynomial(this->N-1) };
 
     quoRem[0].coefficients[this->N-deg] = leadCoeff;                            // Start of division algorithm between virtual polynomial x^N-1 and this
     for(i = deg-1, j = this->N - 1; i >= 0; i--, j--) {                           // First coefficient of quotient and first subtraction
@@ -233,22 +233,11 @@ const{                                                                          
     }
     //quoRem[1].coefficients[0] = Z3subtraction[quoRem[1].coefficients[0]][1];    // Subtracting the -1 that is at the end of the polynomial x^N-1
                                                                                 // End of division algorithm between virtual polynomial x^N-1 and this
+    _thisBezout_ = 0;
+    tmp[0] = 1;                         // v[-1] = 0, v[0] = 1
+    tmp[1] = -quoRem[0];                         // v[1] = v[-1] - q[1]*v[0] = - q[1]
 
-    Bezout[0].N = this->N; Bezout[0] = 1;                                       // u[0] = 1
-    Bezout_0_Buff[0].N = this->N; Bezout_0_Buff[0] = 0;                         // u[1] = 0
-    Bezout_0_Buff[1].N = this->N; Bezout_0_Buff[1] = 1;                         // u[2] = u[0] - q[0]*u[1] = 1
-
-    Bezout[1].N = this->N; Bezout[1] = 0;                                       // v[0] = 0
-    Bezout_1_Buff[0].N = this->N; Bezout_1_Buff[0] = 1;                         // v[1] = 1
-    Bezout_1_Buff[1].N = this->N; Bezout_1_Buff[1] = Bezout[0] - quoRem[0];     // v[2] = v[0] - q[0]*v[1] = v[0] - q[0]
-
-    Bezout[0] = Bezout_0_Buff[0];
-    Bezout_0_Buff[0] = Bezout_0_Buff[1];
-
-    //std::cout << "\nline 220::Bezout[1].getN() = " << Bezout[1].getN() << ", Bezout_1_Buff[0].getN() = " << Bezout_1_Buff[0].getN() << std::endl; // Debugging
-
-    Bezout[1] = Bezout_1_Buff[0];
-    Bezout_1_Buff[0] = Bezout_1_Buff[1];
+    //std::cout << "\nline 220::Bezout[1].getN() = " << Bezout[1].getN() << ", tmp[0].getN() = " << tmp[0].getN() << std::endl; // Debugging
 
     gcd = *this;
     remainders = quoRem[1];
@@ -259,22 +248,17 @@ const{                                                                          
             "NTRU_ZpPolynomial::gcd(const NTRU_ZpPolynomial& P) const\n";
             throw;
         }
-        std::cout << "quoRem[0].degree() = " << quoRem[0].degree() << "\n";
-        std::cout << "Bezout_0_Buff[0].degree() = " << Bezout_0_Buff[0].degree() << "\n";
-        std::cout << "Bezout_1_Buff[0].degree() = " << Bezout_1_Buff[0].degree() << "\n";
-        Bezout_0_Buff[1] = Bezout[0] - quoRem[0]*Bezout_0_Buff[0];              // u[k+2] = u[k] - q[k+2]*u[k+1]
-        Bezout_1_Buff[1] = Bezout[1] - quoRem[0]*Bezout_1_Buff[0];              // v[k+2] = v[k] - q[k+2]*v[k+1]
-        Bezout[0] = Bezout_0_Buff[0];
-        Bezout[1] = Bezout_1_Buff[0];
-        Bezout_0_Buff[0] = Bezout_0_Buff[1];
-        Bezout_1_Buff[0] = Bezout_1_Buff[1];
+        tmp[1] = _thisBezout_ - quoRem[0]*tmp[0];              // u[k+2] = u[k] - q[k+2]*u[k+1]
+        _thisBezout_ = tmp[0];
+        tmp[0] = tmp[1];
         gcd = remainders;
         remainders = quoRem[1];
 	}
+	thisBezout = _thisBezout_;
 	return gcd;
 }
 
-void NTRU_ZpPolynomial::print(const char* name) const{
+void NTRU_ZpPolynomial::ZpPolModXNmns1::print(const char* name) const{
     char start[] = "0   [";                                                     // Start of the string will be printed
     char numBuf[10];                                                            // Buffer necessary for the int -> string conversion
     int qlen, strLen;                                                           // q length in characters, start length in characters
@@ -294,12 +278,12 @@ void NTRU_ZpPolynomial::print(const char* name) const{
             j++; intToString(j, numBuf);
             std::cout << numBuf;                                                // Printing current coefficient
             strLen = len(numBuf);
-            printSpaces((unsigned)this->max(startLen - strLen,0));              // Padding with spaces
+            printSpaces((unsigned)max(startLen - strLen,0));              // Padding with spaces
         }
         intToString(this->coefficients[i], numBuf);                             // Optimize by returning the length of the string
         std::cout << numBuf;                                                    // Printing current coefficient
         strLen = len(numBuf);
-        printSpaces((unsigned)this->max(qlen - strLen ,0));                     // Padding with spaces
+        printSpaces((unsigned)max(qlen - strLen ,0));                     // Padding with spaces
         if(i < deg) std::cout << ',';
     }while(++i <= deg);
     std::cout << ']';

@@ -1,5 +1,7 @@
 #include<iostream>
 
+#define DECIMAL_BASE 10
+
 inline static int min(int a, int b) {
 	if(a < b) return a;
 	return b;
@@ -50,17 +52,20 @@ struct NTRU_ZpPolynomial {															// Representation of the polynomials in
 			for(int i=0; i<P.N; i++)
 				this->coefficients[i] = P.coefficients[i];
 		}
-		ZpPolModXNmns1(NTRU_N _N_,int ones=0,int negOnes=0,NTRU_p _p_=_3_);	// Ones and negOnes will dictate the amount of 1 and -1 respectively
+		ZpPolModXNmns1(NTRU_N _N_, int ones=0, int negOnes=0, NTRU_p _p_=_3_);	// Ones and negOnes will dictate the amount of 1 and -1 respectively
+
 		inline ~ZpPolModXNmns1() {
 			if(this->coefficients != NULL) delete [] this->coefficients;
 			if(this->permutation  != NULL) delete [] this->permutation;
 			if(this->coeffCopy 	  != NULL) delete [] this->coeffCopy;
 		}
 		// Arithmetic
-		ZpPolModXNmns1  operator +  (const ZpPolModXNmns1&) const;			// Addition element by element
-		ZpPolModXNmns1  operator -  (const ZpPolModXNmns1&) const;			// Subtraction element by element
-		ZpPolModXNmns1  operator *  (const ZpPolModXNmns1&) const;			// Multiplication will coincide with convolution
+		ZpPolModXNmns1 operator +  (const ZpPolModXNmns1&) const;			// Addition element by element
+		ZpPolModXNmns1 operator -  (const ZpPolModXNmns1&) const;			// Subtraction element by element
+		ZpPolModXNmns1 operator *  (const ZpPolModXNmns1&) const;			// Multiplication will coincide with convolution
 		ZpPolModXNmns1& operator -= (const ZpPolModXNmns1&);
+
+		NTRU_ZpPolynomial gcdXNmns1(ZpPolModXNmns1& thisBezout) const;
 
 		inline bool operator == (int t) const {								// Comparison with a single integer
 			return this->degree() == 0 && this->coefficients[0] == t;
@@ -101,6 +106,21 @@ struct NTRU_ZpPolynomial {															// Representation of the polynomials in
 	    	}
 			return *this;
 		}
+		inline ZpPolModXNmns1& operator = (const NTRU_ZpPolynomial& P) {		// Assignment from NTRU_ZpPolynomial to ZpPolModXNmns1
+			int upperLimit = min(this->N, P.coeffAmount()), i;
+			if(this->coefficients == NULL)
+				this->coefficients = new int[this->N];
+	    	for(i = 0; i < upperLimit; i++)
+	    		this->coefficients[i] = P.coefficients[i];
+	    	if(upperLimit < this->N)
+	    		for(; i < this->N; i++)
+	    			this->coefficients[i] = 0;
+	    	else for(; i < upperLimit; i++)
+	    		this->coefficients[i%this->N] =
+	    		Z3addition[this->coefficients[i%this->N]][P.coefficients[i]];
+	    	this->p = P.p;
+			return *this;
+		}
 		inline ZpPolModXNmns1& operator = (int t) {							// Assignment with single integer
 			if(this->coefficients == NULL)
 				this->coefficients = new int[this->N];						// Dealing with already initialized object, so this->N is well defined
@@ -137,6 +157,7 @@ struct NTRU_ZpPolynomial {															// Representation of the polynomials in
 			print(name); std::cout<<'\n';
 		}
 	};
+
 	private: inline NTRU_ZpPolynomial() {this->degree = -1;}
 
 	private: inline NTRU_ZpPolynomial(int _degree_, NTRU_p _p_ = _3_)
@@ -177,6 +198,15 @@ struct NTRU_ZpPolynomial {															// Representation of the polynomials in
 		}
 		return *this;
 	}
+	inline NTRU_ZpPolynomial& operator = (int t) {							// Assignment with single integer
+		if(this->coefficients == NULL)
+			this->coefficients = new int[1];						// Dealing with already initialized object, so this->N is well defined
+		if(t < 0) t = -t;
+		if(t >= this->p) t %= this->p;
+		this->coefficients[0] = t;
+		this->degree = 0;
+		return *this;
+	}
 
 	inline NTRU_ZpPolynomial operator - (const NTRU_ZpPolynomial& P) const{
 		const NTRU_ZpPolynomial *small, *big;
@@ -201,6 +231,13 @@ struct NTRU_ZpPolynomial {															// Representation of the polynomials in
     		return r;
 	}
 
+	inline NTRU_ZpPolynomial operator - () const {
+		NTRU_ZpPolynomial r = *this;
+		for(int i = 0; i <= r.degree; i++)
+			r.coefficients[i] = Z3subtraction[0][r.coefficients[i]];
+		return r;
+	}
+
 	inline NTRU_ZpPolynomial operator * (const NTRU_ZpPolynomial& P) const{
 		NTRU_ZpPolynomial r(this->degree + P.degree);
 		int i,j,k;
@@ -215,15 +252,20 @@ struct NTRU_ZpPolynomial {															// Representation of the polynomials in
 		return r;
 	}
 
+	inline bool operator != (int t) const {								// Comparison with a single integer
+		return this->degree != 0 || this->coefficients[0] != t;
+	}
+
 	inline int coeffAmount() const {return this->degree + 1;}
 	inline int maxDeg(const NTRU_ZpPolynomial& P) const{
 		if(this->degree > P.degree) return this->degree;
 		return P.degree;
 	}
-	void division(const NTRU_ZpPolynomial& P,NTRU_ZpPolynomial rslt[2]) const;			// Division assuming the polynomials has its elements in Z3
-																			// The quotient and the remainder are saved in rslt
-	NTRU_ZpPolynomial gcdXNminus1(NTRU_ZpPolynomial Bezout[2]) const;					// Greatest common divisor between X^N-1 and P. Coefficients in Z3
-									 											// Bezout coefficients are polynomials u and v such that u*a + v*b = gcd(a,b)
+	void division(const NTRU_ZpPolynomial& P,NTRU_ZpPolynomial rslt[2]) const;	// The quotient and the remainder are saved in rslt
+
+	NTRU_ZpPolynomial gcdXNmns1(int N, NTRU_ZpPolynomial& Bezout2) const;		// Greatest common divisor between X^N-1 and P. Coefficients in Z3
+									 											// Bezout coefficients are polynomials u and v such that u*a + v*b = gcd(a,b),
+									 											// supposing b is *this polynomial, Bezout2 will contain v polynomial
 
 		//int invModq(int t) const;												// Calculates inverse modulus q
 
@@ -236,3 +278,42 @@ struct NTRU_ZpPolynomial {															// Representation of the polynomials in
 		return this->degree == 0 && this->coefficients[0] == t;
 	}
 };
+
+																				// Functions for printing
+inline static int len(char* str) {												// Length of a string
+	int l = -1;
+	while(str[++l] != 0) {}
+	return l;
+}
+
+inline static int intToString(int n, char* dest) {								// String representation of unsigned integer it returns the length of the strign
+    int i = 0, j = 0, l = 0;
+    char buff = 0;
+    if(n < 0) {
+    	dest[i++] = '-';
+    	n = -n;
+    }
+    do {
+        buff = (char)(n % DECIMAL_BASE);                                        // Taking last current digit
+        dest[i++] = buff + 48;                                                  // Saving last current digit
+        n -= (int)buff; n /= DECIMAL_BASE;                                 		// Taking out last current digit from the number n
+    } while(n > 0);
+    l = i;
+    dest[i--] = 0;                                                              // Putting a zero at the end and returning one place
+    for(; j < i; j++,i--) {                                                     // The number is backwards; reversing the order of the digits
+        buff = dest[j];
+        dest[j] = dest[i];
+        dest[i] = buff;
+    }
+    return l;
+}
+inline static int copyString(const char* origin,char* dest) {
+    int i = 0;                                                                  // Counting variable. At the end it will contain the length of the origin string
+    for(; origin[i] != 0; i++) {dest[i] = origin[i];}                           // Coping element by element
+    dest[i] = 0;                                                                // End of string.
+    return i;                                                                   // Returning string length
+}
+inline static int printSpaces(unsigned t) {
+	while(t-- > 0) std::cout << ' ' ;
+	return 0;
+}
