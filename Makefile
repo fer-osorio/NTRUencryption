@@ -6,8 +6,8 @@ DEBUG = -ggdb -fno-omit-frame-pointer
 OPTIMIZE = -O2
 STANDARD = -std=c++2a
 
-NTRUencryption: Makefile main.cpp NTRUencryption.cpp NTRUencryption.hpp
-	$(CXX) -o $@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) main.cpp NTRUencryption.cpp
+NTRUencryption: Makefile main.cpp NTRUencryption.cpp NTRUencryption.hpp NTRUPolynomials.cpp NTRUPolynomials.hpp
+	$(CXX) -o $@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) main.cpp NTRUencryption.cpp NTRUPolynomials.cpp
 
 qmod3Array.o: Makefile qmod3ArrayGen.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o qmod3ArrayGen.c
