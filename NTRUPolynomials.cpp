@@ -24,8 +24,8 @@ class RandInt {                                                                 
     std::uniform_int_distribution<> dist;
 };
 
-/*NTRU_ZpPolynomial::ZpPolModXNmns1(NTRU_N _N_,int ones,int negOnes,NTRU_p _p_):
-N(_N_), p(_p_) {
+NTRU_ZpPolynomial::ZpPolModXNmns1::ZpPolModXNmns1(NTRU_N _N_, int ones,
+int negOnes,NTRU_p _p_): N(_N_), p(_p_) {
     int i, j;
     RandInt rn{0, _N_-1, _seed_++};                                             // Random integers from 0 to N-1
     if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and negOnes. In particular the
@@ -50,7 +50,7 @@ N(_N_), p(_p_) {
             negOnes--;
         }
 	}
-}*/                                                                               // Maybe is some room for optimization using JV theorem
+}                                                                               // Maybe is some room for optimization using JV theorem
 
 void NTRU_ZpPolynomial::ZpPolModXNmns1::setPermutation() {                       // Naive way of setting a permutation
     int i, j, k, *tmp = new int[this->N];
@@ -309,44 +309,33 @@ void NTRU_ZpPolynomial::ZpPolModXNmns1::print(const char* name) const{
         this->coefficients[i] = (rn()<<1) + 1;                                  // Assigning rn()*2 + 1. This number is odd, bigger than zero and smaller than q
 }*/
 
-NTRUencryption(NTRU_N _N_,
-NTRU_q _q_, int _d_, NTRU_p _p_): N(_N_), q(_q_), d(_d_), p(_p_) {
-    /*this->privateKey = NTRU_ZpPolynomial(_N_,_d_+ 1, _d_);                     // Polynomial f
-    this->privateKey.println("Private key");*/
+void NTRU_ZpPolynomial::print(const char* name) const{
+    char start[] = "0   [";                                                     // Start of the string will be printed
+    char numBuf[10];                                                            // Buffer necessary for the int -> string conversion
+    int qlen, strLen;                                                           // q length in characters, start length in characters
+    int i = 0, j = 0;
+    int deg = this->degree;
+    int startLen;
 
-    /*NTRU_ZpPolynomial Np0(_N_,_d_+ 21, _d_+ 2), Np1(_N_, _d_- 1, _d_- 20);
-    NTRU_ZpPolynomial quorem[2], Bezout[2], gcd;
+    intToString((int)this->p, numBuf);                                          // Conversion from number to string
+    qlen   = len(numBuf) + 1;
+    startLen = len(start);
 
-    std::cout << '\n';
-    Np0.println("\nNp0");
-    Np1.println("\nNp1");
-
-    try {Np0.division(Np1, quorem);}
-    catch(const char* exp) {std::cout << exp;}
-
-    quorem[0].println("\nquotient");
-    quorem[1].println("\nremainder");
-
-    if(Np1*quorem[0] + quorem[1] == Np0 && Np1.degree() > quorem[1].degree())
-        std::cout << "\nSuccesful division.\n";
-
-    try{ gcd = Np0.gcdXNminus1(Bezout); gcd.println("\ngcd(Np0,x^N-1)"); }
-    catch(const char* exp) {std::cout << exp;}*/
-
-    this->setPrivateKeyAndInv();
-}
-
-void setPrivateKeyAndInv() {
-    privateKey = NTRU_ZpPolynomial(this->N, this->N / 3 + 1, this->N / 3);
-    NTRU_ZpPolynomial bezout[2];
-    NTRU_ZpPolynomial _gcdXminus1_ = privateKey.gcdXNminus1(bezout);
-
-    while(_gcdXminus1_ != 1) {
-        _gcdXminus1_.println("\n_gcdXminus1_");
-        privateKey.permute();
-        _gcdXminus1_ = privateKey.gcdXNminus1(bezout);
-    }
-    _gcdXminus1_.println("\n_gcdXminus1_");
-    bezout[1].println("private key inverse");
-    (bezout[1]*privateKey).println("privateKey*bezout[1]");
+    std::cout << name << " = \n";
+    std::cout << start;
+    do {
+        if(i != 0 && (i & 31) == 0 && i != deg) {                               // Since 2^5 = 32, then i&31 = i % 32
+            std::cout << '\n';
+            j++; intToString(j, numBuf);
+            std::cout << numBuf;                                                // Printing current coefficient
+            strLen = len(numBuf);
+            printSpaces((unsigned)max(startLen - strLen,0));              // Padding with spaces
+        }
+        intToString(this->coefficients[i], numBuf);                             // Optimize by returning the length of the string
+        std::cout << numBuf;                                                    // Printing current coefficient
+        strLen = len(numBuf);
+        printSpaces((unsigned)max(qlen - strLen ,0));                     // Padding with spaces
+        if(i < deg) std::cout << ',';
+    }while(++i <= deg);
+    std::cout << ']';
 }

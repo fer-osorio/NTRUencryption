@@ -2,6 +2,10 @@
 
 #define DECIMAL_BASE 10
 
+enum NTRU_N {_509_  = 509,  _677_  = 677,  _701_  = 701,  _821_ = 821 };		// All the possible values for the N
+enum NTRU_q {_2048_ = 2048, _4096_ = 4096, _8192_ = 8192 };						// All the possible values for the q
+enum NTRU_p {_3_	= 3 };
+
 inline static int min(int a, int b) {
 	if(a < b) return a;
 	return b;
@@ -12,11 +16,6 @@ inline static int max(int a, int b) {
 }
 
 struct NTRU_ZpPolynomial {															// Representation of the polynomials in Zp[x] (coefficients in integers mod p)
-	public:																		// Not necessary at all, just for readability
-	enum NTRU_N {_509_  = 509,  _677_  = 677,  _701_  = 701,  _821_ = 821 };		// All the possible values for the N
-	enum NTRU_q {_2048_ = 2048, _4096_ = 4096, _8192_ = 8192 };						// All the possible values for the q
-	enum NTRU_p {_3_	= 3 };
-
 	inline static NTRU_N min_N(NTRU_N a, NTRU_N b) {
 		if(a < b) return a;
 		return b;
@@ -52,6 +51,7 @@ struct NTRU_ZpPolynomial {															// Representation of the polynomials in
 			for(int i=0; i<P.N; i++)
 				this->coefficients[i] = P.coefficients[i];
 		}
+
 		ZpPolModXNmns1(NTRU_N _N_, int ones=0, int negOnes=0, NTRU_p _p_=_3_);	// Ones and negOnes will dictate the amount of 1 and -1 respectively
 
 		inline ~ZpPolModXNmns1() {
@@ -60,10 +60,10 @@ struct NTRU_ZpPolynomial {															// Representation of the polynomials in
 			if(this->coeffCopy 	  != NULL) delete [] this->coeffCopy;
 		}
 		// Arithmetic
-		ZpPolModXNmns1 operator +  (const ZpPolModXNmns1&) const;			// Addition element by element
-		ZpPolModXNmns1 operator -  (const ZpPolModXNmns1&) const;			// Subtraction element by element
-		ZpPolModXNmns1 operator *  (const ZpPolModXNmns1&) const;			// Multiplication will coincide with convolution
-		ZpPolModXNmns1& operator -= (const ZpPolModXNmns1&);
+		ZpPolModXNmns1  operator + (const ZpPolModXNmns1&) const;			// Addition element by element
+		ZpPolModXNmns1  operator - (const ZpPolModXNmns1&) const;			// Subtraction element by element
+		ZpPolModXNmns1  operator * (const ZpPolModXNmns1&) const;			// Multiplication will coincide with convolution
+		ZpPolModXNmns1& operator-= (const ZpPolModXNmns1&);
 
 		NTRU_ZpPolynomial gcdXNmns1(ZpPolModXNmns1& thisBezout) const;
 
@@ -158,9 +158,10 @@ struct NTRU_ZpPolynomial {															// Representation of the polynomials in
 		}
 	};
 
+
 	private: inline NTRU_ZpPolynomial() {this->degree = -1;}
 
-	private: inline NTRU_ZpPolynomial(int _degree_, NTRU_p _p_ = _3_)
+	/*private:*/public: inline NTRU_ZpPolynomial(int _degree_, NTRU_p _p_ = _3_)
 	: degree(_degree_),	p(_p_) {												// Initializes with zeros
 		int _coeffAmount_  = this->coeffAmount(), i;
 		this->coefficients = new int[_coeffAmount_];
@@ -168,7 +169,8 @@ struct NTRU_ZpPolynomial {															// Representation of the polynomials in
 			this->coefficients[i] = 0;
 	}
 	public:
-	inline NTRU_ZpPolynomial(const NTRU_ZpPolynomial& P): p(P.p), degree(P.degree) {
+	inline NTRU_ZpPolynomial(const NTRU_ZpPolynomial& P): p(P.p),
+	degree(P.degree) {
 		int _coeffAmount_  = this->coeffAmount(), i;
 		this->coefficients = new int[_coeffAmount_];
 		for(i = 0; i < _coeffAmount_; i++)
@@ -276,6 +278,10 @@ struct NTRU_ZpPolynomial {															// Representation of the polynomials in
 		//void thisCoeffOddRandom(int deg);										// Assigns a random odd integer between 0 and q to each coefficient till deg
 	inline bool operator == (int t) const {								// Comparison with a single integer
 		return this->degree == 0 && this->coefficients[0] == t;
+	}
+	void print(const char* name = "") const;
+	inline void println(const char* name = "") const{
+		print(name); std::cout<<'\n';
 	}
 };
 

@@ -2,10 +2,11 @@
 
 NTRUencryption::NTRUencryption(NTRU_N _N_,NTRU_q _q_, int _d_, NTRU_p _p_):
 N(_N_), q(_q_), d(_d_), p(_p_), privateKey(_N_,_d_+ 1, _d_) {
-	this->privateKey.println("Private key");*/
+	this->privateKey.println("Private key");
 
-	/*NTRU_ZpPolynomial Np0(_N_,_d_+ 21, _d_+ 2), Np1(_N_, _d_- 1, _d_- 20);
-	NTRU_ZpPolynomial quorem[2], Bezout[2], gcd;
+	NTRU_ZpPolynomial Np0(privateKey); privateKey.permute();
+	NTRU_ZpPolynomial Np1(privateKey);
+	NTRU_ZpPolynomial quorem[2] = {0,0}, Bezout = 0, gcd = 0;
 
 	std::cout << '\n';
 	Np0.println("\nNp0");
@@ -17,11 +18,8 @@ N(_N_), q(_q_), d(_d_), p(_p_), privateKey(_N_,_d_+ 1, _d_) {
     quorem[0].println("\nquotient");
 	quorem[1].println("\nremainder");
 
-	if(Np1*quorem[0] + quorem[1] == Np0 && Np1.degree() > quorem[1].degree())
+	if(Np1*quorem[0] + quorem[1] == Np0 && Np1.degree > quorem[1].degree)
 	    std::cout << "\nSuccesful division.\n";
-
-	try{ gcd = Np0.gcdXNmns1(Bezout); gcd.println("\ngcd(Np0,x^N-1)"); }
-	catch(const char* exp) {std::cout << exp;}*/
 
 	this->setPrivateKeyAndInv();
 }
@@ -34,7 +32,7 @@ void NTRUencryption::setPrivateKeyAndInv() {
     while(_gcdXNmns1_ != 1) {
 	    _gcdXNmns1_.println("\n_gcdXNmns1_");
 	    privateKey.permute();
-	    _gcdXNmns1_ = privateKey.gcdXNmns1(inverse);
+	    _gcdXNmns1_ = privateKey.gcdXNmns1(inverse);                            // Put try statement
 	}
 	_gcdXNmns1_.println("\n_gcdXNmns1_");
 }

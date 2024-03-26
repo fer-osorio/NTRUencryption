@@ -1,5 +1,5 @@
 #include<iostream>
-#include"ZpPolynomial.hpp"
+#include"NTRUPolynomials.hpp"
 
 class NTRUencryption {
 	public:																		// Attributes
@@ -12,7 +12,7 @@ class NTRUencryption {
 
 	private:
 	//ZpPolynomial publicKey;
-	ZpPolynomial privateKey;
+	NTRU_ZpPolynomial::ZpPolModXNmns1 privateKey;
 	//ZpPolynomial privateKeyInvp;											// Private key inverse modulo p
 
 	void setPrivateKeyAndInv();													// Creates private key and inverse of the private key
