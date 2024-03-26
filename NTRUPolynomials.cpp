@@ -2,18 +2,67 @@
 #include<random>
 #include<ctime>
 
-const int NTRU_ZpPolynomial::Z3addition[3][3] = {{0, 1, 2},          // Addition table of the Z3 ring (integers modulo 3)
-                                                 {1, 2, 0},          // ...
-                                                 {2, 0, 1}};         // ...
+const int NTRU_ZpPolynomial::Z3addition[3][3] = {{0, 1, 2},                     // Addition table of the Z3 ring (integers modulo 3)
+                                                 {1, 2, 0},                     // ...
+                                                 {2, 0, 1}};                    // ...
 
-const int NTRU_ZpPolynomial::Z3subtraction[3][3] = {{0, 2, 1},       // Addition table of the Z3 ring (integers modulo 3)
-                                                    {1, 0, 2},       // ...
-                                                    {2, 1, 0}};      // ...
+const int NTRU_ZpPolynomial::Z3subtraction[3][3] = {{0, 2, 1},                  // Addition table of the Z3 ring (integers modulo 3)
+                                                    {1, 0, 2},                  // ...
+                                                    {2, 1, 0}};                 // ...
 
-const int NTRU_ZpPolynomial::Z3product[3][3] = {{0, 0, 0},           // Product table of the Z3 ring (integers modulo 3)
-                                                {0, 1, 2},           // ...
-                                                {0, 2, 1}};          // ...
+const int NTRU_ZpPolynomial::Z3product[3][3] = {{0, 0, 0},                      // Product table of the Z3 ring (integers modulo 3)
+                                                {0, 1, 2},                      // ...
+                                                {0, 2, 1}};                     // ...
 static unsigned _seed_ = (unsigned)time(NULL);
+
+inline static int min(int a, int b) {
+	if(a < b) return a;
+	return b;
+}
+inline static int max(int a, int b) {
+	if(a < b) return b;
+	return a;
+}
+inline static NTRU_N min_N(NTRU_N a, NTRU_N b) {
+	if(a < b) return a;
+	return b;
+}
+inline static NTRU_N max_N(NTRU_N a, NTRU_N b) {
+	if(a < b) return b;
+	return a;
+}
+
+static int intToString(int n, char* dest) {								// String representation of unsigned integer it returns the length of the strign
+    int i = 0, j = 0, l = 0;
+    char buff = 0;
+    if(n < 0) {
+    	dest[i++] = '-';
+    	n = -n;
+    }
+    do {
+        buff = (char)(n % DECIMAL_BASE);                                        // Taking last current digit
+        dest[i++] = buff + 48;                                                  // Saving last current digit
+        n -= (int)buff; n /= DECIMAL_BASE;                                 		// Taking out last current digit from the number n
+    } while(n > 0);
+    l = i;
+    dest[i--] = 0;                                                              // Putting a zero at the end and returning one place
+    for(; j < i; j++,i--) {                                                     // The number is backwards; reversing the order of the digits
+        buff = dest[j];
+        dest[j] = dest[i];
+        dest[i] = buff;
+    }
+    return l;
+}
+inline static int copyString(const char* origin,char* dest) {
+    int i = 0;                                                                  // Counting variable. At the end it will contain the length of the origin string
+    for(; origin[i] != 0; i++) {dest[i] = origin[i];}                           // Coping element by element
+    dest[i] = 0;                                                                // End of string.
+    return i;                                                                   // Returning string length
+}
+inline static int printSpaces(unsigned t) {
+	while(t-- > 0) std::cout << ' ' ;
+	return 0;
+}
 
 class RandInt {                                                                 // Little class for random integers. Taken from The C++ Programming Language 4th
     public:                                                                     // Edition Bjarne Stroustrup
@@ -81,7 +130,7 @@ void NTRU_ZpPolynomial::ZpPolModXNmns1::permute() {
 
 NTRU_ZpPolynomial::ZpPolModXNmns1 NTRU_ZpPolynomial::ZpPolModXNmns1::operator +
 (const ZpPolModXNmns1& P) const{
-    ZpPolModXNmns1 r(max_N(this->N, P.N));                         // Initializing result in the "biggest polynomial ring"
+    ZpPolModXNmns1 r(max_N(this->N, P.N));                                      // Initializing result in the "biggest polynomial ring"
     const ZpPolModXNmns1 *small, *big;
     int i;
 
@@ -98,7 +147,7 @@ NTRU_ZpPolynomial::ZpPolModXNmns1 NTRU_ZpPolynomial::ZpPolModXNmns1::operator +
 NTRU_ZpPolynomial::ZpPolModXNmns1 NTRU_ZpPolynomial::ZpPolModXNmns1::operator -
 (const ZpPolModXNmns1& P) const{
     const ZpPolModXNmns1 *small, *big;
-    ZpPolModXNmns1 r(max_N(this->N, P.N));                         // Initializing result in the "biggest polynomial ring"
+    ZpPolModXNmns1 r(max_N(this->N, P.N));                                      // Initializing result in the "biggest polynomial ring"
     int i;
 
     if(this->N < P.N) { small = this; big = &P; }                               // 'small' points to the polynomial with the smallest N, 'big' points to the
@@ -114,7 +163,7 @@ NTRU_ZpPolynomial::ZpPolModXNmns1 NTRU_ZpPolynomial::ZpPolModXNmns1::operator -
 
 NTRU_ZpPolynomial::ZpPolModXNmns1 NTRU_ZpPolynomial::ZpPolModXNmns1::operator *
 (const ZpPolModXNmns1& P) const{
-    ZpPolModXNmns1 r(max_N(this->N, P.N));                         // Initializing with zeros
+    ZpPolModXNmns1 r(max_N(this->N, P.N));                                      // Initializing with zeros
     const ZpPolModXNmns1 *small, *big;
     int i, j, k;
 
@@ -135,33 +184,64 @@ NTRU_ZpPolynomial::ZpPolModXNmns1 NTRU_ZpPolynomial::ZpPolModXNmns1::operator *
 
 NTRU_ZpPolynomial::ZpPolModXNmns1& NTRU_ZpPolynomial::ZpPolModXNmns1::operator-=
 (const ZpPolModXNmns1& P) {
-    NTRU_N _N_ = min_N(this->N, P.N);                                                // The limit will be till the smallest N
+    NTRU_N _N_ = min_N(this->N, P.N);                                           // The limit will be till the smallest N
     for(int i = 0; i < _N_; i++)
         this->coefficients[i] =
             Z3subtraction[ this->coefficients[i] ][ P.coefficients[i] ];
     return *this;
 }
 
+NTRU_ZpPolynomial& NTRU_ZpPolynomial::operator = (const NTRU_ZpPolynomial& P) {
+    if(this != &P) {														    // Guarding against self assignment
+		int _coeffAmount_ = P.coeffAmount(), i;
+		if(this->degree != P.degree) {
+			delete[] this->coefficients;
+			this->coefficients = new int[_coeffAmount_];
+			this->degree = P.degree;
+		}
+		this->p = P.p;
+		for(i = 0; i < _coeffAmount_; i++)
+			this->coefficients[i] = P.coefficients[i];
+	}
+	return *this;
+}
+
+NTRU_ZpPolynomial NTRU_ZpPolynomial::operator+(const NTRU_ZpPolynomial& P)
+const{
+    NTRU_ZpPolynomial r(max(this->degree, P.degree));                           // Initializing result in the "biggest polynomial ring"
+    const NTRU_ZpPolynomial *small, *big;
+    int i;
+
+    if(this->degree < P.degree) { small = this; big = &P; }                     // 'small' points to the polynomial with the smallest N, 'big' points to the
+	else { small = &P; big = this; }                                            // polynomial with the biggest N
+
+    for(i = 0; i <= small->degree; i++)
+        r.coefficients[i]=Z3addition[this->coefficients[i]][P.coefficients[i]]; // Addition element by element till the smallest degree of the arguments
+    for(; i <= big->degree; i++)
+        r.coefficients[i] = big->coefficients[i];                               // Just copying, equivalent to filling with zeros the small polynomial
+    return r;
+}
+
 NTRU_ZpPolynomial NTRU_ZpPolynomial::operator - (const NTRU_ZpPolynomial& P)
 const{
     const NTRU_ZpPolynomial *small, *big;
-	NTRU_ZpPolynomial r(this->maxDeg(P));                         			// Initializing result with zeros
+	NTRU_ZpPolynomial r(this->maxDeg(P));                         			    // Initializing result with zeros
 	int i, smallCoeffAmount, bigCoeffAmount;
 
-	if(this->degree < P.degree) { small = this; big = &P; }         	// 'small' points to the polynomial with the smallest degree, 'big' points to the
-	else { small = &P; big = this; }                                	// polynomial with the biggest degree
+	if(this->degree < P.degree) { small = this; big = &P; }         	        // 'small' points to the polynomial with the smallest degree, 'big' points to the
+	else { small = &P; big = this; }                                	        // polynomial with the biggest degree
 	smallCoeffAmount = small->coeffAmount();
 	bigCoeffAmount   = big->coeffAmount();
 
     for(i = 0; i < smallCoeffAmount; i++)
     	r.coefficients[i] =
-    	Z3subtraction[this->coefficients[i]][P.coefficients[i]];    	// Subtraction element by element till the smallest degree of the arguments
+    	Z3subtraction[this->coefficients[i]][P.coefficients[i]];    	        // Subtraction element by element till the smallest degree of the arguments
     for(; i < bigCoeffAmount; i++)
-    	r.coefficients[i] = big->coefficients[i];                   	// Just copying, equivalent to filling with zeros the small polynomial
+    	r.coefficients[i] = big->coefficients[i];                   	        // Just copying, equivalent to filling with zeros the small polynomial
 
-    if(small->degree == big->degree) {									// If degree are different, there is a possibility of r[r.degree] == 0
+    if(small->degree == big->degree) {									        // If degree are different, there is a possibility of r[r.degree] == 0
         while(r.coefficients[r.degree] == 0 && r.degree > 0) {
-        	r.degree--;													// Fitting the polynomial to its degree
+        	r.degree--;													        // Fitting the polynomial to its degree
         	r = NTRU_ZpPolynomial(r);
         }
     }
@@ -190,10 +270,9 @@ result[2]) const{
         "nomial::division(const NTRU_ZpPolynomial P,NTRU_ZpPolynomial result[2])"
         " const. Division by zero...\n";
     }
-    //NTRU_N _N_ = max_N(this->N,P.N);                                                // We'll work in the 'biggest' polynomial ring
     if(*this == 0) {                                                            // Case zero divided by anything
-        result[0] = NTRU_ZpPolynomial(0);                                      // Zero polynomial
-        result[1] = NTRU_ZpPolynomial(0);                                      // Zero polynomial
+        result[0] = NTRU_ZpPolynomial(0);                                       // Zero polynomial
+        result[1] = NTRU_ZpPolynomial(0);                                       // Zero polynomial
         return;
     }
 
@@ -272,11 +351,11 @@ gcdXNmns1(ZpPolModXNmns1& thisBezout) const{                                    
         }
         while(quoRem[1].coefficients[j] == 0) {j--;};
     }
-    //quoRem[1].coefficients[0] = Z3subtraction[quoRem[1].coefficients[0]][1];    // Subtracting the -1 that is at the end of the polynomial x^N-1
+    //quoRem[1].coefficients[0] = Z3subtraction[quoRem[1].coefficients[0]][1];  // Subtracting the -1 that is at the end of the polynomial x^N-1
                                                                                 // End of division algorithm between virtual polynomial x^N-1 and this
     _thisBezout_ = 0;
-    tmp[0] = 1;                         // v[-1] = 0, v[0] = 1
-    tmp[1] = -quoRem[0];                         // v[1] = v[-1] - q[1]*v[0] = - q[1]
+    tmp[0] = 1;                                                                 // v[-1] = 0, v[0] = 1
+    tmp[1] = -quoRem[0];                                                        // v[1] = v[-1] - q[1]*v[0] = - q[1]
 
     //std::cout << "\nline 220::Bezout[1].getN() = " << Bezout[1].getN() << ", tmp[0].getN() = " << tmp[0].getN() << std::endl; // Debugging
 
@@ -289,7 +368,7 @@ gcdXNmns1(ZpPolModXNmns1& thisBezout) const{                                    
             "NTRU_ZpPolynomial::gcd(const NTRU_ZpPolynomial& P) const\n";
             throw;
         }
-        tmp[1] = _thisBezout_ - quoRem[0]*tmp[0];              // u[k+2] = u[k] - q[k+2]*u[k+1]
+        tmp[1] = _thisBezout_ - quoRem[0]*tmp[0];                               // u[k+2] = u[k] - q[k+2]*u[k+1]
         _thisBezout_ = tmp[0];
         tmp[0] = tmp[1];
         gcd = remainders;
@@ -297,6 +376,40 @@ gcdXNmns1(ZpPolModXNmns1& thisBezout) const{                                    
 	}
 	thisBezout = _thisBezout_;
 	return gcd;
+}
+
+NTRU_ZpPolynomial::ZpPolModXNmns1& NTRU_ZpPolynomial::ZpPolModXNmns1::operator=
+(const NTRU_ZpPolynomial::ZpPolModXNmns1& P) {
+    if(this != &P) {													        // Guarding against self assignment
+		if(this->coefficients == NULL) {
+			this->coefficients = new int[P.N];
+			this->N = P.N;
+		} else if(this->N != P.N) {
+			delete [] this->coefficients;
+			this->coefficients = new int[P.N];
+			this->N = P.N;
+		}
+	    for(int i = 0; i < P.N; i++)
+	    	this->coefficients[i] = P.coefficients[i];
+	}
+	return *this;
+}
+
+NTRU_ZpPolynomial::ZpPolModXNmns1& NTRU_ZpPolynomial::ZpPolModXNmns1::operator=
+(const NTRU_ZpPolynomial& P) {
+    int upperLimit = min(this->N, P.coeffAmount()), i;
+	if(this->coefficients == NULL)
+		this->coefficients = new int[this->N];
+	for(i = 0; i < upperLimit; i++)
+		this->coefficients[i] = P.coefficients[i];
+	if(upperLimit < this->N)
+		for(; i < this->N; i++)
+			this->coefficients[i] = 0;
+	else for(; i < upperLimit; i++)
+		this->coefficients[i%this->N] =
+		Z3addition[this->coefficients[i%this->N]][P.coefficients[i]];
+	this->p = P.p;
+	return *this;
 }
 
 void NTRU_ZpPolynomial::ZpPolModXNmns1::print(const char* name) const{
@@ -319,12 +432,12 @@ void NTRU_ZpPolynomial::ZpPolModXNmns1::print(const char* name) const{
             j++; intToString(j, numBuf);
             std::cout << numBuf;                                                // Printing current coefficient
             strLen = len(numBuf);
-            printSpaces((unsigned)max(startLen - strLen,0));              // Padding with spaces
+            printSpaces((unsigned)max(startLen - strLen,0));                    // Padding with spaces
         }
         intToString(this->coefficients[i], numBuf);                             // Optimize by returning the length of the string
         std::cout << numBuf;                                                    // Printing current coefficient
         strLen = len(numBuf);
-        printSpaces((unsigned)max(qlen - strLen ,0));                     // Padding with spaces
+        printSpaces((unsigned)max(qlen - strLen ,0));                           // Padding with spaces
         if(i < deg) std::cout << ',';
     }while(++i <= deg);
     std::cout << ']';
@@ -370,12 +483,12 @@ void NTRU_ZpPolynomial::print(const char* name) const{
             j++; intToString(j, numBuf);
             std::cout << numBuf;                                                // Printing current coefficient
             strLen = len(numBuf);
-            printSpaces((unsigned)max(startLen - strLen,0));              // Padding with spaces
+            printSpaces((unsigned)max(startLen - strLen,0));                    // Padding with spaces
         }
         intToString(this->coefficients[i], numBuf);                             // Optimize by returning the length of the string
         std::cout << numBuf;                                                    // Printing current coefficient
         strLen = len(numBuf);
-        printSpaces((unsigned)max(qlen - strLen ,0));                     // Padding with spaces
+        printSpaces((unsigned)max(qlen - strLen ,0));                           // Padding with spaces
         if(i < deg) std::cout << ',';
     }while(++i <= deg);
     std::cout << ']';
