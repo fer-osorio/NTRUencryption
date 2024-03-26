@@ -22,6 +22,6 @@
 
 int main(int argc, char* argv[])
 {
-    NTRUencryption e(NTRUencryption::_509_, NTRUencryption:: _2048_, 120);
+    NTRUencryption e(_509_, _2048_, 120);
     return 0;
 }
