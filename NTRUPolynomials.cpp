@@ -78,6 +78,20 @@ class RandInt {                                                                 
     std::uniform_int_distribution<> dist;
 };
 
+NTRU_ZpPolynomial::ZpPolModXNmns1::ZpPolModXNmns1(const NTRU_ZpPolynomial& P,
+NTRU_N _N_): N(_N_), p(P.p){
+    int upperLimit = min(this->N, P.coeffAmount()), i;
+	this->coefficients = new int[this->N];
+	for(i = 0; i < upperLimit; i++)
+		this->coefficients[i] = P.coefficients[i];
+	if(upperLimit < this->N)
+		for(; i < this->N; i++)
+			this->coefficients[i] = 0;
+	else for(; i < upperLimit; i++)
+		this->coefficients[i%this->N] =
+		Z3addition[this->coefficients[i%this->N]][P.coefficients[i]];
+}
+
 NTRU_ZpPolynomial::ZpPolModXNmns1::ZpPolModXNmns1(NTRU_N _N_, int ones,
 int twos,NTRU_p _p_): N(_N_), p(_p_) {
     int i, j;
@@ -207,7 +221,7 @@ degree(1) {
     this->degree = zeros + ones + twos;
     _coeffAmount_ = this->coeffAmount();                                        // degree + 1
     RandInt rn{0, this->degree, _seed_++};                                      // Random integers from 0 to N-1
-	this->coefficients = new int[this->degree + 1];
+	this->coefficients = new int[_coeffAmount_];
 
 	for(i = 0; i < _coeffAmount_; i++) this->coefficients[i] = 0;
 
@@ -225,6 +239,7 @@ degree(1) {
             twos--;
         }
 	}
+	this->correctDegree();
 }
 
 NTRU_ZpPolynomial& NTRU_ZpPolynomial::operator = (const NTRU_ZpPolynomial& P) {
@@ -255,6 +270,7 @@ const{
         r.coefficients[i]=Z3addition[this->coefficients[i]][P.coefficients[i]]; // Addition element by element till the smallest degree of the arguments
     for(; i <= big->degree; i++)
         r.coefficients[i] = big->coefficients[i];                               // Just copying, equivalent to filling with zeros the small polynomial
+    r.correctDegree();
     return r;
 }
 
@@ -275,12 +291,8 @@ const{
     for(; i < bigCoeffAmount; i++)
     	r.coefficients[i] = big->coefficients[i];                   	        // Just copying, equivalent to filling with zeros the small polynomial
 
-    if(small->degree == big->degree) {									        // If degree are different, there is a possibility of r[r.degree] == 0
-        while(r.coefficients[r.degree] == 0 && r.degree > 0) {
-        	r.degree--;													        // Fitting the polynomial to its degree
-        	r = NTRU_ZpPolynomial(r);
-        }
-    }
+    while(r.coefficients[r.degree] == 0 && r.degree > 0) r.degree--;            // If degree are different, there is a possibility of r[r.degree] == 0
+
     return r;
 }
 
@@ -302,9 +314,9 @@ const{
 void NTRU_ZpPolynomial::division(const NTRU_ZpPolynomial& P, NTRU_ZpPolynomial
 result[2]) const{
     if(P == 0) {
-        throw "\nIn NTRUencryption.cpp, function void NTRUPoly"
-        "nomial::division(const NTRU_ZpPolynomial P,NTRU_ZpPolynomial result[2])"
-        " const. Division by zero...\n";
+        throw "\nIn NTRUencryption.cpp, function void NTRU_ZpPolynomial::"
+        "division(const NTRU_ZpPolynomial& P, NTRU_ZpPolynomial result[2])"
+        "Division by zero...\n";
     }
     if(*this == 0) {                                                            // Case zero divided by anything
         result[0] = NTRU_ZpPolynomial(0,_3_);                                       // Zero polynomial
@@ -322,16 +334,7 @@ result[2]) const{
     if(dividendDegree < divisorDegree) {                                        // Case dividend has smaller degree than divisor
         result[0] = 0; result[1] = *this;
         return;
-    }
-    /*try{
-        //std::cout<<'\n'<<P.coefficients[divisorDegree]<<divisorDegree<<'\n';  // Debugging purposes
-        leadCoeffDivsrInv = invModq(P.coefficients[divisorDegree]);
-    } catch(const char* exp) {
-        std::cout << "\nIn NTRUencryption.cpp, function void "
-        "NTRU_ZpPolynomial::division(const NTRU_ZpPolynomial P,NTRU_ZpPolynomial resul"
-        "t[2]) const\n";
-        throw;
-    }*/                                                                         // At this point we know leading coefficient has an inverse in Zq
+    }                                                                           // At this point we know leading coefficient has an inverse in Zq
 
     degreeDiff = dividendDegree - divisorDegree;                                // At this point we know degreeDiff >= 0
     remDeg = dividendDegree;
@@ -339,8 +342,6 @@ result[2]) const{
     result[0] = NTRU_ZpPolynomial(degreeDiff, this->p);
 
     for(;degreeDiff >= 0; degreeDiff = remDeg - divisorDegree) {
-        //std::cout << "\nremDeg = " << remDeg << ", degreeDiff = "             // Debugging
-        //<< degreeDiff << std::endl;                                           // Purposes
         result[0].coefficients[degreeDiff] = Z3product[
         leadCoeffDivsrInv][result[1].coefficients[remDeg]];                     // Putting new coefficient in the quotient
 
@@ -350,19 +351,21 @@ result[2]) const{
             result[0].coefficients[degreeDiff]][P.coefficients[i-degreeDiff]]];
         }
 
-        if(result[1].coefficients[remDeg] != 0)                                 // No congruence with 0 mod q, throwing exception
-            throw "\nIn NTRUencryption.cpp, function void NTRU"
-            "Polynomial::division(const NTRU_ZpPolynomial P,NTRU_ZpPolynomial "
-            "result[2]) const. result[1].coefficients[remDeg] != 0\n";          // At this point we know result[1].coefficients[remDeg] = 0
+        if(result[1].coefficients[remDeg] != 0){                                 // No congruence with 0 mod q, throwing exception
+            result[1].println("result[1]");
+            result[0].println("result[0]");
+            throw "\nIn NTRUencryption.cpp, function void NTRU_ZpPolynomial::"
+            "division(const NTRU_ZpPolynomial& P, NTRU_ZpPolynomial result[2]"
+            "). result[1].coefficients[remDeg] != 0\n";}                         // At this point we know result[1].coefficients[remDeg] = 0
 
         while(remDeg >= 0 && result[1].coefficients[remDeg] == 0) remDeg--;     // Updating value of the degree of the remainder
     }
+    if(remDeg < 0) remDeg = 0;
     result[1].degree = remDeg;                                                  // Adjusting the polynomial in order to have no zeros to the left
-    result[1] = NTRU_ZpPolynomial(result[1]);
 }
 
-NTRU_ZpPolynomial NTRU_ZpPolynomial::ZpPolModXNmns1::
-gcdXNmns1(ZpPolModXNmns1& thisBezout) const{                                    // EEDA will mean Extended Euclidean Division Algorithm
+NTRU_ZpPolynomial NTRU_ZpPolynomial::ZpPolModXNmns1::gcdXNmns1(ZpPolModXNmns1&
+thisBezout) const{                                                              // EEDA will mean Extended Euclidean Division Algorithm
     NTRU_ZpPolynomial gcd, _thisBezout_;                                        // Initializing result in the "biggest polynomial ring
     NTRU_ZpPolynomial remainders;
     NTRU_ZpPolynomial tmp[2];
@@ -387,23 +390,34 @@ gcdXNmns1(ZpPolModXNmns1& thisBezout) const{                                    
         }
         while(quoRem[1].coefficients[j] == 0) {j--;};
     }
-    //quoRem[1].coefficients[0] = Z3subtraction[quoRem[1].coefficients[0]][1];  // Subtracting the -1 that is at the end of the polynomial x^N-1
+    quoRem[1].correctDegree();
+    NTRU_ZpPolynomial XNmns1(this->N,_3_);
+    XNmns1.coefficients[this->N] = 1;
+    XNmns1.coefficients[0] = 2;
+    //XNmns1.println("x^N-1");
+    //std::cout << "\nN = " << XNmns1.degree << '\n';
+    if(quoRem[0]*(*this) + quoRem[1] == XNmns1)
+        std::cout << "\nFirst step successful...\n";
+    else
+        std::cout << "\nSomething went wrong...\n";
                                                                                 // End of division algorithm between virtual polynomial x^N-1 and this
-    _thisBezout_ = 0;
-    tmp[0] = 1;                                                                 // v[-1] = 0, v[0] = 1
-    tmp[1] = -quoRem[0];                                                        // v[1] = v[-1] - q[1]*v[0] = - q[1]
-
-    //std::cout << "\nline 220::Bezout[1].getN() = " << Bezout[1].getN() << ", tmp[0].getN() = " << tmp[0].getN() << std::endl; // Debugging
+    tmp[1] = -quoRem[0];                                               // v[-1] = 0, v[0] = 1    // v[1] = v[-1] - q[1]*v[0] = - q[1]
+    _thisBezout_ = 1;
+    tmp[0] = tmp[1];
 
     gcd = *this;
     remainders = quoRem[1];
 	while(remainders != 0) {
         try{ gcd.division(remainders, quoRem); }
         catch(const char* exp) {
-            std::cout << "\nIn NTRUencryption.cpp; function "
-            "NTRU_ZpPolynomial::gcd(const NTRU_ZpPolynomial& P) const\n";
+            gcd.println("gcd");
+            remainders.println("remainders");
+            std::cout << "\nIn NTRUencryption.cpp; function NTRU_ZpPolynomial "
+            "NTRU_ZpPolynomial::ZpPolModXNmns1::gcdXNmns1(ZpPolModXNmns1& this"
+            "Bezout)\n";
             throw;
         }
+        //std::cout << "gcd.degree = " << gcd.degree << '\n';
         tmp[1] = _thisBezout_ - quoRem[0]*tmp[0];                               // u[k+2] = u[k] - q[k+2]*u[k+1]
         _thisBezout_ = tmp[0];
         tmp[0] = tmp[1];
@@ -479,26 +493,6 @@ void NTRU_ZpPolynomial::ZpPolModXNmns1::print(const char* name) const{
     std::cout << ']';
 }
 
-/*int NTRU_ZpPolynomial::invModq(int t) const{
-    const int exp = (this->q >> 1) - 1;											// exp = q/2 - 1
-	int bit = 1;															    // Single bit; it will 'run' trough the bits of exp
-	int r = (t = this->modq(t));                                                // Making sure 0 <= t < q. Assigning to r
-	if((t & 1) == 0) throw "\nIn NTRUencryption.cpp, function int NTRUencrypti"
-	    "on::invModq(int t). No inverse modulus q for even numbers.\n";
-	for(; (exp & bit) != 0; bit <<= 1) {                                        // Using exponentiation algorithm to find the inverse
-		(r *= r) *= t;                                                          // Enhanced for this particular case (q-1 has the form 111...111)
-		r = this->modq(r);
-	}
-	return r;
-}*/
-
-/*void NTRU_ZpPolynomial::thisCoeffOddRandom(int deg) {
-    RandInt rn{0, (this->q-1)>>2, _seed_++};                                    // Random integers from 0 to (q-1)/4
-    if(deg < 0 || deg >= this->N) deg = this->N - 1;
-    for(int i = 0; i <= deg; i++)
-        this->coefficients[i] = (rn()<<1) + 1;                                  // Assigning rn()*2 + 1. This number is odd, bigger than zero and smaller than q
-}*/
-
 void NTRU_ZpPolynomial::print(const char* name) const{
     char start[] = "0   [";                                                     // Start of the string will be printed
     char numBuf[10];                                                            // Buffer necessary for the int -> string conversion
@@ -531,22 +525,30 @@ void NTRU_ZpPolynomial::print(const char* name) const{
 }
 
 void NTRU_ZpPolynomial::ZpPolModXNmns1::test(int d) {
-    NTRU_ZpPolynomial Np0(d, d+44, d+45);
+    NTRU_ZpPolynomial Np0(d,d+44,d+45);
 	NTRU_ZpPolynomial Np1(d, d, d);
 	NTRU_ZpPolynomial quorem[2];
-	NTRU_ZpPolynomial Bezout;
-	//NTRU_ZpPolynomial gcd = NTRU_ZpPolynomial(0,_3_);
+	NTRU_ZpPolynomial gcd;
+	NTRU_ZpPolynomial::ZpPolModXNmns1 Bezout;
+	NTRU_ZpPolynomial::ZpPolModXNmns1 Np2(Np0,this->N);
 
-	std::cout << '\n';
+	/*std::cout << '\n';
 	Np0.println("\nNp0");
-	Np1.println("\nNp1");
+	Np1.println("\nNp1");*/
 
-    try {Np0.division(Np1, quorem);}
-	catch(const char* exp) {std::cout << exp;}
+    try { Np0.division(Np1, quorem); }
+	catch(const char* exp) { std::cout << exp; }
 
-    quorem[0].println("\nquotient");
-	quorem[1].println("\nremainder");
+    //quorem[0].println("\nquotient");
+	//quorem[1].println("\nremainder");
 
-	if(Np1*quorem[0] + quorem[1] == Np0 && Np1.degree > quorem[1].degree)
+	if(Np1*quorem[0] + quorem[1] == Np0 && Np1.degree > quorem[1].degree && quorem[1].degree >= 0)
 	    std::cout << "\nSuccesful division.\n";
+
+	try{ gcd = Np2.gcdXNmns1(Bezout); }
+	catch(const char* exp) { std::cout << exp; }
+	gcd.println("gcd");
+	Bezout.println("Bezout");
+	Np2.println("Np2");
+	(Bezout*Np2).println("Np2*Bezout");
 }

@@ -33,7 +33,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 			for(int i=0; i<P.N; i++)
 				this->coefficients[i] = P.coefficients[i];
 		}
-
+		ZpPolModXNmns1(const NTRU_ZpPolynomial& P, NTRU_N _N_);
 		ZpPolModXNmns1(NTRU_N _N_, int ones=0, int twos=0, NTRU_p _p_=_3_);		// Ones and twos will dictate the amount of 1 and 2 respectively
 
 		inline ~ZpPolModXNmns1() {
@@ -188,7 +188,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 	}
 	void division(const NTRU_ZpPolynomial& P,NTRU_ZpPolynomial rslt[2]) const;	// The quotient and the remainder are saved in rslt
 
-	NTRU_ZpPolynomial gcdXNmns1(int N, NTRU_ZpPolynomial& Bezout2) const;		// Greatest common divisor between X^N-1 and P. Coefficients in Z3
+	//NTRU_ZpPolynomial gcdXNmns1(int N, NTRU_ZpPolynomial& Bezout2) const;		// Greatest common divisor between X^N-1 and P. Coefficients in Z3
 									 											// Bezout coefficients are polynomials u and v such that u*a + v*b = gcd(a,b),
 									 											// supposing b is *this polynomial, Bezout2 will contain v polynomial
 
@@ -201,6 +201,11 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 		//void thisCoeffOddRandom(int deg);										// Assigns a random odd integer between 0 and q to each coefficient till deg
 	inline bool operator == (int t) const {										// Comparison with a single integer
 		return this->degree == 0 && this->coefficients[0] == t;
+	}
+	inline void correctDegree() {
+		while(this->coefficients[this->degree] == 0 && this->degree > 0) {
+        	this->degree--;														// Fitting the polynomial to its degree
+        }
 	}
 	void print(const char* name = "") const;
 	inline void println(const char* name = "") const{
