@@ -13,7 +13,7 @@ class NTRUencryption {
 	private:
 	//ZpPolynomial publicKey;
 	NTRU_ZpPolynomial::ZpPolModXNmns1 privateKey;
-	//ZpPolynomial privateKeyInvp;											// Private key inverse modulo p
+	NTRU_ZpPolynomial::ZpPolModXNmns1 privateKeyInv_p;												// Private key inverse modulo p
 
 	void setPrivateKeyAndInv();													// Creates private key and inverse of the private key
 
