@@ -32,13 +32,10 @@ inline static NTRU_N max_N(NTRU_N a, NTRU_N b) {
 	return a;
 }
 
-static int intToString(int n, char* dest) {								// String representation of unsigned integer it returns the length of the strign
+static int intToString(int n, char* dest) {                                     // String representation of unsigned integer it returns the length of the string
     int i = 0, j = 0, l = 0;
     char buff = 0;
-    if(n < 0) {
-    	dest[i++] = '-';
-    	n = -n;
-    }
+    if(n < 0) {	dest[i++] = '-'; n = -n; }
     do {
         buff = (char)(n % DECIMAL_BASE);                                        // Taking last current digit
         dest[i++] = buff + 48;                                                  // Saving last current digit
@@ -51,7 +48,7 @@ static int intToString(int n, char* dest) {								// String representation of u
         dest[j] = dest[i];
         dest[i] = buff;
     }
-    return l;
+    return l;                                                                   // Returning length
 }
 inline static int copyString(const char* origin,char* dest) {
     int i = 0;                                                                  // Counting variable. At the end it will contain the length of the origin string
@@ -92,8 +89,8 @@ NTRU_N _N_): N(_N_), p(P.p){
 		Z3addition[this->coefficients[i%this->N]][P.coefficients[i]];
 }
 
-NTRU_ZpPolynomial::ZpPolModXNmns1::ZpPolModXNmns1(NTRU_N _N_, int ones,
-int twos,NTRU_p _p_): N(_N_), p(_p_) {
+NTRU_ZpPolynomial::ZpPolModXNmns1::ZpPolModXNmns1(NTRU_N _N_,int ones,int twos,
+NTRU_p _p_): N(_N_), p(_p_) {
     int i, j;
     RandInt rn{0, _N_-1, _seed_++};                                             // Random integers from 0 to N-1
     if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and twos. In particular the
@@ -165,18 +162,17 @@ NTRU_ZpPolynomial::ZpPolModXNmns1 NTRU_ZpPolynomial::ZpPolModXNmns1::operator +
 
 NTRU_ZpPolynomial::ZpPolModXNmns1 NTRU_ZpPolynomial::ZpPolModXNmns1::operator -
 (const ZpPolModXNmns1& P) const{
-    const ZpPolModXNmns1 *small, *big;
-    ZpPolModXNmns1 r(max_N(this->N, P.N));                                      // Initializing result in the "biggest polynomial ring"
+    const NTRU_N _n_ = min_N(this->N, P.N), _N_ = max_N(this->N, P.N);
+    ZpPolModXNmns1 r(_N_);                                                      // Initializing result in the "biggest polynomial ring"
     int i;
 
-    if(this->N < P.N) { small = this; big = &P; }                               // 'small' points to the polynomial with the smallest N, 'big' points to the
-	else { small = &P; big = this; }                                            // polynomial with the biggest N
-
-    for(i = 0; i < small->N; i++)
-        r.coefficients[i] =
-        Z3subtraction[this->coefficients[i]][P.coefficients[i]];                // Subtraction element by element till the smallest degree of the arguments
-    for(; i < big->N; i++)
-        r.coefficients[i] = big->coefficients[i];                               // Just copying, equivalent to filling with zeros the small polynomial
+    for(i = 0; i < _n_; i++)
+        r.coefficients[i] =                                                     // Subtraction element by element till the smallest degree of the arguments
+        Z3subtraction[this->coefficients[i]][P.coefficients[i]];
+    if(P.N == _N_) for(; i < _N_; i++)                                          // Second argument bigger, virtually filling the first argument with zeros
+        r.coefficients[i] = Z3subtraction[0][P.coefficients[i]];
+    else for(; i < _N_; i++)                                                    // First argument bigger, virtually filling the second argument with zeros
+        r.coefficients[i] = this->coefficients[i];
     return r;
 }
 
@@ -203,10 +199,11 @@ NTRU_ZpPolynomial::ZpPolModXNmns1 NTRU_ZpPolynomial::ZpPolModXNmns1::operator *
 
 NTRU_ZpPolynomial::ZpPolModXNmns1& NTRU_ZpPolynomial::ZpPolModXNmns1::operator-=
 (const ZpPolModXNmns1& P) {
-    NTRU_N _N_ = min_N(this->N, P.N);                                           // The limit will be till the smallest N
-    for(int i = 0; i < _N_; i++)
-        this->coefficients[i] =
-            Z3subtraction[ this->coefficients[i] ][ P.coefficients[i] ];
+    const NTRU_N _n_ = min_N(this->N, P.N);
+    int i;
+    for(i = 0; i < _n_; i++)
+        this->coefficients[i] =                                                 // Subtraction element by element till the smallest degree of the arguments
+        Z3subtraction[this->coefficients[i]][P.coefficients[i]];
     return *this;
 }
 
@@ -257,9 +254,9 @@ NTRU_ZpPolynomial& NTRU_ZpPolynomial::operator = (const NTRU_ZpPolynomial& P) {
 	return *this;
 }
 
-NTRU_ZpPolynomial NTRU_ZpPolynomial::operator+(const NTRU_ZpPolynomial& P)
+NTRU_ZpPolynomial NTRU_ZpPolynomial::operator + (const NTRU_ZpPolynomial& P)
 const{
-    NTRU_ZpPolynomial r(max(this->degree, P.degree),_3_);                           // Initializing result in the "biggest polynomial ring"
+    NTRU_ZpPolynomial r(max(this->degree, P.degree),_3_);                       // Initializing result in the "biggest polynomial ring"
     const NTRU_ZpPolynomial *small, *big;
     int i;
 
@@ -276,22 +273,18 @@ const{
 
 NTRU_ZpPolynomial NTRU_ZpPolynomial::operator - (const NTRU_ZpPolynomial& P)
 const{
-    const NTRU_ZpPolynomial *small, *big;
-	NTRU_ZpPolynomial r(this->maxDeg(P), _3_);                         			    // Initializing result with zeros
-	int i, smallCoeffAmount, bigCoeffAmount;
+	NTRU_ZpPolynomial r(this->maxDeg(P), _3_);                                  // Initializing result with zeros
+	int deg = min(this->degree,P.degree), DEG = max(this->degree,P.degree), i;
 
-	if(this->degree < P.degree) { small = this; big = &P; }         	        // 'small' points to the polynomial with the smallest degree, 'big' points to the
-	else { small = &P; big = this; }                                	        // polynomial with the biggest degree
-	smallCoeffAmount = small->coeffAmount();
-	bigCoeffAmount   = big->coeffAmount();
-
-    for(i = 0; i < smallCoeffAmount; i++)
+    for(i = 0; i <= deg; i++)
     	r.coefficients[i] =
     	Z3subtraction[this->coefficients[i]][P.coefficients[i]];    	        // Subtraction element by element till the smallest degree of the arguments
-    for(; i < bigCoeffAmount; i++)
-    	r.coefficients[i] = big->coefficients[i];                   	        // Just copying, equivalent to filling with zeros the small polynomial
+    if(P.degree == DEG) for(; i <= DEG; i++)
+    	r.coefficients[i] = Z3subtraction[0][P.coefficients[i]];                // Second argument bigger, virtually filling the first argument with zeros
+    else for(; i <= DEG; i++)
+    	r.coefficients[i] = this->coefficients[i];                              // First argument bigger, virtually filling the second argument with zeros
 
-    while(r.coefficients[r.degree] == 0 && r.degree > 0) r.degree--;            // If degree are different, there is a possibility of r[r.degree] == 0
+    while(r.coefficients[r.degree] == 0 && r.degree > 0) r.degree--;            // Correcting degree
 
     return r;
 }
@@ -365,7 +358,7 @@ result[2]) const{
 }
 
 NTRU_ZpPolynomial NTRU_ZpPolynomial::ZpPolModXNmns1::gcdXNmns1(ZpPolModXNmns1&
-thisBezout) const{                                                              // EEDA will mean Extended Euclidean Division Algorithm
+thisBezout) const{                                                              // EEA will mean Extended Euclidean Algorithm
     NTRU_ZpPolynomial gcd, _thisBezout_;                                        // Initializing result in the "biggest polynomial ring
     NTRU_ZpPolynomial remainders;
     NTRU_ZpPolynomial tmp[2];
@@ -375,7 +368,7 @@ thisBezout) const{                                                              
                                     NTRU_ZpPolynomial(this->N-1,  this->p) };
 
     quoRem[0].coefficients[this->N-deg] = leadCoeff;                            // Start of division algorithm between virtual polynomial x^N-1 and this
-    for(i = deg-1, j = this->N - 1; i >= 0; i--, j--) {                           // First coefficient of quotient and first subtraction
+    for(i = deg-1, j = this->N - 1; i >= 0; i--, j--) {                         // First coefficient of quotient and first subtraction
         quoRem[1].coefficients[j] =
         Z3subtraction[0][Z3product[ leadCoeff ][ this->coefficients[i]] ];
     }
@@ -390,39 +383,37 @@ thisBezout) const{                                                              
         }
         while(quoRem[1].coefficients[j] == 0) {j--;};
     }
-    quoRem[1].correctDegree();
-    NTRU_ZpPolynomial XNmns1(this->N,_3_);
-    XNmns1.coefficients[this->N] = 1;
-    XNmns1.coefficients[0] = 2;
-    //XNmns1.println("x^N-1");
-    //std::cout << "\nN = " << XNmns1.degree << '\n';
-    if(quoRem[0]*(*this) + quoRem[1] == XNmns1)
-        std::cout << "\nFirst step successful...\n";
-    else
-        std::cout << "\nSomething went wrong...\n";
-                                                                                // End of division algorithm between virtual polynomial x^N-1 and this
-    tmp[1] = -quoRem[0];                                               // v[-1] = 0, v[0] = 1    // v[1] = v[-1] - q[1]*v[0] = - q[1]
-    _thisBezout_ = 1;
-    tmp[0] = tmp[1];
+    quoRem[1].correctDegree();                                                  // End of division algorithm between virtual polynomial x^N-1 and this
 
-    gcd = *this;
-    remainders = quoRem[1];
-	while(remainders != 0) {
+    /*NTRU_ZpPolynomial XNmns1(this->N,_3_);                                    // Debugging purposes
+    XNmns1.coefficients[this->N] = 1;                                           // ...
+    XNmns1.coefficients[0] = 2;                                                 // ...
+    if(quoRem[0]*(*this) + quoRem[1] == XNmns1)                                 // ...
+        std::cout << "\nFirst step successful...\n";                            // ...
+    else                                                                        // ...
+        std::cout << "\nSomething went wrong...\n";*/                           // ...
+
+    tmp[1] = -quoRem[0]; _thisBezout_ = 1;                                      // Initializing values for the execution of the rest of the EEA
+    tmp[0] = tmp[1];                                                            // v[-1] = 0, v[0] = 1 ==> v[1] = v[-1] - q[1]*v[0] = - q[1]
+    gcd = *this;                                                                // ...
+    remainders = quoRem[1];                                                     // ...
+
+	while(remainders != 0) {                                                    // EEA implementation (continuation)
         try{ gcd.division(remainders, quoRem); }
         catch(const char* exp) {
-            gcd.println("gcd");
-            remainders.println("remainders");
             std::cout << "\nIn NTRUencryption.cpp; function NTRU_ZpPolynomial "
             "NTRU_ZpPolynomial::ZpPolModXNmns1::gcdXNmns1(ZpPolModXNmns1& this"
             "Bezout)\n";
             throw;
         }
-        //std::cout << "gcd.degree = " << gcd.degree << '\n';
+        /*std::cout << "tmp[0].degree = "      << tmp[0].degree;
+        std::cout << ", quoRem[0].degree = " << quoRem[0].degree;
+        std::cout << ", quoRem[1].degree = " << quoRem[1].degree << '\n';*/
         tmp[1] = _thisBezout_ - quoRem[0]*tmp[0];                               // u[k+2] = u[k] - q[k+2]*u[k+1]
-        _thisBezout_ = tmp[0];
-        tmp[0] = tmp[1];
-        gcd = remainders;
-        remainders = quoRem[1];
+        _thisBezout_ = tmp[0];                                                  // Updating values
+        tmp[0] = tmp[1];                                                        // ...
+        gcd = remainders;                                                       // ...
+        remainders = quoRem[1];                                                 // ...
 	}
 	thisBezout = _thisBezout_;
 	return gcd;
@@ -525,15 +516,18 @@ void NTRU_ZpPolynomial::print(const char* name) const{
 }
 
 void NTRU_ZpPolynomial::ZpPolModXNmns1::test(int d) {
-    NTRU_ZpPolynomial Np0(d,d+44,d+45);
+    NTRU_ZpPolynomial Np0(d,d+1,d);
 	NTRU_ZpPolynomial Np1(d, d, d);
 	NTRU_ZpPolynomial quorem[2];
 	NTRU_ZpPolynomial gcd;
 	NTRU_ZpPolynomial::ZpPolModXNmns1 Bezout;
 	NTRU_ZpPolynomial::ZpPolModXNmns1 Np2(Np0,this->N);
 
-	/*std::cout << '\n';
-	Np0.println("\nNp0");
+	std::cout << "\n::::"
+	"NTRUPolynomials testing start ..........................................."
+	"........................................................................."
+	<< '\n';
+	/*Np0.println("\nNp0");
 	Np1.println("\nNp1");*/
 
     try { Np0.division(Np1, quorem); }
@@ -548,7 +542,12 @@ void NTRU_ZpPolynomial::ZpPolModXNmns1::test(int d) {
 	try{ gcd = Np2.gcdXNmns1(Bezout); }
 	catch(const char* exp) { std::cout << exp; }
 	gcd.println("gcd");
-	Bezout.println("Bezout");
-	Np2.println("Np2");
-	(Bezout*Np2).println("Np2*Bezout");
+	//Bezout.println("Bezout");
+	//Np2.println("Np2");
+	(Np2*Bezout).println("Np2*Bezout");
+
+	std::cout << "\n::::"
+	"NTRUPolynomials testing end ............................................."
+	"........................................................................."
+	<< "\n\n";
 }
