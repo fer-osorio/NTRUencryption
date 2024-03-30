@@ -182,23 +182,11 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 	}
 
 	inline int coeffAmount() const {return this->degree + 1;}
-	inline int maxDeg(const NTRU_ZpPolynomial& P) const{
+	/*inline int maxDeg(const NTRU_ZpPolynomial& P) const{
 		if(this->degree > P.degree) return this->degree;
 		return P.degree;
-	}
+	}*/
 	void division(const NTRU_ZpPolynomial& P,NTRU_ZpPolynomial rslt[2]) const;	// The quotient and the remainder are saved in rslt
-
-	//NTRU_ZpPolynomial gcdXNmns1(int N, NTRU_ZpPolynomial& Bezout2) const;		// Greatest common divisor between X^N-1 and P. Coefficients in Z3
-									 											// Bezout coefficients are polynomials u and v such that u*a + v*b = gcd(a,b),
-									 											// supposing b is *this polynomial, Bezout2 will contain v polynomial
-
-		//int invModq(int t) const;												// Calculates inverse modulus q
-
-		/*inline int modq(int t) const{											// returns t mod q using bit wise operations. The result will be positive
-			while(t < 0) t += q;												// Adding q till we get t positive. This won't affect the result
-    		return t &= q-1;													// Since q is a power of 2, the expression t &= q-1 is equivalent to t %= q
-		}*/
-		//void thisCoeffOddRandom(int deg);										// Assigns a random odd integer between 0 and q to each coefficient till deg
 	inline bool operator == (int t) const {										// Comparison with a single integer
 		return this->degree == 0 && this->coefficients[0] == t;
 	}
@@ -210,5 +198,21 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 	void print(const char* name = "") const;
 	inline void println(const char* name = "") const{
 		print(name); std::cout<<'\n';
+	}
+};
+
+struct NTRU_ZqPolModXNmns1 {															// Representation of the polynomials in Zp[x]/(x^N-1)
+	private:
+	NTRU_N N;
+	NTRU_q q;
+	int* coefficients = NULL;
+
+	inline NTRU_ZqPolModXNmns1(const NTRU_ZpPolynomial::ZpPolModXNmns1& P,
+	NTRU_q _q_): N(P.get_N()), q(_q_) {
+		this->coefficients = new int[this->N];
+		for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
+	}
+	inline ~NTRU_ZqPolModXNmns1() {
+		if(this->coefficients != NULL) delete[] this->coefficients;
 	}
 };
