@@ -17,37 +17,37 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 	static const int Z3subtraction[3][3];										// Subtraction table of the Z3 ring (integers modulo 3)
 	static const int Z3product[3][3];											// Product table of the Z3 ring (integers modulo 3)
 
-	struct ZpPolModXNmns1 {														// Representation of the polynomials in Zp[x]/(x^N-1)
+	struct PolyModXNmns1 {														// Representation of the polynomials in Zp[x]/(x^N-1)
 		private:
 		NTRU_N N;
 		NTRU_p p = _3_;
 		int* coefficients = NULL;
-		int* permutation  = NULL;
+		int* permutation  = NULL;												// This could be enhanced by making this attributes static
 		int* coeffCopy 	  = NULL;												// Copy of the coefficients. Useful at the moment of permute the coefficients
 
-		private:inline ZpPolModXNmns1(): N(_509_) {}							// Initializing N, coefficients is left as NULL
+		private:inline PolyModXNmns1(): N(_509_) {}								// Initializing N, coefficients is left as NULL
 
 		public:
-		inline ZpPolModXNmns1(const ZpPolModXNmns1& P): N(P.N), p(P.p) {
+		inline PolyModXNmns1(const PolyModXNmns1& P): N(P.N), p(P.p) {
 			this->coefficients = new int[P.N];
 			for(int i=0; i<P.N; i++)
 				this->coefficients[i] = P.coefficients[i];
 		}
-		ZpPolModXNmns1(const NTRU_ZpPolynomial& P, NTRU_N _N_);
-		ZpPolModXNmns1(NTRU_N _N_, int ones=0, int twos=0, NTRU_p _p_=_3_);		// Ones and twos will dictate the amount of 1 and 2 respectively
+		PolyModXNmns1(const NTRU_ZpPolynomial& P, NTRU_N _N_);
+		PolyModXNmns1(NTRU_N _N_, int ones=0, int twos=0, NTRU_p _p_=_3_);		// Ones and twos will dictate the amount of 1 and 2 respectively
 
-		inline ~ZpPolModXNmns1() {
+		inline ~PolyModXNmns1() {
 			if(this->coefficients != NULL) delete [] this->coefficients;
 			if(this->permutation  != NULL) delete [] this->permutation;
 			if(this->coeffCopy 	  != NULL) delete [] this->coeffCopy;
 		}
 		// Arithmetic
-		ZpPolModXNmns1  operator + (const ZpPolModXNmns1&) const;				// Addition element by element
-		ZpPolModXNmns1  operator - (const ZpPolModXNmns1&) const;				// Subtraction element by element
-		ZpPolModXNmns1  operator * (const ZpPolModXNmns1&) const;				// Multiplication will coincide with convolution
-		ZpPolModXNmns1& operator-= (const ZpPolModXNmns1&);
+		PolyModXNmns1  operator + (const PolyModXNmns1&) const;					// Addition element by element
+		PolyModXNmns1  operator - (const PolyModXNmns1&) const;					// Subtraction element by element
+		PolyModXNmns1  operator * (const PolyModXNmns1&) const;					// Multiplication will coincide with convolution (compare with classical)
+		PolyModXNmns1& operator-= (const PolyModXNmns1&);
 
-		NTRU_ZpPolynomial gcdXNmns1(ZpPolModXNmns1& thisBezout) const;
+		NTRU_ZpPolynomial gcdXNmns1(PolyModXNmns1& thisBezout) const;
 
 		inline bool operator == (int t) const {									// Comparison with a single integer
 			return this->degree() == 0 && this->coefficients[0] == t;
@@ -55,7 +55,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 		inline bool operator != (int t) const {									// Comparison with a single integer
 			return this->degree() != 0 || this->coefficients[0] != t;
 		}
-		inline bool operator == (const ZpPolModXNmns1& P) {
+		inline bool operator == (const PolyModXNmns1& P) {
 			if(this->N == P.N && this->p == P.p) {								// The comparison this->p == P.p is naive, but maybe will be useful in the future
 				for(int i = 0; i < this->N; i++)
 					if(this->coefficients[i]!=P.coefficients[i])
@@ -64,7 +64,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 			}
 			else return false;
 		}
-		inline bool operator != (const ZpPolModXNmns1& P) {
+		inline bool operator != (const PolyModXNmns1& P) {
 			if(this->N == P.N && this->p == P.p) {								// The comparison this->p != P.p is naive, but maybe will be useful in the future
 				for(int i = 0; i < this->N; i++)
 					if(this->coefficients[i] != P.coefficients[i])
@@ -73,11 +73,11 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 			}
 			else return true;
 		}
-		ZpPolModXNmns1& operator = (const ZpPolModXNmns1& P);					// Assignment
+		PolyModXNmns1& operator = (const PolyModXNmns1& P);					// Assignment
 
-		ZpPolModXNmns1& operator = (const NTRU_ZpPolynomial& P);				// Assignment from NTRU_ZpPolynomial to ZpPolModXNmns1
+		PolyModXNmns1& operator = (const NTRU_ZpPolynomial& P);				// Assignment from NTRU_ZpPolynomial to PolyModXNmns1
 
-		inline ZpPolModXNmns1& operator = (int t) {								// Assignment with single integer
+		inline PolyModXNmns1& operator = (int t) {								// Assignment with single integer
 			if(this->coefficients == NULL)
 				this->coefficients = new int[this->N];							// Dealing with already initialized object, so this->N is well defined
 			if(t < 0) t = -t;
@@ -135,7 +135,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 		for(i = 0; i < _coeffAmount_; i++)
 			this->coefficients[i] = P.coefficients[i];
 	}
-	inline NTRU_ZpPolynomial(const ZpPolModXNmns1& P): p(P.get_p()),			// Initializing a NTRU_ZpPolynomial with a ZpPolyModXmns1
+	inline NTRU_ZpPolynomial(const PolyModXNmns1& P): p(P.get_p()),				// Initializing a NTRU_ZpPolynomial with a ZpPolyModXmns1
 	degree(P.degree()){
 		int _coeffAmount_  = this->coeffAmount(), i;
 		this->coefficients = new int[_coeffAmount_];
@@ -166,7 +166,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 			r.coefficients[i] = Z3subtraction[0][r.coefficients[i]];
 		return r;
 	}
-	NTRU_ZpPolynomial operator * (const NTRU_ZpPolynomial& P) const;
+	NTRU_ZpPolynomial operator * (const NTRU_ZpPolynomial& P) const;			// Classical multiplication (compare with convolution)
 
 	inline bool operator == (const NTRU_ZpPolynomial& P) {
 		if(this->degree == P.degree && this->p == P.p) {						// The comparison this->p == P.p is naive, but maybe will be useful in the future
@@ -182,10 +182,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 	}
 
 	inline int coeffAmount() const {return this->degree + 1;}
-	/*inline int maxDeg(const NTRU_ZpPolynomial& P) const{
-		if(this->degree > P.degree) return this->degree;
-		return P.degree;
-	}*/
+
 	void division(const NTRU_ZpPolynomial& P,NTRU_ZpPolynomial rslt[2]) const;	// The quotient and the remainder are saved in rslt
 	inline bool operator == (int t) const {										// Comparison with a single integer
 		return this->degree == 0 && this->coefficients[0] == t;
@@ -201,18 +198,53 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 	}
 };
 
-struct NTRU_ZqPolModXNmns1 {															// Representation of the polynomials in Zp[x]/(x^N-1)
+struct NTRU_ZqPolyModXNmns1 {													// Representation of the polynomials in Zp[x]/(x^N-1)
+	private: struct Z2PolyModXNmns1{
+		private: enum Z2 {_0_ = 0, _1_ = 1};									// Integers modulo 2 (binary numbers)
+		inline friend Z2 operator + (Z2 a,Z2 b){									// Addition modulus 2 (coincide with subtraction)
+			if(a!=b) return _1_;
+			return _0_;
+		}
+		inline friend Z2 operator * (Z2 a,Z2 b){									// Multiplication modulus 2
+			if(a==0) return _0_;
+			return  b ;
+		}
+		private:
+		NTRU_N N;
+		Z2* coefficients = NULL;
+
+		private: inline Z2PolyModXNmns1(): N(_509_) {}
+
+		public:
+		inline Z2PolyModXNmns1(const NTRU_ZpPolynomial::PolyModXNmns1& P):
+		N(P.get_N()) {
+			this->coefficients = new Z2[this->N];
+			for(int i = 0; i < this->N; i++) {
+				if(P[i] == 0 || P[i] == 2) this->coefficients[i] = _0_;
+				else this->coefficients[i] = _1_;
+			}
+		}
+		Z2PolyModXNmns1 gcdXNmns1(const Z2PolyModXNmns1&) const;
+	};
+
 	private:
 	NTRU_N N;
 	NTRU_q q;
 	int* coefficients = NULL;
 
-	inline NTRU_ZqPolModXNmns1(const NTRU_ZpPolynomial::ZpPolModXNmns1& P,
+	private: inline NTRU_ZqPolyModXNmns1(): N(_509_), q(_2048_) {}
+
+	public:
+	inline NTRU_ZqPolyModXNmns1(const NTRU_ZpPolynomial::PolyModXNmns1& P,
 	NTRU_q _q_): N(P.get_N()), q(_q_) {
 		this->coefficients = new int[this->N];
 		for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
 	}
-	inline ~NTRU_ZqPolModXNmns1() {
+	inline ~NTRU_ZqPolyModXNmns1() {
 		if(this->coefficients != NULL) delete[] this->coefficients;
 	}
+
+	NTRU_ZqPolyModXNmns1 operator * (const NTRU_ZqPolyModXNmns1& P) const;
+	NTRU_ZqPolyModXNmns1 operator - (const NTRU_ZqPolyModXNmns1& P) const;
+	NTRU_ZqPolyModXNmns1 gcdXNmns1_Z2(const NTRU_ZqPolyModXNmns1& P) const;		// Greatest common divisor seeing the coefficients in Z2 (integers modulus 2)
 };
