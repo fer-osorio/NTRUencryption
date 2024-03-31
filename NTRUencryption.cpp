@@ -2,7 +2,7 @@
 
 NTRUencryption::NTRUencryption(NTRU_N _N_,NTRU_q _q_, int _d_, NTRU_p _p_):
 N(_N_),q(_q_),d(_d_),p(_p_), privateKey(_N_,_d_+ 1,_d_),privateKeyInv_p(_N_) {
-	this->privateKey.test(_N_/3);
+	this->privateKey.test(_N_, _N_/3 - 1);
 	this->setPrivateKeyAndInv();
 	(privateKey*privateKeyInv_p).println("privateKey*privateKeyInv_p");
 	this->privateKey.println("Private key");
