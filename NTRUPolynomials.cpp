@@ -60,7 +60,7 @@ inline static int printSpaces(unsigned t) {
 	while(t-- > 0) std::cout << ' ' ;
 	return 0;
 }																				// Functions for printing
-inline static int len(const char* str) {												// Length of a string
+inline static int len(const char* str) {										// Length of a string
 	int l = -1;
 	while(str[++l] != 0) {}
 	return l;
@@ -466,15 +466,7 @@ const{                                                                          
         while(quoRem[1].coefficients[j] == 0) {j--;};
     }                                                                           // End of division algorithm between virtual polynomial x^N-1 and this
 
-    /*NTRU_ZpPolynomial XNmns1(this->N,_3_);                                    // Debugging purposes
-    XNmns1.coefficients[this->N] = 1;                                           // ...
-    XNmns1.coefficients[0] = 2;                                                 // ...
-    if(quoRem[0]*(*this) + quoRem[1] == XNmns1)                                 // ...
-        std::cout << "\nFirst step successful...\n";                            // ...
-    else                                                                        // ...
-        std::cout << "\nSomething went wrong...\n";*/                           // ...
-
-    tmp[1] = -quoRem[0]; thisBezout = 1;                                      // Initializing values for the execution of the rest of the EEA
+    tmp[1] = -quoRem[0]; thisBezout = 1;                                        // Initializing values for the execution of the rest of the EEA
     tmp[0] = tmp[1];                                                            // v[-1] = 0, v[0] = 1 ==> v[1] = v[-1] - q[1]*v[0] = - q[1]
     gcd = *this;                                                                // ...
     remainders = quoRem[1];                                                     // ...
@@ -556,11 +548,11 @@ NTRU_ZpPolynomial& NTRU_ZpPolynomial::operator = (const ZpPolynomial& P) {
 
 NTRU_ZpPolynomial& NTRU_ZpPolynomial::operator = (int t) {
     if(this->coefficients == NULL)
-		this->coefficients = new int[this->N];							// Dealing with already initialized object, so this->N is well defined
+		this->coefficients = new int[this->N];                                  // Dealing with already initialized object, so this->N is well defined
 	if(t < 0) t = -t;
 	if(t >= this->p) t %= this->p;
 	this->coefficients[0] = t;
-	for(int i=1; i < this->N; i++) this->coefficients[i] = 0;			// Filling with zeros the rest of the array
+	for(int i=1; i < this->N; i++) this->coefficients[i] = 0;                   // Filling with zeros the rest of the array
 	return *this;
 }
 
@@ -638,6 +630,8 @@ q(P.q) {
     for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
 }
 
+//|||||||||||||||||||| NTRU_ZqPolynomial::Z2Polynomial |||||||||||||||||||||||||
+
 NTRU_ZqPolynomial::Z2Polynomial::Z2Polynomial(const Z2Polynomial& P): N(P.N) {
     this->coefficients = new Z2[P.N];
     for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
@@ -659,7 +653,7 @@ NTRU_ZqPolynomial::Z2Polynomial::Z2Polynomial(NTRU_N _N_, int ones): N(_N_) {
 	RandInt rn{0, _N_-1, _seed_++};                                             // Random integers from 0 to N-1
 	int i, j;
     if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and twos. In particular the
-    while(ones >= _N_) ones <<= 1;                                           // Dividing by two till getting inside the allowed range
+    while(ones >= _N_) ones <<= 1;                                              // Dividing by two till getting inside the allowed range
 	this->coefficients = new Z2[_N_];
 	for(i = 0; i < _N_; i++) this->coefficients[i] = _0_;
 	while(ones > 0) {                                                           // Putting the ones first
@@ -669,6 +663,38 @@ NTRU_ZqPolynomial::Z2Polynomial::Z2Polynomial(NTRU_N _N_, int ones): N(_N_) {
             ones--;
         }
 	}
+}
+
+NTRU_ZqPolynomial::Z2Polynomial& NTRU_ZqPolynomial::Z2Polynomial::operator =
+(const Z2Polynomial& P)  {
+	if(this != &P) {													        // Guarding against self assignment
+		if(this->N != P.N) {											        // Delete pass coefficients array. If this->N != P.N is true, there is no reason
+			if(this->coefficients != NULL) delete[] this->coefficients;	        // to delete the array
+			this->coefficients = new Z2[P.N];
+			this->N = P.N;
+		}
+		if(this->coefficients == NULL) this->coefficients = new Z2[P.N];
+		for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
+	}
+	return *this;
+}
+
+NTRU_ZqPolynomial::Z2Polynomial& NTRU_ZqPolynomial::Z2Polynomial::operator =
+(Z2 t)  {
+	if(this->coefficients==NULL) this->coefficients = new Z2[this->N];          // In case of have been generated from the (private) default constructor
+	this->coefficients[0] = t;
+	for(int i = 1; i < this->N; i++) this->coefficients[i] = _0_;
+	return *this;
+}
+
+bool NTRU_ZqPolynomial::Z2Polynomial::operator == (const Z2Polynomial& P)const{
+	if(this->N == P.N) {
+		for(int i = 0; i < this->N; i++)
+			if(this->coefficients[i] != P.coefficients[i])
+				return false;
+		return true;
+	}
+	else return false;
 }
 
 NTRU_ZqPolynomial::Z2Polynomial NTRU_ZqPolynomial::Z2Polynomial::operator +
@@ -708,16 +734,16 @@ NTRU_ZqPolynomial::Z2Polynomial NTRU_ZqPolynomial::Z2Polynomial::operator *
 
 	for(i = 0; i <= this_degree; i++) {
 		if(this->coefficients[i] != _0_)                                        // Taking advantage this polynomials have a big proportion of zeros
-		for(j = 0; j <= P_degree; j++) {
-			if(P.coefficients[j] != _0_) {
-			    if((k = i + j) < this->N)
-			        r.coefficients[k] +=
-			        this->coefficients[i]*P.coefficients[j];
-			    else
-			        r.coefficients[k-this->N] +=
-			        this->coefficients[i]*P.coefficients[j];
-			}
-		}
+		    for(j = 0; j <= P_degree; j++) {
+			    if(P.coefficients[j] != _0_) {
+			        if((k = i + j) < r.N)
+			            r.coefficients[k] +=
+			            this->coefficients[i]*P.coefficients[j];
+			        else
+			            r.coefficients[k-r.N] +=
+			            this->coefficients[i]*P.coefficients[j];
+			    }
+		    }
 	}
 	return r;
 }
@@ -728,9 +754,9 @@ Z2Polynomial result[2]) const{
         throw "\nvoid NTRU_ZpPolynomial::ZpPolynomial::division(const Zp"
         "Polynomial& P,ZpPolynomial result[2]) const. Division by zero...\n";
     }
-    if(*this == _0_) {                                                            // Case zero divided by anything
-        result[0] = _0_;                                                          // Zero polynomial
-        result[1] = _0_;                                                          // Zero polynomial
+    if(*this == _0_) {                                                          // Case zero divided by anything
+        result[0] = _0_;                                                        // Zero polynomial
+        result[1] = _0_;                                                        // Zero polynomial
         return;
     }
 
@@ -793,14 +819,6 @@ Z2Polynomial& thisBezout) const{
         while(quoRem[1].coefficients[j] == _0_) {j--;};
     }                                                                           // End of division algorithm between virtual polynomial x^N-1 and this
 
-    /*Z2Polynomial XNmns1(this->N,_3_);                                         // Debugging purposes
-    XNmns1.coefficients[this->N] = 1;                                           // ...
-    XNmns1.coefficients[0] = 2;                                                 // ...
-    if(quoRem[0]*(*this) + quoRem[1] == XNmns1)                                 // ...
-        std::cout << "\nFirst step successful...\n";                            // ...
-    else                                                                        // ...
-        std::cout << "\nSomething went wrong...\n";*/                           // ...
-
     thisBezout = _1_;                                                           // Initializing values for the execution of the rest of the EEA
     tmp[1] = quoRem[0];                                                         // In this ring, -a = a for all polynomial a
     tmp[0] = tmp[1];                                                            // v[-1] = 0, v[0] = 1 ==> v[1] = v[-1] - q[1]*v[0] = - q[1]
@@ -810,23 +828,16 @@ Z2Polynomial& thisBezout) const{
 	while(remainders != _0_) {                                                  // EEA implementation (continuation)
         try{ gcd.division(remainders, quoRem); }
         catch(const char* exp) {
-            std::cout << "\nIn NTRUencryption.cpp; function Z2Polynomial "
-            "Z2Polynomial::PolyModXNmns1::gcdXNmns1(PolyModXNmns1& this"
-            "Bezout)\n";
+            std::cout << "\nNTRU_ZqPolynomial::Z2Polynomial NTRU_ZqPolynomial"
+            "::Z2Polynomial::gcdXNmns1(Z2Polynomial& thisBezout) const\n";
             throw;
         }
-        /*
-        std::cout <<      "tmp[0].degree = " <<    tmp[0].degree;
-        std::cout << ", quoRem[0].degree = " << quoRem[0].degree;
-        std::cout << ", quoRem[1].degree = " << quoRem[1].degree << '\n';
-        */
         tmp[1] = thisBezout - quoRem[0]*tmp[0];                                 // u[k+2] = u[k] - q[k+2]*u[k+1]
         thisBezout = tmp[0];                                                    // Updating values
         tmp[0] = tmp[1];                                                        // ...
         gcd = remainders;                                                       // ...
         remainders = quoRem[1];                                                 // ...
 	}
-	thisBezout = thisBezout;
 	return gcd;
 }
 
@@ -867,8 +878,8 @@ void NTRU_ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) {
 	try{ gcd = Np2.gcdXNmns1(Bezout); }
 	catch(const char* exp) { std::cout << exp; }
 	gcd.print("gcd", "\n");
-	//Bezout.print("Bezout", "\n");
-	//Np2.println("Np2");
+	Bezout.println("Bezout");
+	Np2.println("Np2");
 	(Np2*Bezout).println("Np2*Bezout");
 
 	std::cout << "\n::::"
@@ -876,3 +887,30 @@ void NTRU_ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) {
 	".........................."
 	<< "\n\n";
 }
+
+//_____________________NTRU_ZqPolynomial::Z2Polynomial__________________________
+
+// |||||||||||||||||||||||||| NTRU_ZqPolynomial ||||||||||||||||||||||||||||||||
+
+NTRU_ZqPolynomial::NTRU_ZqPolynomial(const NTRU_ZpPolynomial& P,NTRU_q _q_):
+N(P.get_N()), q(_q_) {
+	this->coefficients = new int[this->N];
+	for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
+}
+
+NTRU_ZqPolynomial& NTRU_ZqPolynomial::operator = (const NTRU_ZqPolynomial& P) {
+	if(this != &P) {														    // Guarding against self assignment
+		if(this->N != P.N) {												    // Delete pass coefficients array. If this->N != P.N is true, there is no reason
+			if(this->coefficients != NULL) delete[] this->coefficients;		    // to delete the array
+			this->coefficients = new int[P.N];
+			this->N = P.N;
+		}
+		if(this->coefficients == NULL) this->coefficients = new int[P.N];
+		this->q = P.q;
+		for(int i = 0; i < this->N; i++)
+			this->coefficients[i] = P.coefficients[i];
+	}
+	return *this;
+}
+
+//___________________________ NTRU_ZqPolynomial ________________________________

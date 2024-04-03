@@ -66,7 +66,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 		void println(const char* name = "") const;
 	};
 
-	private: NTRU_ZpPolynomial(): N(_509_) {}								// Initializing N, coefficients is left as NULL
+	private: NTRU_ZpPolynomial(): N(_509_) {}									// Initializing N, coefficients is left as NULL
 
 	public:
 	NTRU_ZpPolynomial(const NTRU_ZpPolynomial& P);
@@ -80,7 +80,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 	// Arithmetic
 	NTRU_ZpPolynomial  operator + (const NTRU_ZpPolynomial&) const;				// Addition element by element
 	NTRU_ZpPolynomial  operator - (const NTRU_ZpPolynomial&) const;				// Subtraction element by element
-	NTRU_ZpPolynomial operator - () const;
+	NTRU_ZpPolynomial  operator - () const;
 	NTRU_ZpPolynomial  operator * (const NTRU_ZpPolynomial&) const;				// Multiplication will coincide with convolution (compare with classical)
 	NTRU_ZpPolynomial& operator-= (const NTRU_ZpPolynomial&);
 
@@ -111,7 +111,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 	void setPermutation();
 	void permute();
 
-	inline int degree() const{												// Returns degree of polynomial
+	inline int degree() const{													// Returns degree of polynomial
 		int deg = this->N;
 		while(this->coefficients[--deg] == 0 && deg > 0) {}
 		return deg;
@@ -149,34 +149,17 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 			this->coefficients = new Z2[_N_];
 			for(int i = 0; i < _N_; i++) this->coefficients[i] = _0_;
 		}
-		Z2Polynomial(const Z2Polynomial& P);
 
 		public:
+		Z2Polynomial(const Z2Polynomial& P);
 		Z2Polynomial(const NTRU_ZpPolynomial& P);
 		Z2Polynomial(NTRU_N _N_, int ones);
 
 		~Z2Polynomial() {
 			if(this->coefficients != NULL) delete[] this->coefficients;
 		}
-		Z2Polynomial& operator = (const Z2Polynomial& P) {
-			if(this != &P) {													// Guarding against self assignment
-				if(this->N != P.N) {											// Delete pass coefficients array. If this->N != P.N is true, there is no reason
-					if(this->coefficients != NULL) delete[] this->coefficients;	// to delete the array
-					this->coefficients = new Z2[P.N];
-					this->N = P.N;
-				}
-				if(this->coefficients == NULL)this->coefficients = new Z2[P.N];
-				for(int i = 0; i < P.N; i++)
-					this->coefficients[i] = P.coefficients[i];
-			}
-			return *this;
-		}
-		Z2Polynomial& operator = (Z2 t) {
-			if(this->coefficients==NULL) this->coefficients = new Z2[this->N];	// In case of have been generated from the (private) default constructor
-			this->coefficients[0] = t;
-			for(int i = 1; i < this->N; i++) this->coefficients[i] = _0_;
-			return *this;
-		}
+		Z2Polynomial& operator = (const Z2Polynomial& P);
+		Z2Polynomial& operator = (Z2 t);
 		Z2Polynomial operator + (const Z2Polynomial&) const;					// In Z2, addition (+) coincide with subtraction (-)
 		Z2Polynomial operator - (const Z2Polynomial&) const;					// In Z2, addition (+) coincide with subtraction (-)
 		Z2Polynomial operator *	(const Z2Polynomial&) const;
@@ -186,15 +169,7 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 		inline bool operator == (Z2 t) const {
 			return this->degree() == 0 && this->coefficients[0] == t;
 		}
-		inline bool operator == (const Z2Polynomial& P) const {
-			if(this->N == P.N) {
-				for(int i = 0; i < this->N; i++)
-					if(this->coefficients[i] != P.coefficients[i])
-						return false;
-				return true;
-			}
-			else return false;
-		}
+		inline bool operator == (const Z2Polynomial& P) const;
 		inline bool operator != (Z2 t) const {
 			return this->degree() != 0 || this->coefficients[0] != t;
 		}
@@ -216,30 +191,12 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 	private:NTRU_ZqPolynomial(): N(_509_), q(_2048_) {}
 
 	public:
-	NTRU_ZqPolynomial(const NTRU_ZpPolynomial& P,NTRU_q _q_):N(P.get_N()),
-	q(_q_) {
-		this->coefficients = new int[this->N];
-		for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
-	}
+	NTRU_ZqPolynomial(const NTRU_ZpPolynomial& P,NTRU_q _q_);
 	NTRU_ZqPolynomial(const NTRU_ZqPolynomial& P);
 	~NTRU_ZqPolynomial() {
 		if(this->coefficients != NULL) delete[] this->coefficients;
 	}
-	NTRU_ZqPolynomial& operator = (const NTRU_ZqPolynomial& P) {
-		if(this != &P) {														// Guarding against self assignment
-			if(this->N != P.N) {												// Delete pass coefficients array. If this->N != P.N is true, there is no reason
-				if(this->coefficients != NULL) delete[] this->coefficients;		// to delete the array
-				this->coefficients = new int[P.N];
-				this->N = P.N;
-			}
-			if(this->coefficients == NULL) this->coefficients = new int[P.N];
-			this->q = P.q;
-			for(int i = 0; i < this->N; i++)
-				this->coefficients[i] = P.coefficients[i];
-		}
-		return *this;
-	}
-
+	NTRU_ZqPolynomial& operator = (const NTRU_ZqPolynomial& P);
 	NTRU_ZqPolynomial operator * (const NTRU_ZqPolynomial& P) const;
 	NTRU_ZqPolynomial operator - (const NTRU_ZqPolynomial& P) const;
 	NTRU_ZqPolynomial gcdXNmns1_Z2(const NTRU_ZqPolynomial& P) const;			// Greatest common divisor seeing the coefficients in Z2 (integers modulus 2)
