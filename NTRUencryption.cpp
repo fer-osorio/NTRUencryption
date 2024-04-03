@@ -5,7 +5,9 @@ N(_N_),q(_q_),d(_d_),p(_p_), privateKey(_N_,_d_+ 1,_d_),privateKeyInv_p(_N_) {
 	this->privateKey.test(_N_, _N_/3 - 1);
 	this->setPrivateKeyAndInv();
 	(privateKey*privateKeyInv_p).println("privateKey*privateKeyInv_p");
-	this->privateKey.println("Private key");
+	//this->privateKey.println("Private key");
+    NTRU_ZqPolynomial::Z2Polynomial t(this->privateKey);
+    t.test(_N_,_N_/3);
 }
 
 void NTRUencryption::setPrivateKeyAndInv() {
