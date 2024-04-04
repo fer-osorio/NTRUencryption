@@ -893,13 +893,6 @@ void NTRU_ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) {
 
 // |||||||||||||||||||||||||| NTRU_ZqPolynomial ||||||||||||||||||||||||||||||||
 
-
-NTRU_ZqPolynomial::NTRU_ZqPolynomial(const NTRU_ZqPolynomial& P): N(P.N),
-_Zq_(P._Zq_) {
-    this->coefficients = new int[P.N];
-    for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
-}
-
 NTRU_ZqPolynomial::NTRU_ZqPolynomial(NTRU_N _N_, NTRU_q _q_):N(_N_),_Zq_(_q_) {
     this->coefficients = new int[_N_];
     for(int i = 0; i < this->N; i++) this->coefficients[i] = 0;
@@ -909,6 +902,18 @@ NTRU_ZqPolynomial::NTRU_ZqPolynomial(const NTRU_ZpPolynomial& P,NTRU_q _q_):
 N(P.get_N()), _Zq_(_q_) {
 	this->coefficients = new int[this->N];
 	for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
+}
+
+NTRU_ZqPolynomial::NTRU_ZqPolynomial(const NTRU_ZqPolynomial& P): N(P.N),
+_Zq_(P._Zq_) {
+    this->coefficients = new int[P.N];
+    for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
+}
+
+NTRU_ZqPolynomial::NTRU_ZqPolynomial(const Z2Polynomial& P,NTRU_q _q_):
+N(P.get_N()), _Zq_(_q_) {
+    this->coefficients = new int[this->N];
+    for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
 }
 
 NTRU_ZqPolynomial& NTRU_ZqPolynomial::operator = (const NTRU_ZqPolynomial& P) {

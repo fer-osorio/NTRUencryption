@@ -139,10 +139,12 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 		Z2Polynomial(const Z2Polynomial& P);
 		Z2Polynomial(const NTRU_ZpPolynomial& P);
 		Z2Polynomial(NTRU_N _N_, int ones);
-
 		~Z2Polynomial() {
 			if(this->coefficients != NULL) delete[] this->coefficients;
 		}
+
+		inline NTRU_N get_N() const{ return this->N; }
+
 		Z2Polynomial& operator = (const Z2Polynomial& P);
 		Z2Polynomial& operator = (Z2 t);
 		Z2Polynomial operator + (const Z2Polynomial&) const;					// In Z2, addition (+) coincide with subtraction (-)
@@ -154,9 +156,14 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 		inline bool operator == (Z2 t) const {
 			return this->degree() == 0 && this->coefficients[0] == t;
 		}
-		inline bool operator == (const Z2Polynomial& P) const;
+		bool operator == (const Z2Polynomial& P) const;
 		inline bool operator != (Z2 t) const {
 			return this->degree() != 0 || this->coefficients[0] != t;
+		}
+		inline Z2 operator [] (int i) const{
+			if(i < 0) i = -i;
+			if(i >= this->N) i %= N;
+			return this->coefficients[i];
 		}
 		inline int degree() const{												// Returns degree of polynomial
 			int deg = this->N;
@@ -174,6 +181,7 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 	public:
 	NTRU_ZqPolynomial(const NTRU_ZpPolynomial& P,NTRU_q _q_);
 	NTRU_ZqPolynomial(const NTRU_ZqPolynomial& P);
+	NTRU_ZqPolynomial(const Z2Polynomial& P,NTRU_q _q_);
 	~NTRU_ZqPolynomial() {
 		if(this->coefficients != NULL) delete[] this->coefficients;
 	}
@@ -181,6 +189,8 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 
 	NTRU_ZqPolynomial operator - (const NTRU_ZqPolynomial& P) const;
 	NTRU_ZqPolynomial operator * (const NTRU_ZqPolynomial& P) const;
+
+	NTRU_ZqPolynomial liftPreserveCong_1(const Z2Polynomial& p) const;			// Lift that preserve congruence with 1
 
 	inline int degree() const{													// Returns degree of polynomial
 		int deg = this->N;
