@@ -31,7 +31,14 @@ inline static NTRU_N max_N(NTRU_N a, NTRU_N b) {
 	if(a < b) return b;
 	return a;
 }
-
+inline static NTRU_q min_q(NTRU_q a, NTRU_q b) {
+	if(a < b) return a;
+	return b;
+}
+inline static NTRU_q max_q(NTRU_q a, NTRU_q b) {
+	if(a < b) return b;
+	return a;
+}
 static int intToString(int n, char* dest) {                                     // String representation of unsigned integer it returns the length of the string
     int i = 0, j = 0, l = 0;
     char buff = 0;
@@ -624,12 +631,6 @@ void NTRU_ZpPolynomial::test(NTRU_N _N_, int d) {
 	<< "\n\n";
 }
 
-NTRU_ZqPolynomial::NTRU_ZqPolynomial(const NTRU_ZqPolynomial& P): N(P.N),
-q(P.q) {
-    this->coefficients = new int[P.N];
-    for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
-}
-
 //|||||||||||||||||||| NTRU_ZqPolynomial::Z2Polynomial |||||||||||||||||||||||||
 
 NTRU_ZqPolynomial::Z2Polynomial::Z2Polynomial(const Z2Polynomial& P): N(P.N) {
@@ -699,11 +700,6 @@ bool NTRU_ZqPolynomial::Z2Polynomial::operator == (const Z2Polynomial& P)const{
 
 NTRU_ZqPolynomial::Z2Polynomial NTRU_ZqPolynomial::Z2Polynomial::operator +
 (const Z2Polynomial& P) const {
-    return *this - P;                                                           // In this polynomial ring, subtraction coincide with addition
-}
-
-NTRU_ZqPolynomial::Z2Polynomial NTRU_ZqPolynomial::Z2Polynomial::operator -
-(const Z2Polynomial& P) const {
     Z2Polynomial r(max_N(this->N, P.N));                                        // Initializing result in the "biggest polynomial ring"
     const Z2Polynomial* big;                                                    // Pointer to the 'biggest' polynomial
     int i, small_degree, big_degree;                                            // Degree of the polynomials, small_degree <= big_degree
@@ -719,10 +715,15 @@ NTRU_ZqPolynomial::Z2Polynomial NTRU_ZqPolynomial::Z2Polynomial::operator -
 	big_degree   = big->degree();
 
     for(i = 0; i <= small_degree; i++)
-        r.coefficients[i] = this->coefficients[i] - P.coefficients[i];          // Subtraction element by element till the smallest degree of the arguments
+        r.coefficients[i] = this->coefficients[i] + P.coefficients[i];          // Subtraction element by element till the smallest degree of the arguments
     for(; i <= big_degree; i++)
         r.coefficients[i] = big->coefficients[i];                               // Just copying, equivalent to filling with zeros the small polynomial
     return r;
+}
+
+NTRU_ZqPolynomial::Z2Polynomial NTRU_ZqPolynomial::Z2Polynomial::operator -
+(const Z2Polynomial& P) const {
+    return *this + P;                                                           // In this polynomial ring, subtraction coincide with addition
 }
 
 NTRU_ZqPolynomial::Z2Polynomial NTRU_ZqPolynomial::Z2Polynomial::operator *
@@ -892,8 +893,20 @@ void NTRU_ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) {
 
 // |||||||||||||||||||||||||| NTRU_ZqPolynomial ||||||||||||||||||||||||||||||||
 
+
+NTRU_ZqPolynomial::NTRU_ZqPolynomial(const NTRU_ZqPolynomial& P): N(P.N),
+_Zq_(P._Zq_) {
+    this->coefficients = new int[P.N];
+    for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
+}
+
+NTRU_ZqPolynomial::NTRU_ZqPolynomial(NTRU_N _N_, NTRU_q _q_):N(_N_),_Zq_(_q_) {
+    this->coefficients = new int[_N_];
+    for(int i = 0; i < this->N; i++) this->coefficients[i] = 0;
+}
+
 NTRU_ZqPolynomial::NTRU_ZqPolynomial(const NTRU_ZpPolynomial& P,NTRU_q _q_):
-N(P.get_N()), q(_q_) {
+N(P.get_N()), _Zq_(_q_) {
 	this->coefficients = new int[this->N];
 	for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
 }
@@ -906,11 +919,65 @@ NTRU_ZqPolynomial& NTRU_ZqPolynomial::operator = (const NTRU_ZqPolynomial& P) {
 			this->N = P.N;
 		}
 		if(this->coefficients == NULL) this->coefficients = new int[P.N];
-		this->q = P.q;
+		this->_Zq_ = P._Zq_;
 		for(int i = 0; i < this->N; i++)
 			this->coefficients[i] = P.coefficients[i];
 	}
 	return *this;
+}
+
+NTRU_ZqPolynomial NTRU_ZqPolynomial::operator - (const NTRU_ZqPolynomial& P)
+const{
+    NTRU_ZqPolynomial r(max_N(this->N, P.N),
+                        max_q(this->_Zq_.get_q(),P._Zq_.get_q()) );             // Initializing result in the "biggest polynomial ring"
+    int i, small_degree, big_degree;                                            // Degree of the polynomials, small_degree <= big_degree
+
+    if(this->degree() < P.degree()) {
+        small_degree = this->degree();
+        big_degree = P.degree();
+    }
+	else {
+	    small_degree = P.degree();
+	    big_degree = this->degree();
+	}
+
+    for(i = 0; i <= small_degree; i++)
+        r.coefficients[i] =
+        r._Zq_.subtract(this->coefficients[i],P.coefficients[i]);               // Subtraction element by element till the smallest degree of the arguments
+    if(this->degree() == big_degree)
+        for(i = 0; i <= big_degree; i++)
+            r.coefficients[i] = this->coefficients[i];
+    else
+        for(i = 0; i <= big_degree; i++)
+            r.coefficients[i] = r._Zq_.negative(this->coefficients[i]);
+    return r;
+}
+
+NTRU_ZqPolynomial NTRU_ZqPolynomial::operator * (const NTRU_ZqPolynomial& P)
+const{
+    NTRU_ZqPolynomial r(max_N(this->N, P.N),
+                        max_q(this->_Zq_.get_q(),P._Zq_.get_q()));              // Initializing result in the "biggest polynomial ring"
+    int i, j, k;
+    int this_degree = this->degree();
+    int P_degree    = P.degree();
+
+	for(i = 0; i <= this_degree; i++) {
+		if(this->coefficients[i] != 0)                                          // Taking advantage this polynomials have a big proportion of zeros
+		    for(j = 0; j <= P_degree; j++) {
+			    if(P.coefficients[j] != 0) {
+			        if((k = i + j) < r.N) {
+			            r.coefficients[k] +=
+			            this->coefficients[i]*P.coefficients[j];
+			        } else {
+			            k -= r.N;
+			            r.coefficients[k] +=
+			            this->coefficients[i]*P.coefficients[j];
+			        }
+			        r.coefficients[k] = r._Zq_.mod_q(r.coefficients[k]);
+			    }
+		    }
+	}
+	return r;
 }
 
 //___________________________ NTRU_ZqPolynomial ________________________________

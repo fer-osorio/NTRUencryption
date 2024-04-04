@@ -1,10 +1,7 @@
 #include<iostream>
+#include"NTRU_Parameters.hpp"
 
 #define DECIMAL_BASE 10
-
-enum NTRU_N {_509_  = 509,  _677_  = 677,  _701_  = 701,  _821_ = 821 };		// All the possible values for the N
-enum NTRU_q {_2048_ = 2048, _4096_ = 4096, _8192_ = 8192 };						// All the possible values for the q
-enum NTRU_p {_3_	= 3 };
 
 struct NTRU_ZpPolynomial {														// Representation of the polynomials in Zp[x]/(x^N-1)
 	private:
@@ -122,24 +119,12 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 };
 
 struct NTRU_ZqPolynomial {														// Representation of the polynomials in Zp[x]/(x^N-1)
-	struct Z2Polynomial {														// Representation of the polynomials in Z2[x]/(x^N-1)
-		enum Z2 {_0_ = 0, _1_ = 1};												// Integers modulo 2 (binary numbers)
-		inline friend Z2 operator - (Z2 a,Z2 b){								// Subtraction modulus 2 (coincide with addition)
-			if(a!=b) return _1_;
-			return _0_;
-		}
-		inline friend Z2 operator * (Z2 a, Z2 b){								// Multiplication modulus 2
-			if(a==0) return _0_;
-			return  b ;
-		}
-		inline friend void operator += (Z2& a, Z2 b) {
-			if(a != b) a = _1_;
-			else a = _0_;
-		}
-		inline friend void operator -= (Z2& a, Z2 b) {							// Addition and subtraction coincide, I do this just to evade confusion with
-			if(a != b) a = _1_;													// notation
-			else a = _0_;
-		}
+	private:
+	NTRU_N N;
+	Zq _Zq_;
+	int* coefficients = NULL;
+
+	public: struct Z2Polynomial {														// Representation of the polynomials in Z2[x]/(x^N-1)
 		private:
 		NTRU_N N;
 		Z2* coefficients = NULL;
@@ -183,12 +168,8 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 		void test(NTRU_N _N_, int d);
 	};
 
-	private:
-	NTRU_N N;
-	NTRU_q q;
-	int* coefficients = NULL;
-
-	private:NTRU_ZqPolynomial(): N(_509_), q(_2048_) {}
+	private:NTRU_ZqPolynomial(): N(_509_), _Zq_(_2048_) {}
+	private:NTRU_ZqPolynomial(NTRU_N, NTRU_q);
 
 	public:
 	NTRU_ZqPolynomial(const NTRU_ZpPolynomial& P,NTRU_q _q_);
@@ -197,7 +178,13 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 		if(this->coefficients != NULL) delete[] this->coefficients;
 	}
 	NTRU_ZqPolynomial& operator = (const NTRU_ZqPolynomial& P);
-	NTRU_ZqPolynomial operator * (const NTRU_ZqPolynomial& P) const;
+
 	NTRU_ZqPolynomial operator - (const NTRU_ZqPolynomial& P) const;
-	NTRU_ZqPolynomial gcdXNmns1_Z2(const NTRU_ZqPolynomial& P) const;			// Greatest common divisor seeing the coefficients in Z2 (integers modulus 2)
+	NTRU_ZqPolynomial operator * (const NTRU_ZqPolynomial& P) const;
+
+	inline int degree() const{													// Returns degree of polynomial
+		int deg = this->N;
+		while(this->coefficients[--deg] == 0 && deg > 0) {}
+		return deg;
+	}
 };
