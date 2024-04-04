@@ -29,24 +29,34 @@ void operator -= (Z2& a, Z2 b) {
 
 class Zq{
 	NTRU_q q;
-	const int q_1;
+	int q_1;
 
 	public: Zq(NTRU_q _q_): q(_q_), q_1(_q_-1) {}
-	public: inline NTRU_q get_q() { return q; }
+	public: inline NTRU_q get_q() const{ return q; }
 
-	int add(int a, int b) {
+	int mod_q(int t) {
+		while(t < 0) t += this->q;
+		return t & this->q_1;
+	}
+
+	int add(int a, int b) const{
 		int r = a + b;
 		while(r < 0) r += this->q;
-		return r & q_1;
+		return r & this->q_1;
 	}
-	int subtract(int a, int b) {
+	int subtract(int a, int b) const{
 		int r = a - b;
 		while(r < 0) r += this->q;
-		return r & q_1;
+		return r & this->q_1;
 	}
-	int product(int a, int b) {
+	int product(int a, int b) const{
 		int r = a * b;
 		while(r < 0) r += this->q;
-		return r & q_1;
+		return r & this->q_1;
+	}
+	int negative(int a) const{
+		while(a < 0) a += this->q;
+		a &= this->q_1;
+		return this->q - a;
 	}
 };
