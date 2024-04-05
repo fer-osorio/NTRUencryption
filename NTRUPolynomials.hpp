@@ -1,7 +1,70 @@
 #include<iostream>
-#include"NTRU_Parameters.hpp"
+
+#ifndef _NTRUPOLYNOMIALS_HPP_
+#define _NTRUPOLYNOMIALS_HPP_
 
 #define DECIMAL_BASE 10
+
+enum NTRU_N {_509_  = 509,  _677_  = 677,  _701_  = 701,  _821_ = 821 };		// All the possible values for the N
+enum NTRU_q {_2048_ = 2048, _4096_ = 4096, _8192_ = 8192 };						// All the possible values for the q
+enum NTRU_p {_3_	= 3 };
+
+enum Z2 {_0_ = 0, _1_ = 1};														// Integers modulo 2 (binary numbers)
+
+inline Z2 operator + (Z2 a,Z2 b) {														// Addition modulus 2
+	if(a!=b) return _1_;
+	return _0_;
+}
+inline Z2 operator - (Z2 a,Z2 b) {														// Addition and subtraction coincide in Z2. This is just for evade problems
+	if(a!=b) return _1_;														// with notation
+	return _0_;
+}
+inline Z2 operator * (Z2 a, Z2 b) {													// Multiplication modulus 2
+	if(a==0) return _0_;
+	return  b ;
+}
+inline void operator += (Z2& a, Z2 b) {
+	if(a != b) a = _1_;
+	else a = _0_;
+}
+inline void operator -= (Z2& a, Z2 b) {
+	if(a != b) a = _1_;
+	else a = _0_;
+}
+
+class Zq{																		// Representation of the group of integers modulus q: Zq
+	NTRU_q q;
+	int q_1;
+
+	public: Zq(NTRU_q _q_): q(_q_), q_1(_q_-1) {}
+	public: inline NTRU_q get_q() const{ return q; }
+
+	int mod_q(int t) {															// operation t % q
+		while(t < 0) t += this->q;												// Ensuring a positive t
+		return t & this->q_1;													// Since q is a power of two, t & (q-1) is equivalent to t%q, but much faster
+	}
+
+	int add(int a, int b) const{
+		int r = a + b;
+		while(r < 0) r += this->q;
+		return r & this->q_1;
+	}
+	int subtract(int a, int b) const{
+		int r = a - b;
+		while(r < 0) r += this->q;
+		return r & this->q_1;
+	}
+	int product(int a, int b) const{
+		int r = a * b;
+		while(r < 0) r += this->q;
+		return r & this->q_1;
+	}
+	int negative(int a) const{
+		while(a < 0) a += this->q;
+		a &= this->q_1;
+		return this->q - a;
+	}
+};
 
 struct NTRU_ZpPolynomial {														// Representation of the polynomials in Zp[x]/(x^N-1)
 	private:
@@ -146,6 +209,7 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 		inline NTRU_N get_N() const{ return this->N; }
 
 		Z2Polynomial& operator = (const Z2Polynomial& P);
+		Z2Polynomial& operator = (const NTRU_ZpPolynomial& P);
 		Z2Polynomial& operator = (Z2 t);
 		Z2Polynomial operator + (const Z2Polynomial&) const;					// In Z2, addition (+) coincide with subtraction (-)
 		Z2Polynomial operator - (const Z2Polynomial&) const;					// In Z2, addition (+) coincide with subtraction (-)
@@ -198,3 +262,5 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 		return deg;
 	}
 };
+
+#endif
