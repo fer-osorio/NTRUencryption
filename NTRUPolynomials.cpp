@@ -640,14 +640,14 @@ NTRU_ZqPolynomial::Z2Polynomial::Z2Polynomial(const Z2Polynomial& P): N(P.N) {
 
 NTRU_ZqPolynomial::Z2Polynomial::Z2Polynomial(const NTRU_ZpPolynomial& P):
 N(P.get_N()) {
-    P.println("ZpPolynomial");
+    //P.println("ZpPolynomial");
 	this->coefficients = new Z2[this->N];
 	for(int i = 0; i < this->N; i++) {
 		if(P[i] == 0 || P[i] == 2) this->coefficients[i] = _0_;
 		else this->coefficients[i] = _1_;
 	}
 	std::cout << "\n";
-	this->println("Z2Polynomial");
+	//this->println("Z2Polynomial");
 }
 
 NTRU_ZqPolynomial::Z2Polynomial::Z2Polynomial(NTRU_N _N_, int ones): N(_N_) {
@@ -677,6 +677,21 @@ NTRU_ZqPolynomial::Z2Polynomial& NTRU_ZqPolynomial::Z2Polynomial::operator =
 		if(this->coefficients == NULL) this->coefficients = new Z2[P.N];
 		for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
 	}
+	return *this;
+}
+
+NTRU_ZqPolynomial::Z2Polynomial& NTRU_ZqPolynomial::Z2Polynomial::operator =
+(const NTRU_ZpPolynomial& P) {
+    NTRU_N P_N = P.get_N();
+	if(this->N != P_N) {											            // Delete past coefficients array. If this->N != P.N is true, there is no reason
+		if(this->coefficients != NULL) delete[] this->coefficients;	            // to delete the array
+		this->coefficients = new Z2[P_N];
+		this->N = P_N;
+	}
+	if(this->coefficients == NULL) this->coefficients = new Z2[P_N];            // In case of having an object created with the default (private) constructor
+	for(int i = 0; i < P_N; i++)                                                // Fitting the ZpPolynomial in a Z2Polynomial
+	    if(P[i] == 1) this->coefficients[i] = _1_;
+	    else this->coefficients[i] = _0_;
 	return *this;
 }
 
@@ -802,7 +817,7 @@ Z2Polynomial& thisBezout) const{
     Z2Polynomial remainders;
     Z2Polynomial tmp[2];
     int deg = this->degree(), i, j, k, l;                                       // Degree of this and some variables for counting
-    Z2 leadCoeff = this->coefficients[deg];                                    // Lead coefficient of this polynomial
+    Z2 leadCoeff = this->coefficients[deg];                                     // Lead coefficient of this polynomial
     Z2Polynomial quoRem[2]={Z2Polynomial(this->N),
                             Z2Polynomial(this->N)};
 
@@ -867,7 +882,7 @@ void NTRU_ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) {
 	"NTRU_ZqPolynomial::Z2Polynomial testing start ..........................."
 	"........................."
 	<< '\n';
-    std::cout << "\n Np0.degree() = " << Np0.degree() << ", Np1.degree() = " << Np1.degree() << "\n";
+    //std::cout << "\n Np0.degree() = " << Np0.degree() << ", Np1.degree() = " << Np1.degree() << "\n";
     try { Np0.division(Np1, quorem); }
 	catch(const char* exp) { std::cout << exp; }
 
@@ -879,8 +894,8 @@ void NTRU_ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) {
 	try{ gcd = Np2.gcdXNmns1(Bezout); }
 	catch(const char* exp) { std::cout << exp; }
 	gcd.print("gcd", "\n");
-	Bezout.println("Bezout");
-	Np2.println("Np2");
+	//Bezout.println("Bezout");
+	//Np2.println("Np2");
 	(Np2*Bezout).println("Np2*Bezout");
 
 	std::cout << "\n::::"

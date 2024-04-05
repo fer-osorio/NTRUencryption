@@ -11,15 +11,15 @@ enum NTRU_p {_3_	= 3 };
 
 enum Z2 {_0_ = 0, _1_ = 1};														// Integers modulo 2 (binary numbers)
 
-inline Z2 operator + (Z2 a,Z2 b) {														// Addition modulus 2
+inline Z2 operator + (Z2 a,Z2 b) {												// Addition modulus 2
 	if(a!=b) return _1_;
 	return _0_;
 }
-inline Z2 operator - (Z2 a,Z2 b) {														// Addition and subtraction coincide in Z2. This is just for evade problems
+inline Z2 operator - (Z2 a,Z2 b) {												// Addition and subtraction coincide in Z2. This is just for evade problems
 	if(a!=b) return _1_;														// with notation
 	return _0_;
 }
-inline Z2 operator * (Z2 a, Z2 b) {													// Multiplication modulus 2
+inline Z2 operator * (Z2 a, Z2 b) {												// Multiplication modulus 2
 	if(a==0) return _0_;
 	return  b ;
 }
@@ -187,7 +187,7 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 	Zq _Zq_;
 	int* coefficients = NULL;
 
-	public: struct Z2Polynomial {														// Representation of the polynomials in Z2[x]/(x^N-1)
+	public: struct Z2Polynomial {												// Representation of the polynomials in Z2[x]/(x^N-1)
 		private:
 		NTRU_N N;
 		Z2* coefficients = NULL;
