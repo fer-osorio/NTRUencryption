@@ -94,6 +94,9 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 		~ZpPolynomial() {
 			if(this->coefficients != NULL) delete[] this->coefficients;
 		}
+
+		inline NTRU_p get_p() const{ return this->p; }
+
 		ZpPolynomial& operator = (const ZpPolynomial& P);						// Copy assignment
 		ZpPolynomial& operator = (int);											// Assignment with single integer
 
@@ -121,7 +124,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 			while(this->coefficients[this->degree] == 0 && this->degree > 0)
     	    this->degree--;														// Fitting the polynomial to its degree
 		}
-		inline NTRU_p get_p() const{ return this->p; }
+
 		void print(const char* name, const char* tail) const;
 		void println(const char* name = "") const;
 	};

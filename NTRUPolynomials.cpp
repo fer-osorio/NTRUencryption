@@ -703,16 +703,6 @@ NTRU_ZqPolynomial::Z2Polynomial& NTRU_ZqPolynomial::Z2Polynomial::operator =
 	return *this;
 }
 
-bool NTRU_ZqPolynomial::Z2Polynomial::operator == (const Z2Polynomial& P)const{
-	if(this->N == P.N) {
-		for(int i = 0; i < this->N; i++)
-			if(this->coefficients[i] != P.coefficients[i])
-				return false;
-		return true;
-	}
-	else return false;
-}
-
 NTRU_ZqPolynomial::Z2Polynomial NTRU_ZqPolynomial::Z2Polynomial::operator +
 (const Z2Polynomial& P) const {
     Z2Polynomial r(max_N(this->N, P.N));                                        // Initializing result in the "biggest polynomial ring"
@@ -855,6 +845,16 @@ Z2Polynomial& thisBezout) const{
         remainders = quoRem[1];                                                 // ...
 	}
 	return gcd;
+}
+
+bool NTRU_ZqPolynomial::Z2Polynomial::operator == (const Z2Polynomial& P)const{
+	if(this->N == P.N) {
+		for(int i = 0; i < this->N; i++)
+			if(this->coefficients[i] != P.coefficients[i])
+				return false;
+		return true;
+	}
+	else return false;
 }
 
 void NTRU_ZqPolynomial::Z2Polynomial::print(const char* name,const char* tail)

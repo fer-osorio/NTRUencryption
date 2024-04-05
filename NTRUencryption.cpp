@@ -12,8 +12,8 @@ q(_q_), d(_d_), p(_p_), privateKey(_N_, _d_+1, _d_), privateKeyInv_p(_N_) {
 void NTRUencryption::setPrivateKeyAndInv() {
 	NTRU_ZpPolynomial  Zp_gcdXNmns1(this->N, this->q);
 	NTRU_ZqPolynomial::Z2Polynomial Z2_gcdXNmns1(this->privateKey);
-	NTRU_ZqPolynomial::Z2Polynomial aux(this->N, 0);
-	int counter;
+	NTRU_ZqPolynomial::Z2Polynomial Z2inverse(this->N, 0);
+	int counter, k = 2, l = 1;
 
 	try{
 	    Zp_gcdXNmns1 = this->privateKey.gcdXNmns1(this->privateKeyInv_p);
@@ -31,7 +31,7 @@ void NTRUencryption::setPrivateKeyAndInv() {
 	}
 	counter = 1;
 
-	Z2_gcdXNmns1 = Z2_gcdXNmns1.gcdXNmns1(aux);
+	Z2_gcdXNmns1 = Z2_gcdXNmns1.gcdXNmns1(Z2inverse);
     while(Zp_gcdXNmns1 != 1 && Z2_gcdXNmns1 != _1_) {
 	    this->privateKey.permute();
 	    Z2_gcdXNmns1 = this->privateKey;
@@ -48,6 +48,9 @@ void NTRUencryption::setPrivateKeyAndInv() {
             throw;
     	}
 	    counter++;
+	}
+	while(k < this->q) {
+        k >>= l; l >>= 1;
 	}
 
 	if(counter > 1)
