@@ -34,12 +34,12 @@ inline void operator -= (Z2& a, Z2 b) {
 
 class Zq{																		// Representation of the group of integers modulus q: Zq
 	NTRU_q q;
-	int q_1;
+	int  q_1;
 
 	public: Zq(NTRU_q _q_): q(_q_), q_1(_q_-1) {}
 	public: inline NTRU_q get_q() const{ return q; }
 
-	int mod_q(int t) {															// operation t % q
+	int mod_q(int t) const{														// operation t % q
 		while(t < 0) t += this->q;												// Ensuring a positive t
 		return t & this->q_1;													// Since q is a power of two, t & (q-1) is equivalent to t%q, but much faster
 	}
@@ -243,9 +243,9 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 	};
 
 	private:NTRU_ZqPolynomial(): N(_509_), _Zq_(_2048_) {}
-	private:NTRU_ZqPolynomial(NTRU_N, NTRU_q);
 
 	public:
+	NTRU_ZqPolynomial(NTRU_N, NTRU_q);
 	NTRU_ZqPolynomial(const NTRU_ZpPolynomial& P,NTRU_q _q_);
 	NTRU_ZqPolynomial(const NTRU_ZqPolynomial& P);
 	NTRU_ZqPolynomial(const Z2Polynomial& P,NTRU_q _q_);
@@ -253,17 +253,22 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 		if(this->coefficients != NULL) delete[] this->coefficients;
 	}
 	NTRU_ZqPolynomial& operator = (const NTRU_ZqPolynomial& P);
+	NTRU_ZqPolynomial& operator = (const NTRU_ZpPolynomial& P);
+	inline NTRU_N get_N() const{ return this->N; }
+	inline NTRU_q get_q() const{ return this->_Zq_.get_q(); }
 
 	NTRU_ZqPolynomial operator - (const NTRU_ZqPolynomial& P) const;
 	NTRU_ZqPolynomial operator * (const NTRU_ZqPolynomial& P) const;
 
-	NTRU_ZqPolynomial liftPreserveCong_1(const Z2Polynomial& p) const;			// Lift that preserve congruence with 1
+	friend NTRU_ZqPolynomial operator - (int, const NTRU_ZqPolynomial& P);
 
 	inline int degree() const{													// Returns degree of polynomial
 		int deg = this->N;
 		while(this->coefficients[--deg] == 0 && deg > 0) {}
 		return deg;
 	}
+	void print(const char* name = "", const char* tail = "") const;
+	void println(const char* name = "") const;
 };
 
 #endif

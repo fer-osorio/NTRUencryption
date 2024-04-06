@@ -11,8 +11,11 @@ q(_q_), d(_d_), p(_p_), privateKey(_N_, _d_+1, _d_), privateKeyInv_p(_N_) {
 
 void NTRUencryption::setPrivateKeyAndInv() {
 	NTRU_ZpPolynomial  Zp_gcdXNmns1(this->N, this->q);
-	NTRU_ZqPolynomial::Z2Polynomial Z2_gcdXNmns1(this->privateKey);
-	NTRU_ZqPolynomial::Z2Polynomial Z2inverse(this->N, 0);
+	NTRU_ZqPolynomial  privateKeyZq(this->N, this->q);
+	NTRU_ZqPolynomial  privateKeyInv_q(this->N, this->q);
+	NTRU_ZqPolynomial::Z2Polynomial privateKeyZ2(this->privateKey);
+	NTRU_ZqPolynomial::Z2Polynomial privateKeyInv_2(this->N, 0);
+	NTRU_ZqPolynomial::Z2Polynomial Z2_gcdXNmns1(this->N, 0);
 	int counter, k = 2, l = 1;
 
 	try{
@@ -23,7 +26,7 @@ void NTRUencryption::setPrivateKeyAndInv() {
         throw;
 	}
 	try{
-	    Z2_gcdXNmns1 = Z2_gcdXNmns1.gcdXNmns1(Z2_gcdXNmns1);
+	    Z2_gcdXNmns1 = privateKeyZ2.gcdXNmns1(privateKeyInv_2);
 	}catch(const char* exp) {
         std::cout<<"\nIn file NTRUencryption.cpp, function void NTRUencryption"
         "::setPrivateKeyAndInv()\n";
@@ -31,17 +34,16 @@ void NTRUencryption::setPrivateKeyAndInv() {
 	}
 	counter = 1;
 
-	Z2_gcdXNmns1 = Z2_gcdXNmns1.gcdXNmns1(Z2inverse);
-    while(Zp_gcdXNmns1 != 1 && Z2_gcdXNmns1 != _1_) {
+    while(Zp_gcdXNmns1 != 1 || Z2_gcdXNmns1 != _1_) {
 	    this->privateKey.permute();
-	    Z2_gcdXNmns1 = this->privateKey;
+	    privateKeyZ2 = this->privateKey;
 	    try{ Zp_gcdXNmns1=this->privateKey.gcdXNmns1(this->privateKeyInv_p); }
 	    catch(const char* exp) {
             std::cout<<"\nIn file NTRUencryption.cpp, function void NTRU"
             "encryption::setPrivateKeyAndInv()\n";
             throw;
 	    }
-	    try{ Z2_gcdXNmns1 = Z2_gcdXNmns1.gcdXNmns1(Z2_gcdXNmns1); }
+	    try{ Z2_gcdXNmns1 = privateKeyZ2.gcdXNmns1(privateKeyInv_2); }
 	    catch(const char* exp) {
             std::cout<<"\nIn file NTRUencryption.cpp, function void NTRU"
             "encryption::setPrivateKeyAndInv()\n";
@@ -49,12 +51,25 @@ void NTRUencryption::setPrivateKeyAndInv() {
     	}
 	    counter++;
 	}
-	while(k < this->q) {
-        k >>= l; l >>= 1;
-	}
-
+	(privateKeyZ2*privateKeyInv_2).println("privateKeyZ2*privateKeyInv_2");
 	if(counter > 1)
 	    std::cout << "Private key was found after " <<counter<< " attempts.\n";
 	else
 	    std::cout << "Private key was found after "<< counter << " attempt.\n";
+
+    privateKeyZq = this->privateKey;
+	privateKeyInv_q = NTRU_ZqPolynomial(privateKeyInv_2, this->q);
+	while(k < this->q) {
+	    privateKeyInv_q = privateKeyInv_q*(2 - privateKeyZq*privateKeyInv_q);
+	    //(privateKeyZq*privateKeyInv_q).println();
+        k <<= l; l <<= 1;
+	}/*
+	privateKeyInv_q = privateKeyInv_q*(2 - privateKeyZq*privateKeyInv_q);
+	privateKeyInv_q = privateKeyInv_q*(2 - privateKeyZq*privateKeyInv_q);
+	privateKeyInv_q = privateKeyInv_q*(2 - privateKeyZq*privateKeyInv_q);
+	privateKeyInv_q = privateKeyInv_q*(2 - privateKeyZq*privateKeyInv_q);
+	privateKeyInv_q = privateKeyInv_q*(2 - privateKeyZq*privateKeyInv_q);
+	privateKeyInv_q = privateKeyInv_q*(2 - privateKeyZq*privateKeyInv_q);*/
+	std::cout << "\nk = " << k << "\n";
+	(privateKeyZq*privateKeyInv_q).println();
 }

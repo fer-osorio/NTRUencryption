@@ -882,7 +882,6 @@ void NTRU_ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) {
 	"NTRU_ZqPolynomial::Z2Polynomial testing start ..........................."
 	"........................."
 	<< '\n';
-    //std::cout << "\n Np0.degree() = " << Np0.degree() << ", Np1.degree() = " << Np1.degree() << "\n";
     try { Np0.division(Np1, quorem); }
 	catch(const char* exp) { std::cout << exp; }
 
@@ -946,6 +945,18 @@ NTRU_ZqPolynomial& NTRU_ZqPolynomial::operator = (const NTRU_ZqPolynomial& P) {
 	return *this;
 }
 
+NTRU_ZqPolynomial& NTRU_ZqPolynomial::operator = (const NTRU_ZpPolynomial& P) {
+    NTRU_N P_N = P.get_N();
+	if(this->N != P_N) {											            // Delete past coefficients array. If this->N != P.N is true, there is no reason
+		if(this->coefficients != NULL) delete[] this->coefficients;	            // to delete the array
+		this->coefficients = new int[P_N];
+		this->N = P_N;
+	}
+	if(this->coefficients == NULL) this->coefficients = new int[P_N];           // In case of having an object created with the default (private) constructor
+	for(int i = 0; i < P_N; i++) this->coefficients[i] = P[i];                  // Fitting the ZpPolynomial in a ZqPolynomial
+	return *this;
+}
+
 NTRU_ZqPolynomial NTRU_ZqPolynomial::operator - (const NTRU_ZqPolynomial& P)
 const{
     NTRU_ZqPolynomial r(max_N(this->N, P.N),
@@ -965,10 +976,10 @@ const{
         r.coefficients[i] =
         r._Zq_.subtract(this->coefficients[i],P.coefficients[i]);               // Subtraction element by element till the smallest degree of the arguments
     if(this->degree() == big_degree)
-        for(i = 0; i <= big_degree; i++)
+        for(; i <= big_degree; i++)
             r.coefficients[i] = this->coefficients[i];
     else
-        for(i = 0; i <= big_degree; i++)
+        for(; i <= big_degree; i++)
             r.coefficients[i] = r._Zq_.negative(this->coefficients[i]);
     return r;
 }
@@ -986,18 +997,40 @@ const{
 		    for(j = 0; j <= P_degree; j++) {
 			    if(P.coefficients[j] != 0) {
 			        if((k = i + j) < r.N) {
-			            r.coefficients[k] +=
-			            this->coefficients[i]*P.coefficients[j];
+			            r.coefficients[k] += r._Zq_.product(
+			            this->coefficients[i], P.coefficients[j]);
 			        } else {
 			            k -= r.N;
-			            r.coefficients[k] +=
-			            this->coefficients[i]*P.coefficients[j];
+			            r.coefficients[k] += r._Zq_.product(
+			            this->coefficients[i], P.coefficients[j]);
 			        }
 			        r.coefficients[k] = r._Zq_.mod_q(r.coefficients[k]);
 			    }
 		    }
 	}
 	return r;
+}
+
+NTRU_ZqPolynomial operator - (int t, const NTRU_ZqPolynomial& P) {
+    NTRU_ZqPolynomial r(P.N, P.get_q());
+    r.coefficients[0] = P._Zq_.subtract(t, P.coefficients[0]);
+    for(int i = 1; i < P.N; i++)
+        r.coefficients[i] = P._Zq_.negative(P.coefficients[i]);
+    return r;
+}
+
+void NTRU_ZqPolynomial::print(const char* name,const char* tail)
+const{
+    unsigned len_q = len(this->_Zq_.get_q());
+    int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
+    int* array = new int[coeffAmount], i;                                       // ...
+    for(i = 0; i < coeffAmount; i++) array[i] = (int)this->coefficients[i];     // ...
+    printArray(array, (unsigned)coeffAmount, len_q, name, tail);
+    delete[] array;
+}
+
+void NTRU_ZqPolynomial::println(const char* name) const{
+    this->print(name, "\n");
 }
 
 //___________________________ NTRU_ZqPolynomial ________________________________
