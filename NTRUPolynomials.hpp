@@ -181,7 +181,7 @@ struct NTRU_ZpPolynomial {														// Representation of the polynomials in 
 	}
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
-	void test(NTRU_N _N_, int d);
+	void test(NTRU_N _N_, int d) const;
 };
 
 struct NTRU_ZqPolynomial {														// Representation of the polynomials in Zp[x]/(x^N-1)
@@ -239,7 +239,7 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 		}
 		void print(const char* name = "", const char* tail = "") const;
 		void println(const char* name = "") const;
-		void test(NTRU_N _N_, int d);
+		void test(NTRU_N _N_, int d) const;
 	};
 
 	private:NTRU_ZqPolynomial(): N(_509_), _Zq_(_2048_) {}

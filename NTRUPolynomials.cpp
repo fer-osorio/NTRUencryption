@@ -122,6 +122,8 @@ class RandInt {                                                                 
     std::uniform_int_distribution<> dist;
 };
 
+// ||||||||||||||||| NTRU_ZpPolynomial::ZpPolynomial |||||||||||||||||||||||||||
+
 NTRU_ZpPolynomial::ZpPolynomial::ZpPolynomial(int _degree_, NTRU_p _p_):p(_p_), // Second argument is used only to avoid ambiguity
 degree(_degree_) {                                                              // Initializes with zeros
 	int _coeffAmount_  = this->coeffAmount(), i;
@@ -280,6 +282,10 @@ const {
 void NTRU_ZpPolynomial::ZpPolynomial::println(const char* name) const{
     this->print(name, "\n");
 }
+
+//__________________ NTRU_ZpPolynomial::ZpPolynomial ___________________________
+
+// |||||||||||||||||||||||||| NTRU_ZpPolynomial ||||||||||||||||||||||||||||||||
 
 NTRU_ZpPolynomial::NTRU_ZpPolynomial(const NTRU_ZpPolynomial& P):N(P.N),p(P.p){
 	this->coefficients = new int[P.N];
@@ -599,7 +605,7 @@ void NTRU_ZpPolynomial::println(const char* name) const{
 	this->print(name, "\n");
 }
 
-void NTRU_ZpPolynomial::test(NTRU_N _N_, int d) {
+void NTRU_ZpPolynomial::test(NTRU_N _N_, int d) const{
     NTRU_ZpPolynomial Np0(_N_, d, d+1);
 	NTRU_ZpPolynomial Np1(_N_, d, d);
 	NTRU_ZpPolynomial quorem[2];
@@ -631,6 +637,8 @@ void NTRU_ZpPolynomial::test(NTRU_N _N_, int d) {
 	<< "\n\n";
 }
 
+//___________________________ NTRU_ZpPolynomial ________________________________
+
 //|||||||||||||||||||| NTRU_ZqPolynomial::Z2Polynomial |||||||||||||||||||||||||
 
 NTRU_ZqPolynomial::Z2Polynomial::Z2Polynomial(const Z2Polynomial& P): N(P.N) {
@@ -640,14 +648,12 @@ NTRU_ZqPolynomial::Z2Polynomial::Z2Polynomial(const Z2Polynomial& P): N(P.N) {
 
 NTRU_ZqPolynomial::Z2Polynomial::Z2Polynomial(const NTRU_ZpPolynomial& P):
 N(P.get_N()) {
-    //P.println("ZpPolynomial");
 	this->coefficients = new Z2[this->N];
 	for(int i = 0; i < this->N; i++) {
-		if(P[i] == 0 || P[i] == 2) this->coefficients[i] = _0_;
-		else this->coefficients[i] = _1_;
+		if(P[i] == 1) this->coefficients[i] = _1_;
+		else this->coefficients[i] = _0_;
 	}
 	std::cout << "\n";
-	//this->println("Z2Polynomial");
 }
 
 NTRU_ZqPolynomial::Z2Polynomial::Z2Polynomial(NTRU_N _N_, int ones): N(_N_) {
@@ -689,9 +695,10 @@ NTRU_ZqPolynomial::Z2Polynomial& NTRU_ZqPolynomial::Z2Polynomial::operator =
 		this->N = P_N;
 	}
 	if(this->coefficients == NULL) this->coefficients = new Z2[P_N];            // In case of having an object created with the default (private) constructor
-	for(int i = 0; i < P_N; i++)                                                // Fitting the ZpPolynomial in a Z2Polynomial
+	for(int i = 0; i < P_N; i++) {                                              // Fitting the ZpPolynomial in a Z2Polynomial
 	    if(P[i] == 1) this->coefficients[i] = _1_;
 	    else this->coefficients[i] = _0_;
+	}
 	return *this;
 }
 
@@ -870,7 +877,7 @@ void NTRU_ZqPolynomial::Z2Polynomial::println(const char* name) const{
     this->print(name, "\n");
 }
 
-void NTRU_ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) {
+void NTRU_ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) const{
     Z2Polynomial Np0(_N_, d);
 	Z2Polynomial Np1(_N_, d);
 	Z2Polynomial quorem[2];
