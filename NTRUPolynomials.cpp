@@ -1073,7 +1073,8 @@ int CenteredPolynomial::ZqCentered::addition(int a, int b) const{
     int r = a+b;
     if(r < 0) r += this->q;
     r &= this->q_1;
-    if(r > this->q >> 1) r -= this->q;
+    if(r > (this->q >> 1)) return r-this->q;
+    return r;
 }
 
 CenteredPolynomial::CenteredPolynomial(const NTRU_ZpPolynomial& P, NTRU_q _q_):
