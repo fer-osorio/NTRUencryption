@@ -1077,6 +1077,24 @@ int CenteredPolynomial::ZqCentered::addition(int a, int b) const{
     return r;
 }
 
+int CenteredPolynomial::ZqCentered::mods_q(int a) const{
+    int r, q_div_2 = this->q >> 1;
+    if(a >= 0) {
+        r = a & this->q_1;                                                      // Equivalent to a % q since q is a power of 2
+    } else {
+        r = -a & this->q_1;                                                     // Computing q - (-a % q) with a fast algorithm
+        r = this->q - r;                                                        // q - (-a & (q-1)) = q + [~(-a & (q-1)) + 1]
+    }                                                                           // Optimization possible with the pre-computing of the negatives in Zq
+    if(r <= q_div_2) return r;
+    else return r | this->negq_1;                                               // This is equivalent to r - this->q
+}
+
+CenteredPolynomial::CenteredPolynomial(NTRU_N _N_, NTRU_p _p_, NTRU_q _q_):
+N(_N_), _Zp_(_p_), _Zq_(_q_) {
+    this->coefficients = new int[_N_];
+    for(int i = 0; i < _N_; i++) this->coefficients[i] = 0;
+}
+
 CenteredPolynomial::CenteredPolynomial(const NTRU_ZpPolynomial& P, NTRU_q _q_):
 N(P.get_N()), _Zp_(P.get_p()), _Zq_(_q_) {
     int _p_ = _Zp_.get_p();
@@ -1103,9 +1121,25 @@ CenteredPolynomial::~CenteredPolynomial() {
     if(this->coefficients != NULL) delete[] this->coefficients;
 }
 
-/*CenteredPolynomial CenteredPolynomial::operator*(const CenteredPolynomial& P)
+CenteredPolynomial CenteredPolynomial::operator*(const CenteredPolynomial& P)
 const {
+    CenteredPolynomial r(max_N(this->N, P.N),max_q(this->get_q(),P.get_q()));   // Initializing result in the "biggest polynomial ring"
+    int i, j, k;
+    int this_degree = this->degree();
+    int P_degree    = P.degree();
 
-}*/
+	for(i = 0; i <= this_degree; i++) {
+		if(this->coefficients[i] != 0)                                          // Taking advantage this polynomials have a big proportion of zeros
+		    for(j = 0; j <= P_degree; j++) {
+			    if(P.coefficients[j] != 0) {
+			        if((k = i + j) >= r.N) k -= r.N;
+			        r.coefficients[k]+=this->coefficients[i]*P.coefficients[j];
+			    }
+		    }
+	}
+	for(k = 0; k < r.N; k++)
+	    r.coefficients[k] = r._Zq_.mods_q(r.coefficients[k]);                   // Computing the center modulus (check the function mods_q)
+	return r;
+}
 
 //___________________________ NTRU_ZqPolynomial ________________________________

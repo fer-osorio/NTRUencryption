@@ -295,32 +295,41 @@ struct CenteredPolynomial {
 		int subtraction(int a, int b)const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
 		int product(int a, int b) 	const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
 
-		NTRU_p get_p() {return this->p;}
+		NTRU_p get_p() const{return this->p;}
 	};
 
 	class ZqCentered {															// Handling elements in Z3 with centered elements (-1,0,1)
 		NTRU_q q;
-		int q_1;
+		int  q_1;
+		int negq_1;																// This will help in the centering process
 
 		public:
-		ZqCentered(NTRU_q _q_): q(_q_), q_1(_q_-1) {}
+		ZqCentered(NTRU_q _q_): q(_q_), q_1(_q_-1), negq_1(~q_1) {}
 		int addition(int a, int b)	const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
 		int subtraction(int a, int b)const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
-		int product(int a, int b) 	const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
+		int mods_q(int a) const;
 
-		NTRU_q get_q() {return this->q;}
+		NTRU_q get_q() const{return this->q;}
 	};
 
 	private: ZpCentered _Zp_;
 	private: ZqCentered _Zq_;
 
-	//private: CenteredPolynomial() {}
 	public:
+	CenteredPolynomial(NTRU_N, NTRU_p, NTRU_q);
 	CenteredPolynomial(const NTRU_ZpPolynomial& P, NTRU_q _q_);
 	CenteredPolynomial(const NTRU_ZqPolynomial& P, NTRU_p _p_);
 	~CenteredPolynomial();
 
 	CenteredPolynomial operator*(const CenteredPolynomial& P) const;
+
+	inline int degree() const{													// Returns degree of polynomial
+		int deg = this->N;
+		while(this->coefficients[--deg] == 0 && deg > 0) {}
+		return deg;
+	}
+	inline NTRU_p get_p() const { return this->_Zp_.get_p(); }
+	inline NTRU_q get_q() const { return this->_Zq_.get_q(); }
 };
 
 #endif
