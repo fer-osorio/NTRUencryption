@@ -96,7 +96,7 @@ char* name = "", const char* tail = "") {
         startLen = 5;
     }
     do {
-        if(i != 0 && (i & 31) == 0) {                                           // Since 2^5 = 32, then i&31 = i % 32
+        if(i != 0 && (i & 15) == 0) {                                           // Since 2^5 = 32, then i&31 = i % 32
             std::cout << '\n'; j++;                                             // New row; increasing number of rows
             if(i != lastIndex) {
                 strLen = intToString(j, buff);
@@ -1032,12 +1032,79 @@ const{
     int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
     int* array = new int[coeffAmount], i;                                       // ...
     for(i = 0; i < coeffAmount; i++) array[i] = (int)this->coefficients[i];     // ...
-    printArray(array, (unsigned)coeffAmount, len_q, name, tail);
+    printArray(array, (unsigned)coeffAmount, len_q+1, name, tail);
     delete[] array;
 }
 
 void NTRU_ZqPolynomial::println(const char* name) const{
     this->print(name, "\n");
 }
+
+const int CenteredPolynomial::ZpCentered::Z3[3] =          { 0, 1,-1};          // Centered Z3
+
+const int CenteredPolynomial::ZpCentered::Z3add [3][3] = { { 0, 1,-1},          // Addition table Z3 centered
+                                                           { 1,-1, 0},
+                                                           {-1, 0, 1} };
+
+const int CenteredPolynomial::ZpCentered::Z3subs[3][3] = { { 0,-1, 1},          // Subtractiontion table Z3 centered
+                                                           { 1, 0,-1},
+                                                           {-1, 1, 0} };
+
+int CenteredPolynomial::ZpCentered::addition(int a, int b) const{               // We're assuming a and b are in {-p/2 - 1,...,0,..,p/2 - 1}
+    if(a == -1) a = 2;
+    if(b == -1) b = 2;
+    return this->Z3add[a][b];
+}
+
+int CenteredPolynomial::ZpCentered::subtraction(int a, int b) const{            // We're assuming a and b are in {-p/2 - 1,...,0,..,p/2 - 1}
+    if(a == -1) a = 2;
+    if(b == -1) b = 2;
+    return this->Z3subs[a][b];
+}
+
+int CenteredPolynomial::ZpCentered::product(int a, int b) const{                // We're assuming a and b are in {-p/2 - 1,...,0,..,p/2 - 1}
+    if(a == 0) return 0;
+    if(b == 0) return 0;
+    if(a == -1) if(b == -1) return 1;
+    return 1;
+}
+
+int CenteredPolynomial::ZqCentered::addition(int a, int b) const{
+    int r = a+b;
+    if(r < 0) r += this->q;
+    r &= this->q_1;
+    if(r > this->q >> 1) r -= this->q;
+}
+
+CenteredPolynomial::CenteredPolynomial(const NTRU_ZpPolynomial& P, NTRU_q _q_):
+N(P.get_N()), _Zp_(P.get_p()), _Zq_(_q_) {
+    int _p_ = _Zp_.get_p();
+    int p_div_2 = _p_ >> 1, i;                                              // Dividing by two. Possible optimization through a case by case function
+    this->coefficients = new int[this->N];
+    switch(_p_) {
+    case _3_:
+        for(i = 0; i < this->N; i++) this->coefficients[i]=ZpCentered::Z3[P[i]];
+    }
+}
+
+CenteredPolynomial::CenteredPolynomial(const NTRU_ZqPolynomial& P, NTRU_p _p_):
+N(P.get_N()), _Zp_(_p_), _Zq_(P.get_q()) {
+    int _q_ = _Zq_.get_q();
+    int q_div_2 = _q_ >> 1;                                                 // Dividing by two. Possible optimization through a case by case function
+    this->coefficients = new int[this->N];
+    for(int i = 0; i < this->N; i++) {                                          // Centering coefficients
+        if((int)P[i] > q_div_2) this->coefficients[i] = (int)(P[i] - _q_);
+        else this->coefficients[i] = (int)P[i];
+    }
+}
+
+CenteredPolynomial::~CenteredPolynomial() {
+    if(this->coefficients != NULL) delete[] this->coefficients;
+}
+
+/*CenteredPolynomial CenteredPolynomial::operator*(const CenteredPolynomial& P)
+const {
+
+}*/
 
 //___________________________ NTRU_ZqPolynomial ________________________________

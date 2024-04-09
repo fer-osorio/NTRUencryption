@@ -254,6 +254,12 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 	}
 	NTRU_ZqPolynomial& operator = (const NTRU_ZqPolynomial& P);
 	NTRU_ZqPolynomial& operator = (const NTRU_ZpPolynomial& P);
+
+	inline int operator[](int i) const{
+		if(i < 0) i = -i;
+		if(i > this->N) i %= this->N;
+		return this->coefficients[i];
+	}
 	inline NTRU_N get_N() const{ return this->N; }
 	inline NTRU_q get_q() const{ return this->_Zq_.get_q(); }
 
@@ -269,6 +275,52 @@ struct NTRU_ZqPolynomial {														// Representation of the polynomials in 
 	}
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
+};
+
+struct CenteredPolynomial {
+	private:
+	NTRU_N N;
+	int* coefficients = NULL;
+
+	class ZpCentered {															// Handling elements in Z3 with centered elements (-1,0,1)
+		NTRU_p p;
+		public: static const int Z3[3];
+		private:
+		static const int Z3add [3][3];											// Centered addition in Z3
+		static const int Z3subs[3][3];											// Centered subtraction in Z3
+
+		public:
+		ZpCentered(NTRU_p _p_): p(_p_) {}
+		int addition(int a, int b)	const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
+		int subtraction(int a, int b)const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
+		int product(int a, int b) 	const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
+
+		NTRU_p get_p() {return this->p;}
+	};
+
+	class ZqCentered {															// Handling elements in Z3 with centered elements (-1,0,1)
+		NTRU_q q;
+		int q_1;
+
+		public:
+		ZqCentered(NTRU_q _q_): q(_q_), q_1(_q_-1) {}
+		int addition(int a, int b)	const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
+		int subtraction(int a, int b)const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
+		int product(int a, int b) 	const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
+
+		NTRU_q get_q() {return this->q;}
+	};
+
+	private: ZpCentered _Zp_;
+	private: ZqCentered _Zq_;
+
+	//private: CenteredPolynomial() {}
+	public:
+	CenteredPolynomial(const NTRU_ZpPolynomial& P, NTRU_q _q_);
+	CenteredPolynomial(const NTRU_ZqPolynomial& P, NTRU_p _p_);
+	~CenteredPolynomial();
+
+	CenteredPolynomial operator*(const CenteredPolynomial& P) const;
 };
 
 #endif

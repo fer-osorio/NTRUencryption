@@ -18,10 +18,23 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+#include<chrono>
 #include"NTRUencryption.hpp"
 
 int main(int argc, char* argv[])
 {
-    NTRUencryption e(_509_, _2048_, _509_ / 3);
+    if(argc > 1) std::cout << '\n' << argv[0] << " does not support command "
+    "line arguments\n";
+
+    std::chrono::steady_clock::time_point begin;
+    std::chrono::steady_clock::time_point end;
+
+    begin = std::chrono::steady_clock::now();
+    NTRUencryption e(_821_, _8192_, _821_/3 + 1);
+    end = std::chrono::steady_clock::now();
+
+    std::cout << "\nNTRUencryption e(_821_,_8192_,_821_/3+1) execution time = "
+    << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()
+    << "[µs]" << std::endl;
     return 0;
 }

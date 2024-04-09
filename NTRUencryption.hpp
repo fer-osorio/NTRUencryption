@@ -7,6 +7,8 @@ class NTRUencryption {
 	const NTRU_q q;
 	const NTRU_p p;
 	private: int d;
+
+	public:
 	//ZpPolynomial publicKey;
 	NTRU_ZpPolynomial privateKey;
 	NTRU_ZpPolynomial privateKeyInv_p;											// Private key inverse modulo p
