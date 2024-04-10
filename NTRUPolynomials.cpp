@@ -1070,11 +1070,7 @@ int CenteredPolynomial::ZpCentered::product(int a, int b) const{                
 }
 
 int CenteredPolynomial::ZqCentered::addition(int a, int b) const{
-    int r = a+b;
-    if(r < 0) r += this->q;
-    r &= this->q_1;
-    if(r > (this->q >> 1)) return r-this->q;
-    return r;
+    return this->mods_q(a+b);
 }
 
 int CenteredPolynomial::ZqCentered::mods_q(int a) const{
@@ -1098,10 +1094,10 @@ N(_N_), _Zp_(_p_), _Zq_(_q_) {
 CenteredPolynomial::CenteredPolynomial(const NTRU_ZpPolynomial& P, NTRU_q _q_):
 N(P.get_N()), _Zp_(P.get_p()), _Zq_(_q_) {
     int _p_ = _Zp_.get_p();
-    int p_div_2 = _p_ >> 1, i;                                              // Dividing by two. Possible optimization through a case by case function
+    int p_div_2 = _p_ >> 1, i;                                                  // Dividing by two. Possible optimization through a case by case function
     this->coefficients = new int[this->N];
     switch(_p_) {
-    case _3_:
+    case _3_:                                                                   // We're supposing the coefficients of P are in the set {0,1,2}
         for(i = 0; i < this->N; i++) this->coefficients[i]=ZpCentered::Z3[P[i]];
     }
 }
@@ -1109,16 +1105,42 @@ N(P.get_N()), _Zp_(P.get_p()), _Zq_(_q_) {
 CenteredPolynomial::CenteredPolynomial(const NTRU_ZqPolynomial& P, NTRU_p _p_):
 N(P.get_N()), _Zp_(_p_), _Zq_(P.get_q()) {
     int _q_ = _Zq_.get_q();
-    int q_div_2 = _q_ >> 1;                                                 // Dividing by two. Possible optimization through a case by case function
+    int q_div_2 = _q_ >> 1;                                                     // Dividing by two. Possible optimization through a case by case function
     this->coefficients = new int[this->N];
-    for(int i = 0; i < this->N; i++) {                                          // Centering coefficients
-        if((int)P[i] > q_div_2) this->coefficients[i] = (int)(P[i] - _q_);
+    for(int i = 0, nq = ~(_q_-1); i < this->N; i++) {                         // Centering coefficients
+        if((int)P[i] > q_div_2) this->coefficients[i] = (int)P[i] | nq;         // Equivalent to P[i] - _q_
         else this->coefficients[i] = (int)P[i];
     }
 }
 
 CenteredPolynomial::~CenteredPolynomial() {
     if(this->coefficients != NULL) delete[] this->coefficients;
+}
+
+CenteredPolynomial CenteredPolynomial::operator+(const CenteredPolynomial& P)
+const{
+    CenteredPolynomial r(max_N(this->N, P.N),max_q(this->get_q(),P.get_q()));   // Initializing result in the "biggest polynomial ring"
+    int i, small_degree, big_degree;                                            // Degree of the polynomials, small_degree <= big_degree
+
+    if(this->degree() < P.degree()) {
+        small_degree = this->degree();
+        big_degree = P.degree();
+    }
+	else {
+	    small_degree = P.degree();
+	    big_degree = this->degree();
+	}
+
+    for(i = 0; i <= small_degree; i++)
+        r.coefficients[i] =
+        r._Zq_.addition(this->coefficients[i],P.coefficients[i]);               // Subtraction element by element till the smallest degree of the arguments
+    if(this->degree() == big_degree)
+        for(; i <= big_degree; i++)
+            r.coefficients[i] = this->coefficients[i];
+    else
+        for(; i <= big_degree; i++)
+            r.coefficients[i] = this->coefficients[i];
+    return r;
 }
 
 CenteredPolynomial CenteredPolynomial::operator*(const CenteredPolynomial& P)

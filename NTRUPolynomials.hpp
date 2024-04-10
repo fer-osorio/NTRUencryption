@@ -300,13 +300,12 @@ struct CenteredPolynomial {
 
 	class ZqCentered {															// Handling elements in Z3 with centered elements (-1,0,1)
 		NTRU_q q;
-		int  q_1;
-		int negq_1;																// This will help in the centering process
+		int  q_1;																// Necessary for fast modulus q computation. Set as q-1
+		int negq_1;																// This will help in the centering process. Set as ~q_1
 
 		public:
 		ZqCentered(NTRU_q _q_): q(_q_), q_1(_q_-1), negq_1(~q_1) {}
-		int addition(int a, int b)	const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
-		int subtraction(int a, int b)const;										// Supposing a,b are in the set {-p/2 - 1,...,0,..,p/2 - 1}
+		int addition(int a, int b) const;
 		int mods_q(int a) const;
 
 		NTRU_q get_q() const{return this->q;}
@@ -321,6 +320,7 @@ struct CenteredPolynomial {
 	CenteredPolynomial(const NTRU_ZqPolynomial& P, NTRU_p _p_);
 	~CenteredPolynomial();
 
+	CenteredPolynomial operator+(const CenteredPolynomial& P) const;
 	CenteredPolynomial operator*(const CenteredPolynomial& P) const;
 
 	inline int degree() const{													// Returns degree of polynomial
