@@ -9,13 +9,16 @@ class Encryption {
 	const NTRU_p p;
 	private: int d;
 
-	NTRUPolynomial::ZqCenterPolynomial publicKey;
 	NTRUPolynomial::ZqCenterPolynomial privateKey;
 	NTRUPolynomial::ZqCenterPolynomial privateKeyInv_p;							// Private key inverse modulo p
+	NTRUPolynomial::ZqCenterPolynomial publicKey;
 
 	public:Encryption(NTRU_N _N_, NTRU_q _q_, int _d_=0,NTRU_p _p_=_3_);
-	void encrypt(NTRUPolynomial::Message&);
+	NTRUPolynomial::ZqCenterPolynomial encrypt(const NTRUPolynomial::ZpCenterPolynomial&);
+	NTRUPolynomial::ZpCenterPolynomial decrypt(const NTRUPolynomial::ZqCenterPolynomial&);
 
-	private: void setPrivateKeyAndInv();										// Creates private key and inverse of the private key
+	NTRU_N get_N() { return this->N; }
+
+	private: void setKeys();													// Creation of the keys
 };
 }

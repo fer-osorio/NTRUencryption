@@ -5,18 +5,27 @@ using namespace NTRU;
 
 Encryption::Encryption(NTRU_N _N_,NTRU_q _q_,int _d_,NTRU_p _p_):
 N(_N_), q(_q_), p(_p_), d(_d_), privateKey(_N_, _q_), privateKeyInv_p(_N_, _q_),
-publicKey(ZpPolynomial(_N_, _d_, _d_), _q_) {
-	this->setPrivateKeyAndInv();
+publicKey(ZpPolynomial(_N_, _d_, _d_), _q_, true) {
+	this->setKeys();
 	ZqCenterPolynomial f_Fp = this->privateKey*this->privateKeyInv_p;
 	f_Fp.mods_p(_3_);
 	f_Fp.println("f_Fp");
 }
 
-void Encryption::encrypt(Message& msg) {
-    //ZqCenterPolynomial msg_pol(msg.content, msg.len, this->N, this->q);
+ZqCenterPolynomial Encryption::encrypt(const ZpCenterPolynomial& msg) {
+    ZqCenterPolynomial _msg_(msg, this->q);
+    ZqCenterPolynomial r(ZpCenterPolynomial(this->N, (unsigned)this->d, (unsigned)this->d), this->q);
+    return this->publicKey * r + _msg_;
 }
 
-void Encryption::setPrivateKeyAndInv() {
+ZpCenterPolynomial Encryption::decrypt(const ZqCenterPolynomial& e_msg) {
+    ZqCenterPolynomial a = this->privateKey*e_msg;
+    a = this->privateKeyInv_p * a;
+    a.mods_p(this->p);
+    return ZpCenterPolynomial(a);
+}
+
+void Encryption::setKeys() {
     ZpPolynomial  _privateKey_(this->N, this->d+1, this->d);
     ZpPolynomial  _privateKeyInv_p_(this->N, this->q);
 	ZpPolynomial  Zp_gcdXNmns1(this->N, this->q);
@@ -31,37 +40,37 @@ void Encryption::setPrivateKeyAndInv() {
 	    Zp_gcdXNmns1 = _privateKey_.gcdXNmns1(_privateKeyInv_p_);
 	}catch(const char* exp) {
         std::cout<<"\nIn file Encryption.cpp, function void Encryption"
-        "::setPrivateKeyAndInv()\n";
+        "::setKeys()\n";
         throw;
 	}
 	try{
 	    Z2_gcdXNmns1 = privateKeyZ2.gcdXNmns1(privateKeyInv_2);
 	}catch(const char* exp) {
         std::cout<<"\nIn file Encryption.cpp, function void Encryption"
-        "::setPrivateKeyAndInv()\n";
+        "::setKeys()\n";
         throw;
 	}
 	counter = 1;
 
     while((Zp_gcdXNmns1 != 1 || Z2_gcdXNmns1 != 1) /*&& counter < 3*/) {
         if((counter & 3) != 0) {                                                // If we have not tried to much times, just permute the coefficients
-            _privateKey_.permute();                                         // counter & 3 == counter % 4
-	        privateKeyZ2 = _privateKey_;                                    // ...
+            _privateKey_.permute();                                             // counter & 3 == counter % 4
+	        privateKeyZ2 = _privateKey_;                                        // ...
         } else {
 	        this->d--;                                                          // To much tries, increasing the numbers of non-zero coefficients
-            _privateKey_ = ZpPolynomial(this->N, this->d+1, this->d);  // ...
-            privateKeyZ2 = _privateKey_;                                    // ...
+            _privateKey_ = ZpPolynomial(this->N, this->d+1, this->d);           // ...
+            privateKeyZ2 = _privateKey_;                                        // ...
 	    }
 	    try{ Zp_gcdXNmns1=_privateKey_.gcdXNmns1(_privateKeyInv_p_); }
 	    catch(const char* exp) {
             std::cout<<"\nIn file Encryption.cpp, function void NTRU"
-            "encryption::setPrivateKeyAndInv()\n";
+            "encryption::setKeys()\n";
             throw;
 	    }
 	    try{ Z2_gcdXNmns1 = privateKeyZ2.gcdXNmns1(privateKeyInv_2); }
 	    catch(const char* exp) {
             std::cout<<"\nIn file Encryption.cpp, function void NTRU"
-            "encryption::setPrivateKeyAndInv()\n";
+            "encryption::setKeys()\n";
             throw;
     	}
 	    counter++;
