@@ -30,11 +30,23 @@ int main(int argc, char* argv[])
     std::chrono::steady_clock::time_point end;
 
     begin = std::chrono::steady_clock::now();
-    NTRUencryption e(_821_, _8192_, _821_/3 + 1);
+    NTRU::Encryption e(_821_, _8192_, _821_/3 + 1);
     end = std::chrono::steady_clock::now();
 
     std::cout << "\nNTRUencryption e(_821_,_8192_,_821_/3+1) execution time = "
     << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()
-    << "[µs]" << std::endl;
+    << "[µs]\n" << std::endl;
+
+    NTRUPolynomial::Message msg(e.get_N(), 1, 1);
+    msg.println("Original message");
+    std::cout << '\n';
+    NTRUPolynomial::ZqCenterPolynomial e_msg = e.encrypt(msg);
+    e_msg.println("Encrypted message");
+    std::cout << '\n';
+    NTRUPolynomial::Message d_msg = e.decrypt(e_msg);
+    d_msg.println("decrypted message");
+    if(msg == d_msg) std::cout << "\nSuccessful decryption\n";
+    else std::cout << "\nUnsuccessful decryption\n";
+
     return 0;
 }
