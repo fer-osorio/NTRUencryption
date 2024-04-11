@@ -1,20 +1,20 @@
-#include"NTRUPolynomials.hpp"
+#include"NTRUPolynomial.hpp"
 #include<random>
 #include<ctime>
 
 using namespace NTRUPolynomial;
 
-const int ZpPolynomial::Z3addition[3][3] = {{0, 1, 2},                     // Addition table of the Z3 ring (integers modulo 3)
-                                                 {1, 2, 0},                     // ...
-                                                 {2, 0, 1}};                    // ...
+const int ZpPolynomial::Z3addition[3][3] = {{0, 1, 2},                          // Addition table of the Z3 ring (integers modulo 3)
+                                            {1, 2, 0},                          // ...
+                                            {2, 0, 1}};                         // ...
 
-const int ZpPolynomial::Z3subtraction[3][3] = {{0, 2, 1},                  // Addition table of the Z3 ring (integers modulo 3)
-                                                    {1, 0, 2},                  // ...
-                                                    {2, 1, 0}};                 // ...
+const int ZpPolynomial::Z3subtraction[3][3] = {{0, 2, 1},                       // Addition table of the Z3 ring (integers modulo 3)
+                                               {1, 0, 2},                       // ...
+                                               {2, 1, 0}};                      // ...
 
-const int ZpPolynomial::Z3product[3][3] = {{0, 0, 0},                      // Product table of the Z3 ring (integers modulo 3)
-                                                {0, 1, 2},                      // ...
-                                                {0, 2, 1}};                     // ...
+const int ZpPolynomial::Z3product[3][3] = {{0, 0, 0},                           // Product table of the Z3 ring (integers modulo 3)
+                                           {0, 1, 2},                           // ...
+                                           {0, 2, 1}};                          // ...
 static unsigned _seed_ = (unsigned)time(NULL);
 
 inline static int min(int a, int b) {
@@ -44,7 +44,7 @@ inline static NTRU_q max_q(NTRU_q a, NTRU_q b) {
 static int intToString(int n, char* dest) {                                     // String representation of unsigned integer it returns the length of the string
     int i = 0, j = 0, l = 0;
     char buff = 0;
-    if(n < 0) {	dest[i++] = '-'; n = -n; }
+    if(n < 0) {	dest[i++] = '-'; n = -n; j = 1; }
     do {
         buff = (char)(n % DECIMAL_BASE);                                        // Taking last current digit
         dest[i++] = buff + 48;                                                  // Saving last current digit
@@ -133,7 +133,8 @@ ZpPolynomial::ZpPolynomial(const ZpPolynomial& P):N(P.N),p(P.p){
 }
 
 ZpPolynomial::ZpPolynomial(NTRU_N _N_,int ones,int twos,NTRU_p _p_):
-N(_N_), p(_p_) { int i, j;
+N(_N_), p(_p_) {
+    int i, j;
     RandInt rn{0, _N_-1, _seed_++};                                             // Random integers from 0 to N-1
     if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and twos. In particular the
     if(twos < 0) twos = -twos;                                                  // inequality ones + twos < N must follow
@@ -838,8 +839,7 @@ ZqPolynomial NTRUPolynomial::operator - (int t, const ZqPolynomial& P) {
     return r;
 }
 
-void ZqPolynomial::print(const char* name,const char* tail)
-const{
+void ZqPolynomial::print(const char* name,const char* tail) const{
     unsigned len_q = len(this->_Zq_.get_q());
     int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
     int* array = new int[coeffAmount], i;                                       // ...
@@ -851,6 +851,37 @@ const{
 void ZqPolynomial::println(const char* name) const{
     this->print(name, "\n");
 }
+
+// ||||||||||||||||||||||||||||||| Message |||||||||||||||||||||||||||||||||||||
+
+Message::Message(NTRU_N _len_, unsigned ones, unsigned negOnes): len(_len_) {
+    int i, j;
+    RandInt rn{0, _len_-1, _seed_++};                                             // Random integers from 0 to N-1
+    if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and negOnes. In particular the
+    if(negOnes < 0) negOnes = -negOnes;                                                  // inequality ones + negOnes < N must follow
+    while(ones + negOnes >= _len_) {                                             // Dividing by two till getting inside the allowed range
+        ones <<= 1;                                                             // ...
+        negOnes <<= 1;                                                             // ...
+    }
+	this->content = new Alphabet[_len_];
+	for(i = 0; i < _len_; i++) this->content[i] = _0;
+	while(ones > 0) {                                                           // Putting the ones first
+        j = rn();
+        if(this->content[j] == _0) {
+            this->content[j] = _1_;
+            ones--;
+        }
+	}
+	while(negOnes > 0) {                                                           // Then the negative ones
+        j = rn();
+        if(this->content[j] == _0) {
+            this->content[j] = _1;                                          // Two is congruent with -1 modulo 3
+            negOnes--;
+        }
+	}
+}
+
+//______________________________ Message _______________________________________
 
 const int ZqCenterPolynomial::ZpCentered::Z3[3] =          { 0, 1,-1};          // Centered Z3
 
@@ -930,6 +961,12 @@ N(P.get_N()), _Zq_(P.get_q()) {
     }
 }
 
+ZqCenterPolynomial::ZqCenterPolynomial(const Message& msg, NTRU_q _q_):
+N(msg.get_len()), _Zq_(_q_) {
+    this->coefficients = new int[this->N];
+    for(int i = 0; i < this->N; i++) this->coefficients[i] = msg[i];
+}
+
 ZqCenterPolynomial::~ZqCenterPolynomial() {
     if(this->coefficients != NULL) delete[] this->coefficients;
 }
@@ -997,4 +1034,28 @@ const {
 	return r;
 }
 
-//___________________________ ZqPolynomial ________________________________
+void ZqCenterPolynomial::mods_p(NTRU_p _p_) {
+    int i;
+    switch(_p_) {
+        case _3_:
+        for(i = 0; i < this->N; i++) {
+            this->coefficients[i] %= 3;
+            if(this->coefficients[i] ==  2) this->coefficients[i] = -1;
+            if(this->coefficients[i] == -2) this->coefficients[i] =  1;
+        }
+        break;
+    }
+}
+
+void ZqCenterPolynomial::print(const char* name,const char* tail) const{
+    unsigned len_q = len(this->_Zq_.get_q());
+    int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
+    printArray(this->coefficients, (unsigned)coeffAmount, len_q+1, name, tail);
+}
+
+void ZqCenterPolynomial::println(const char* name) const{
+    this->print(name, "\n");
+}
+
+//______________________________ ZqPolynomial __________________________________
+

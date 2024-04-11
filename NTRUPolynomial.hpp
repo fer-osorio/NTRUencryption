@@ -10,7 +10,6 @@ enum NTRU_q {_2048_ = 2048, _4096_ = 4096, _8192_ = 8192 };						// All the poss
 enum NTRU_p {_3_	= 3 };
 
 namespace NTRUPolynomial {
-struct ZqPolynomial;
 struct ZpPolynomial {															// Representation of the polynomials in Zp[x]/(x^N-1)
 	private:
 	NTRU_N N;
@@ -77,6 +76,7 @@ struct ZpPolynomial {															// Representation of the polynomials in Zp[x
 	void test(NTRU_N _N_, int d) const;
 };
 
+struct ZqPolynomial;															// This two lines are necessary for the declaration of friend function
 ZqPolynomial operator - (int, const ZqPolynomial&);
 
 struct ZqPolynomial {															// Representation of the polynomials in Zq[x]/(x^N-1)
@@ -226,6 +226,20 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	void println(const char* name = "") const;
 };
 
+class Message {
+	NTRU_N len;
+	enum Alphabet{_1 = -1, _0 = 0, _1_ = 1};
+	Alphabet* content = NULL;
+
+	public: Message(NTRU_N _len_, unsigned ones, unsigned negOnes);
+	inline int operator[](int i) const{
+		if(i < 0) i = -i;
+		if(i > this->len) i %= this->len;
+		return this->content[i];
+	}
+	NTRU_N get_len() const{ return this->len; }
+};
+
 struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2-1, ..., q/2}
 	private:
 	NTRU_N N;
@@ -267,6 +281,7 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 	ZqCenterPolynomial(NTRU_N, NTRU_q);
 	ZqCenterPolynomial(const ZpPolynomial& P, NTRU_q _q_);
 	ZqCenterPolynomial(const ZqPolynomial& P);
+	ZqCenterPolynomial(const Message&, NTRU_q);
 	~ZqCenterPolynomial();
 
 	ZqCenterPolynomial& operator = (const ZqCenterPolynomial& P);
@@ -280,6 +295,11 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 		return deg;
 	}
 	inline NTRU_q get_q() const { return this->_Zq_.get_q(); }
+
+	void mods_p(NTRU_p _p_);
+
+	void print(const char* name = "", const char* tail = "") const;
+	void println(const char* name = "") const;
 };
 
 }
