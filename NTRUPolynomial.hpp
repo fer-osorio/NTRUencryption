@@ -34,13 +34,13 @@ struct ZpPolynomial {															// Representation of the polynomials in Zp[x
 		if(this->coeffCopy 	  != NULL) delete [] this->coeffCopy;
 	}
 	// Arithmetic
-	ZpPolynomial  operator + (const ZpPolynomial&) const;				// Addition element by element
-	ZpPolynomial  operator - (const ZpPolynomial&) const;				// Subtraction element by element
+	ZpPolynomial  operator + (const ZpPolynomial&) const;						// Addition element by element
+	ZpPolynomial  operator - (const ZpPolynomial&) const;						// Subtraction element by element
 	ZpPolynomial  operator - () const;
-	ZpPolynomial  operator * (const ZpPolynomial&) const;				// Multiplication will coincide with convolution (compare with classical)
+	ZpPolynomial  operator * (const ZpPolynomial&) const;						// Multiplication will coincide with convolution (compare with classical)
 	ZpPolynomial& operator-= (const ZpPolynomial&);
 
-	void division(const ZpPolynomial& P,ZpPolynomial rslt[2]) const;	// The quotient and the remainder are saved in rslt
+	void division(const ZpPolynomial& P,ZpPolynomial rslt[2]) const;			// The quotient and the remainder are saved in rslt
 	ZpPolynomial gcdXNmns1(ZpPolynomial& thisBezout) const;
 
 	inline bool operator == (int t) const {										// Comparison with a single integer
@@ -52,8 +52,8 @@ struct ZpPolynomial {															// Representation of the polynomials in Zp[x
 	bool operator == (const ZpPolynomial& P) const;
 	bool operator != (const ZpPolynomial& P) const;
 
-	ZpPolynomial& operator = (const ZpPolynomial& P);					// Assignment
-	ZpPolynomial& operator = (int t);										// Assignment with single integer
+	ZpPolynomial& operator = (const ZpPolynomial& P);							// Assignment
+	ZpPolynomial& operator = (int t);											// Assignment with single integer
 
 	inline int operator[](int i) const{
 		if(i < 0) i = -i;
@@ -82,16 +82,16 @@ ZqPolynomial operator - (int, const ZqPolynomial&);
 struct ZqPolynomial {															// Representation of the polynomials in Zq[x]/(x^N-1)
 	private: NTRU_N N;
 
-	class Zq{																		// Representation of the group of integers modulus q: Zq
+	class Zq{																	// Representation of the group of integers modulus q: Zq
 		NTRU_q q;
 		int  q_1;
 
 		public: Zq(NTRU_q _q_): q(_q_), q_1(_q_-1) {}
 		public: inline NTRU_q get_q() const{ return q; }
 
-		int mod_q(int t) const{														// operation t % q
-			while(t < 0) t += this->q;												// Ensuring a positive t
-			return t & this->q_1;													// Since q is a power of two, t & (q-1) is equivalent to t%q, but much faster
+		int mod_q(int t) const{													// operation t % q
+			while(t < 0) t += this->q;											// Ensuring a positive t
+			return t & this->q_1;												// Since q is a power of two, t & (q-1) is equivalent to t%q, but much faster
 		}
 
 		int add(int a, int b) const{
@@ -121,16 +121,16 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	public: struct Z2Polynomial {												// Representation of the polynomials in Z2[x]/(x^N-1)
 		private: NTRU_N N;
 
-		enum Z2 {_0_ = 0, _1_ = 1};														// Integers modulo 2 (binary numbers)
-		inline friend Z2 operator + (Z2 a,Z2 b) {												// Addition modulus 2
+		enum Z2 {_0_ = 0, _1_ = 1};												// Integers modulo 2 (binary numbers)
+		inline friend Z2 operator + (Z2 a,Z2 b) {								// Addition modulus 2
 			if(a!=b) return _1_;
 			return _0_;
 		}
-		inline friend Z2 operator - (Z2 a,Z2 b) {												// Addition and subtraction coincide in Z2. This is just for evade problems
-			if(a!=b) return _1_;														// with notation
+		inline friend Z2 operator - (Z2 a,Z2 b) {								// Addition and subtraction coincide in Z2. This is just for evade problems
+			if(a!=b) return _1_;												// with notation
 			return _0_;
 		}
-		inline friend Z2 operator * (Z2 a, Z2 b) {												// Multiplication modulus 2
+		inline friend Z2 operator * (Z2 a, Z2 b) {								// Multiplication modulus 2
 			if(a==0) return _0_;
 			return  b ;
 		}
@@ -226,31 +226,39 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	void println(const char* name = "") const;
 };
 
-class Message {
-	NTRU_N len;
-	enum Alphabet{_1 = -1, _0 = 0, _1_ = 1};
-	Alphabet* content = NULL;
+struct ZqCenterPolynomial;														// ZpCenterPolynomial class will use it, that's why we declare it here
 
-	public: Message(NTRU_N _len_, unsigned ones, unsigned negOnes);
-	inline int operator[](int i) const{
-		if(i < 0) i = -i;
-		if(i > this->len) i %= this->len;
-		return this->content[i];
+class ZpCenterPolynomial {
+	enum Z3{_1_ = -1, _0 = 0, _1 = 1};											// ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
+	static const Z3 Z3add [3][3];												// Centered addition in Z3
+	static const Z3 Z3subs[3][3];												// Centered subtraction in Z3
+	friend Z3 operator + (Z3 a, Z3 b) {
+		int i = a, j = b;
+		if(i == -1) i = 2;
+    	if(j == -1) j = 2;
+    	return ZpCenterPolynomial::Z3add[i][j];
 	}
-	NTRU_N get_len() const{ return this->len; }
-};
-
-struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2-1, ..., q/2}
-	private:
-	NTRU_N N;
-	int* coefficients = NULL;
-
+	friend void operator += (Z3& a, Z3 b) {
+		int i = a, j = b;
+		if(i == -1) i = 2;
+    	if(j == -1) j = 2;
+    	a = ZpCenterPolynomial::Z3add[i][j];
+	}
+	friend Z3 operator - (Z3 a, Z3 b) {
+		int i = a, j = b;
+		if(i == -1) i = 2;
+    	if(j == -1) j = 2;
+    	return ZpCenterPolynomial::Z3subs[i][j];
+	}
+	friend Z3 operator * (Z3 a, Z3 b) {
+		if(a == _0) return  _0;
+    	if(b == _0) return  _0;
+		if(a == _1) return   b;
+    	if(b == _1) return _1_;
+    	return _1;
+	}
 	class ZpCentered {															// Handling elements in Z3 with centered elements (-1,0,1)
 		NTRU_p p;
-		public: static const int Z3[3];
-		private:
-		static const int Z3add [3][3];											// Centered addition in Z3
-		static const int Z3subs[3][3];											// Centered subtraction in Z3
 
 		public:
 		ZpCentered(NTRU_p _p_): p(_p_) {}
@@ -260,6 +268,37 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 
 		NTRU_p get_p() const{return this->p;}
 	};
+
+	NTRU_N N;
+	NTRU_p p;
+	Z3* coefficients = NULL;
+
+	public:
+	ZpCenterPolynomial(const ZpCenterPolynomial&);
+	ZpCenterPolynomial(NTRU_N _N_, NTRU_p _p_, unsigned ones = 0, unsigned negOnes = 0);
+	ZpCenterPolynomial(const ZqCenterPolynomial&, NTRU_p);								// It will copy all the ones and negative ones. Everything else will be zero
+
+	ZpCenterPolynomial& operator = (const ZpCenterPolynomial&);
+	inline int operator[](int i) const{
+		if(i < 0) i = -i;
+		if(i > this->N) i %= this->N;
+		return this->coefficients[i];
+	}
+	bool operator == (const ZpCenterPolynomial&);
+
+	ZpCenterPolynomial operator * (ZpCenterPolynomial&) const;
+	NTRU_N get_N() const{ return this->N; }
+	NTRU_p get_p() const{ return this->p; }
+	int degree() const;															// Gets the last nonzero index. If this is the zero polynomial, returns -1
+
+	void print(const char* name = "", const char* tail = "") const;
+	void println(const char* name = "") const;
+};
+
+struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2-1, ..., q/2}
+	private:
+	NTRU_N N;
+	int* coefficients = NULL;
 
 	class ZqCentered {															// Handling elements in Z3 with centered elements (-1,0,1)
 		NTRU_q q;
@@ -278,10 +317,11 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 
 	public:
 	ZqCenterPolynomial(const ZqCenterPolynomial& P);
-	ZqCenterPolynomial(NTRU_N, NTRU_q);
-	ZqCenterPolynomial(const ZpPolynomial& P, NTRU_q _q_);
-	ZqCenterPolynomial(const ZqPolynomial& P);
-	ZqCenterPolynomial(const Message&, NTRU_q);
+	ZqCenterPolynomial(NTRU_N, NTRU_q);											// Returns the zero polynomial in this ring
+	ZqCenterPolynomial(const ZpPolynomial& P,NTRU_q _q_,bool times_p = false);	// Copies and centers a ZpPolynomial. If times_p is true, the polynomial created
+																				// is equivalent to a ZpPolynomial times its own p; this will help in key creation
+	ZqCenterPolynomial(const ZqPolynomial& P);									// Copies and centers a ZqPolynomial
+	ZqCenterPolynomial(const ZpCenterPolynomial&, NTRU_q);						// Copies the content of a ZpCenterPolynomial
 	~ZqCenterPolynomial();
 
 	ZqCenterPolynomial& operator = (const ZqCenterPolynomial& P);
@@ -294,6 +334,12 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 		while(this->coefficients[--deg] == 0 && deg > 0) {}
 		return deg;
 	}
+	inline int operator[](int i) const{
+		if(i < 0) i = -i;
+		if(i > this->N) i %= this->N;
+		return this->coefficients[i];
+	}
+	inline NTRU_N get_N() const { return this->N; }
 	inline NTRU_q get_q() const { return this->_Zq_.get_q(); }
 
 	void mods_p(NTRU_p _p_);

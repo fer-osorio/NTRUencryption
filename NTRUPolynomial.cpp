@@ -41,6 +41,10 @@ inline static NTRU_q max_q(NTRU_q a, NTRU_q b) {
 	if(a < b) return b;
 	return a;
 }
+inline static NTRU_p max_p(NTRU_p a, NTRU_p b) {
+	if(a < b) return b;
+	return a;
+}
 static int intToString(int n, char* dest) {                                     // String representation of unsigned integer it returns the length of the string
     int i = 0, j = 0, l = 0;
     char buff = 0;
@@ -107,8 +111,8 @@ char* name = "", const char* tail = "") {
             }
         }
         strLen = intToString(array[i], buff);                                   // Optimize by returning the length of the string
+        printSpaces((unsigned)max((int)columnlen - strLen + 1,0));              // Padding with spaces. The +1 is for alignment with negative numbers
         std::cout << buff;                                                      // Printing current coefficient
-        printSpaces((unsigned)max((int)columnlen - strLen ,0));                 // Padding with spaces
         if(i < lastIndex) std::cout << ',';
     }while(++i < (int)arrlen);
     std::cout << ']';
@@ -574,8 +578,8 @@ ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::operator *
 	return r;
 }
 
-void ZqPolynomial::Z2Polynomial::division(const Z2Polynomial& P,
-Z2Polynomial result[2]) const{
+void ZqPolynomial::Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial
+result[2]) const{
     if(P == _0_) {
         throw "\nvoid ZpPolynomial::ZpPolynomial::division(const Zp"
         "Polynomial& P,ZpPolynomial result[2]) const. Division by zero...\n";
@@ -852,65 +856,127 @@ void ZqPolynomial::println(const char* name) const{
     this->print(name, "\n");
 }
 
-// ||||||||||||||||||||||||||||||| Message |||||||||||||||||||||||||||||||||||||
+//_______________________________________________________________________ ZqPolynomial ____________________________________________________________________________
 
-Message::Message(NTRU_N _len_, unsigned ones, unsigned negOnes): len(_len_) {
+// ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZpCenterPolynomial |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+const ZpCenterPolynomial::Z3 ZpCenterPolynomial::Z3add [3][3] = { {_0 ,_1 ,_1_}, // Addition table Z3 centered
+                                                                  {_1 ,_1_,_0 },
+                                                                  {_1_,_0 ,_1 } };
+
+const ZpCenterPolynomial::Z3 ZpCenterPolynomial::Z3subs[3][3] = { {_0 ,_1_,_1 }, // Subtraction table Z3 centered
+                                                                  {_1 ,_0 ,_1_},
+                                                                  {_1_,_1 ,_0 } };
+
+ZpCenterPolynomial::ZpCenterPolynomial(const ZpCenterPolynomial& P): N(P.N),
+p(P.get_p()){
+    this->coefficients = new Z3[P.N];
+    for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
+}
+
+ZpCenterPolynomial::ZpCenterPolynomial(NTRU_N _len_, NTRU_p _p_, unsigned ones, unsigned negOnes):
+N(_len_), p(_p_) {
     int i, j;
-    RandInt rn{0, _len_-1, _seed_++};                                             // Random integers from 0 to N-1
-    if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and negOnes. In particular the
-    if(negOnes < 0) negOnes = -negOnes;                                                  // inequality ones + negOnes < N must follow
-    while(ones + negOnes >= _len_) {                                             // Dividing by two till getting inside the allowed range
+    RandInt rn{0, _len_-1, _seed_++};                                           // Random integers from 0 to N-1
+    while(ones + negOnes >= _len_) {                                            // Dividing by two till getting inside the allowed range
         ones <<= 1;                                                             // ...
-        negOnes <<= 1;                                                             // ...
+        negOnes <<= 1;                                                          // ...
     }
-	this->content = new Alphabet[_len_];
-	for(i = 0; i < _len_; i++) this->content[i] = _0;
+	this->coefficients = new Z3[_len_];
+	for(i = 0; i < _len_; i++) this->coefficients[i] = _0;
 	while(ones > 0) {                                                           // Putting the ones first
         j = rn();
-        if(this->content[j] == _0) {
-            this->content[j] = _1_;
+        if(this->coefficients[j] == _0) {
+            this->coefficients[j] = _1;
             ones--;
         }
 	}
-	while(negOnes > 0) {                                                           // Then the negative ones
+	while(negOnes > 0) {                                                        // Then the negative ones
         j = rn();
-        if(this->content[j] == _0) {
-            this->content[j] = _1;                                          // Two is congruent with -1 modulo 3
+        if(this->coefficients[j] == _0) {
+            this->coefficients[j] = _1_;
             negOnes--;
         }
 	}
 }
 
-//______________________________ Message _______________________________________
-
-const int ZqCenterPolynomial::ZpCentered::Z3[3] =          { 0, 1,-1};          // Centered Z3
-
-const int ZqCenterPolynomial::ZpCentered::Z3add [3][3] = { { 0, 1,-1},          // Addition table Z3 centered
-                                                           { 1,-1, 0},
-                                                           {-1, 0, 1} };
-
-const int ZqCenterPolynomial::ZpCentered::Z3subs[3][3] = { { 0,-1, 1},          // Subtractiontion table Z3 centered
-                                                           { 1, 0,-1},
-                                                           {-1, 1, 0} };
-
-int ZqCenterPolynomial::ZpCentered::addition(int a, int b) const{               // We're assuming a and b are in {-p/2 - 1,...,0,..,p/2 - 1}
-    if(a == -1) a = 2;
-    if(b == -1) b = 2;
-    return this->Z3add[a][b];
+ZpCenterPolynomial::ZpCenterPolynomial(const ZqCenterPolynomial& P, NTRU_p _p_):
+N(P.get_N()), p(_p_) {
+    this->coefficients = new Z3[this->N];
+    for(int i = 0; i < this->N; i++) {                                          // This process will just take in account the ones and negative ones, all the
+        this->coefficients[i] = _0;                                                  // other numbers will taken as zero
+        if(P[i] ==  1) this->coefficients[i] = _1 ;
+        if(P[i] == -1) this->coefficients[i] = _1_;
+    }
 }
 
-int ZqCenterPolynomial::ZpCentered::subtraction(int a, int b) const{            // We're assuming a and b are in {-p/2 - 1,...,0,..,p/2 - 1}
-    if(a == -1) a = 2;
-    if(b == -1) b = 2;
-    return this->Z3subs[a][b];
+ZpCenterPolynomial& ZpCenterPolynomial::operator = (const ZpCenterPolynomial& P) {
+    if(this != &P) {
+        if(P.coefficients != NULL) {                                            // Not performing the assignation if second argument has a null pointer
+            this->p = P.p;
+            if(this->N != P.N) {
+                if(this->coefficients != NULL) delete[] this->coefficients;
+                this->coefficients = new Z3[P.N];
+                this->N = P.N;
+            }
+            if(this->coefficients == NULL) this->coefficients = new Z3[P.N];
+            for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
+        }
+    }
+    return *this;
 }
 
-int ZqCenterPolynomial::ZpCentered::product(int a, int b) const{                // We're assuming a and b are in {-p/2 - 1,...,0,..,p/2 - 1}
-    if(a == 0) return 0;
-    if(b == 0) return 0;
-    if(a == -1) if(b == -1) return 1;
-    return 1;
+ZpCenterPolynomial ZpCenterPolynomial::operator * (ZpCenterPolynomial& P) const{
+    ZpCenterPolynomial r(max_N(this->N, P.N),max_p(this->get_p(),P.get_p()));   // Initializing result in the "biggest polynomial ring"
+    int i, j, k;
+    int this_degree = this->degree();
+    int P_degree    = P.degree();
+
+	for(i = 0; i <= this_degree; i++) {
+		if(this->coefficients[i] != 0)                                          // Taking advantage this polynomials have a big proportion of zeros
+		    for(j = 0; j <= P_degree; j++) {
+			    if(P.coefficients[j] != 0) {
+			        if((k = i + j) >= r.N) k -= r.N;
+			        r.coefficients[k] += this->coefficients[i]*P.coefficients[j];
+			    }
+		    }
+	}
+	return r;
 }
+
+bool ZpCenterPolynomial::operator == (const ZpCenterPolynomial& P) {
+    if(this->N == P.N && this->get_p() == P.get_p()) {
+        if(this->coefficients != NULL && P.coefficients != NULL) {
+            for(int i = 0; i < this->N; i++)
+                if(this->coefficients[i] != P.coefficients[i]) return false;
+            return true;
+        } else return this->coefficients == P.coefficients;                             // This could happen with self comparison or when both pointers are NULL
+    }
+    return false;
+}
+
+int ZpCenterPolynomial::degree() const{
+    int i = this->N;
+    while(--i >= 0 && this->coefficients[i] == 0) {}
+    return i;                                                                   // Notice that in case of zero polynomial the return is -1
+}
+
+void ZpCenterPolynomial::print(const char* name, const char* tail) const{
+    int arrlen = this->degree() + 1;                                  // This three lines is a "casting" from Z2 array to int array
+    int* array = new int[arrlen], i;                                            // ...
+    for(i = 0; i < arrlen; i++)
+        array[i] = this->coefficients[i];                                            // ...
+    printArray(array, (unsigned)arrlen, 3, name, tail);
+    delete[] array;
+}
+
+void ZpCenterPolynomial::println(const char* name) const{
+    this->print(name, "\n");
+}
+
+//____________________________________________________________________ ZpCenterPolynomial ______________________________________________________________________________
+
+// ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZqCenterPolynomial ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 int ZqCenterPolynomial::ZqCentered::addition(int a, int b) const{
     return this->mods_q(a+b);
@@ -940,31 +1006,41 @@ N(_N_), _Zq_(_q_) {
     for(int i = 0; i < _N_; i++) this->coefficients[i] = 0;
 }
 
-ZqCenterPolynomial::ZqCenterPolynomial(const ZpPolynomial& P, NTRU_q _q_):
+ZqCenterPolynomial::ZqCenterPolynomial(const ZpPolynomial& P, NTRU_q _q_, bool times_p):
 N(P.get_N()), _Zq_(_q_) {
     NTRU_p _p_ = P.get_p();
     this->coefficients = new int[this->N];
     switch(_p_) {
     case _3_:                                                                   // We're supposing the coefficients of P are in the set {0,1,2}
-        for(int i=0;i<this->N;i++) this->coefficients[i]=ZpCentered::Z3[P[i]];
+        if(times_p)                                                             // If true, it will do the equivalent to center multiply each coefficient time p
+            for(int i = 0; i < this->N; i++) {
+                this->coefficients[i] = 0;
+                if(P[i] ==  1) this->coefficients[i] =  3;
+                if(P[i] == -1) this->coefficients[i] = -3;
+            }
+        else
+            for(int i = 0; i < this->N; i++) {                                  // Just centering
+                if(P[i] == 2) this->coefficients[i] = -1;
+                else this->coefficients[i] = P[i];
+            }
     }
 }
 
-ZqCenterPolynomial::ZqCenterPolynomial(const ZqPolynomial& P):
-N(P.get_N()), _Zq_(P.get_q()) {
+ZqCenterPolynomial::ZqCenterPolynomial(const ZqPolynomial& P): N(P.get_N()),
+_Zq_(P.get_q()) {
     int _q_ = _Zq_.get_q();
     int q_div_2 = _q_ >> 1;                                                     // Dividing by two. Possible optimization through a case by case function
     this->coefficients = new int[this->N];
-    for(int i = 0, nq = ~(_q_-1); i < this->N; i++) {                         // Centering coefficients
+    for(int i = 0, nq = ~(_q_-1); i < this->N; i++) {                           // Centering coefficients
         if((int)P[i] > q_div_2) this->coefficients[i] = (int)P[i] | nq;         // Equivalent to P[i] - _q_
         else this->coefficients[i] = (int)P[i];
     }
 }
 
-ZqCenterPolynomial::ZqCenterPolynomial(const Message& msg, NTRU_q _q_):
-N(msg.get_len()), _Zq_(_q_) {
+ZqCenterPolynomial::ZqCenterPolynomial(const ZpCenterPolynomial& P, NTRU_q _q_):
+N(P.get_N()), _Zq_(_q_) {
     this->coefficients = new int[this->N];
-    for(int i = 0; i < this->N; i++) this->coefficients[i] = msg[i];
+    for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
 }
 
 ZqCenterPolynomial::~ZqCenterPolynomial() {
@@ -992,7 +1068,7 @@ const{
     ZqCenterPolynomial r(max_N(this->N, P.N),max_q(this->get_q(),P.get_q()));   // Initializing result in the "biggest polynomial ring"
     int i, small_degree, big_degree;                                            // Degree of the polynomials, small_degree <= big_degree
 
-    if(this->degree() < P.degree()) {
+    if(this->degree() < P.degree()) {                                           // Determining the smallest degree
         small_degree = this->degree();
         big_degree = P.degree();
     }
@@ -1003,13 +1079,13 @@ const{
 
     for(i = 0; i <= small_degree; i++)
         r.coefficients[i] =
-        r._Zq_.addition(this->coefficients[i],P.coefficients[i]);               // Subtraction element by element till the smallest degree of the arguments
+        r._Zq_.addition(this->coefficients[i],P.coefficients[i]);               // Addition element by element till the smallest degree of the arguments
     if(this->degree() == big_degree)
         for(; i <= big_degree; i++)
             r.coefficients[i] = this->coefficients[i];
     else
         for(; i <= big_degree; i++)
-            r.coefficients[i] = this->coefficients[i];
+            r.coefficients[i] = P.coefficients[i];
     return r;
 }
 
@@ -1057,5 +1133,5 @@ void ZqCenterPolynomial::println(const char* name) const{
     this->print(name, "\n");
 }
 
-//______________________________ ZqPolynomial __________________________________
+//____________________________________________________________________ ZqCenterPolynomial  ________________________________________________________________________
 
