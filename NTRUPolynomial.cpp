@@ -869,9 +869,22 @@ const ZpCenterPolynomial::Z3 ZpCenterPolynomial::Z3subs[3][3] = { {_0 ,_1_,_1 },
                                                                   {_1_,_1 ,_0 } };
 
 ZpCenterPolynomial::ZpCenterPolynomial(const ZpCenterPolynomial& P): N(P.N),
-p(P.get_p()){
+p(P.get_p()) {
     this->coefficients = new Z3[P.N];
     for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
+}
+
+ZpCenterPolynomial::ZpCenterPolynomial(const ZpPolynomial& P): N(P.get_N()),
+p(P.get_p()) {
+    this->coefficients = new Z3[this->N];
+    switch(this->p) {
+    case _3_:
+        for(int i = 0; i < this->N; i++) {                                      // Just centering
+            this->coefficients[i] = _0;
+            if(P[i] == 2) this->coefficients[i] = _1_;
+            if(P[i] == 1) this->coefficients[i] = _1 ;
+        }
+    }
 }
 
 ZpCenterPolynomial::ZpCenterPolynomial(NTRU_N _len_, NTRU_p _p_, unsigned ones, unsigned negOnes):
@@ -933,9 +946,9 @@ ZpCenterPolynomial ZpCenterPolynomial::operator * (ZpCenterPolynomial& P) const{
     int P_degree    = P.degree();
 
 	for(i = 0; i <= this_degree; i++) {
-		if(this->coefficients[i] != 0)                                          // Taking advantage this polynomials have a big proportion of zeros
+		if(this->coefficients[i] != _0)                                          // Taking advantage this polynomials have a big proportion of zeros
 		    for(j = 0; j <= P_degree; j++) {
-			    if(P.coefficients[j] != 0) {
+			    if(P.coefficients[j] != _0) {
 			        if((k = i + j) >= r.N) k -= r.N;
 			        r.coefficients[k] += this->coefficients[i]*P.coefficients[j];
 			    }
@@ -988,10 +1001,13 @@ int ZqCenterPolynomial::ZqCentered::mods_q(int a) const{
         r = a & this->q_1;                                                      // Equivalent to a % q since q is a power of 2
     } else {
         r = -a & this->q_1;                                                     // Computing q - (-a % q) with a fast algorithm
+        if(r == 0) return r;                                                    // Possible at least for the multiples of q
         r = this->q - r;                                                        // q - (-a & (q-1)) = q + [~(-a & (q-1)) + 1]
     }                                                                           // Optimization possible with the pre-computing of the negatives in Zq
-    if(r <= q_div_2) return r;
-    else return r | this->negq_1;                                               // This is equivalent to r - this->q
+    if(r < q_div_2) {
+        if(r > -q_div_2) return r;
+        else return r + this->q;                                                // Look for optimizations here
+    } else return r | this->negq_1;                                             // This is equivalent to r - this->q when r < q
 }
 
 ZqCenterPolynomial::ZqCenterPolynomial(const ZqCenterPolynomial& P): N(P.N),
@@ -1015,8 +1031,8 @@ N(P.get_N()), _Zq_(_q_) {
         if(times_p)                                                             // If true, it will do the equivalent to center multiply each coefficient time p
             for(int i = 0; i < this->N; i++) {
                 this->coefficients[i] = 0;
-                if(P[i] ==  1) this->coefficients[i] =  3;
-                if(P[i] == -1) this->coefficients[i] = -3;
+                if(P[i] == 1) this->coefficients[i] =  3;
+                if(P[i] == 2) this->coefficients[i] = -3;
             }
         else
             for(int i = 0; i < this->N; i++) {                                  // Just centering
@@ -1031,8 +1047,8 @@ _Zq_(P.get_q()) {
     int _q_ = _Zq_.get_q();
     int q_div_2 = _q_ >> 1;                                                     // Dividing by two. Possible optimization through a case by case function
     this->coefficients = new int[this->N];
-    for(int i = 0, nq = ~(_q_-1); i < this->N; i++) {                           // Centering coefficients
-        if((int)P[i] > q_div_2) this->coefficients[i] = (int)P[i] | nq;         // Equivalent to P[i] - _q_
+    for(int i = 0, nq = ~(_q_ - 1); i < this->N; i++) {                         // Centering coefficients
+        if((int)P[i] > q_div_2) this->coefficients[i] = (int)P[i] | nq;         // Equivalent to P[i] - _q_ when P[i] < q
         else this->coefficients[i] = (int)P[i];
     }
 }
@@ -1060,6 +1076,18 @@ ZqCenterPolynomial& ZqCenterPolynomial::operator = (const ZqCenterPolynomial& P)
 		for(int i = 0; i < this->N; i++)
 			this->coefficients[i] = P.coefficients[i];
 	}
+	return *this;
+}
+
+ZqCenterPolynomial& ZqCenterPolynomial::operator = (const ZpCenterPolynomial& P) {
+    NTRU_N _N_ = P.get_N();
+	if(this->N != _N_) {												        // Delete pass coefficients array. If this->N != P.N is true, there is no reason
+		if(this->coefficients != NULL) delete[] this->coefficients;		        // to delete the array
+		this->coefficients = new int[_N_];
+		this->N = _N_;
+	}
+	if(this->coefficients == NULL) this->coefficients = new int[_N_];
+	for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
 	return *this;
 }
 
@@ -1102,6 +1130,27 @@ const {
 			    if(P.coefficients[j] != 0) {
 			        if((k = i + j) >= r.N) k -= r.N;
 			        r.coefficients[k]+=this->coefficients[i]*P.coefficients[j];
+			    }
+		    }
+	}
+	for(k = 0; k < r.N; k++)
+	    r.coefficients[k] = r._Zq_.mods_q(r.coefficients[k]);                   // Computing the center modulus (check the function mods_q)
+	return r;
+}
+
+ZqCenterPolynomial ZqCenterPolynomial::operator * (const ZpCenterPolynomial& P) const{
+    ZqCenterPolynomial r(max_N(this->N, P.get_N()),this->get_q());              // Initializing result in the "biggest polynomial ring"
+    int i, j, k;
+    int this_degree = this->degree();
+    int P_degree    = P.degree();
+
+	for(i = 0; i <= this_degree; i++) {
+		if(this->coefficients[i] != 0)                                          // Taking advantage this polynomials have a big proportion of zeros
+		    for(j = 0; j <= P_degree; j++) {
+			    if(P[j] != 0) {                                                 // Inside this if, we'll take advantage of the fact the ZpCenterPolynomial have their
+			        if((k = i + j) >= r.N) k -= r.N;                            // coefficients in {-1, 0, 1}
+			        if(P[j] == -1) r.coefficients[k] -= this->coefficients[i];  // ...
+			        else r.coefficients[k] += this->coefficients[i];            // ...
 			    }
 		    }
 	}

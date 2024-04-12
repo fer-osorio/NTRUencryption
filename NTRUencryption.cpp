@@ -3,26 +3,25 @@
 using namespace NTRUPolynomial;
 using namespace NTRU;
 
-Encryption::Encryption(NTRU_N _N_,NTRU_q _q_,int _d_,NTRU_p _p_):
-N(_N_), q(_q_), p(_p_), d(_d_), privateKey(_N_, _q_), privateKeyInv_p(_N_, _q_),
-publicKey(ZpPolynomial(_N_, _d_, _d_), _q_, true) {
+Encryption::Encryption(NTRU_N _N_,NTRU_q _q_,int _d_,NTRU_p _p_): N(_N_),
+q(_q_), p(_p_), d(_d_), privateKey(_N_, _p_), privateKeyInv_p(_N_, _p_),
+publicKey(ZpPolynomial(_N_,_d_,_d_),_q_,true){
 	this->setKeys();
-	ZqCenterPolynomial f_Fp = this->privateKey*this->privateKeyInv_p;
-	f_Fp.mods_p(_3_);
-	f_Fp.println("f_Fp");
+	(this->privateKey*this->privateKeyInv_p).println("fp*Fp");
 }
 
 ZqCenterPolynomial Encryption::encrypt(const ZpCenterPolynomial& msg) {
     ZqCenterPolynomial _msg_(msg, this->q);
-    ZqCenterPolynomial r(ZpCenterPolynomial(this->N, (unsigned)this->d, (unsigned)this->d), this->q);
-    return this->publicKey * r + _msg_;
+    ZqCenterPolynomial r(ZpCenterPolynomial(this->N, this->p, (unsigned)this->d, (unsigned)this->d), this->q);
+    return this->publicKey*r + _msg_;
 }
 
 ZpCenterPolynomial Encryption::decrypt(const ZqCenterPolynomial& e_msg) {
-    ZqCenterPolynomial a = this->privateKey*e_msg;
-    a = this->privateKeyInv_p * a;
+    ZqCenterPolynomial a = e_msg*this->privateKey;
     a.mods_p(this->p);
-    return ZpCenterPolynomial(a);
+    ZpCenterPolynomial b = ZpCenterPolynomial(a, this->p);
+    b = b*this->privateKeyInv_p;
+    return b;
 }
 
 void Encryption::setKeys() {
@@ -75,8 +74,8 @@ void Encryption::setKeys() {
     	}
 	    counter++;
 	}
-	Z2_gcdXNmns1.println("Z2_gcdXNmns1");
-	(privateKeyZ2*privateKeyInv_2).println("privateKeyZ2*privateKeyInv_2");
+	//Z2_gcdXNmns1.println("Z2_gcdXNmns1");
+	//(privateKeyZ2*privateKeyInv_2).println("privateKeyZ2*privateKeyInv_2");
 	if(counter > 1)
 	    std::cout << "Private key was found after " <<counter<< " attempts.\n";
 	else
@@ -88,10 +87,13 @@ void Encryption::setKeys() {
 	    privateKeyInv_q = privateKeyInv_q*(2 - privateKeyZq*privateKeyInv_q);
         k <<= l; l <<= 1;
 	}
-	//privateKeyInv_q.println("Fq");
-	this->privateKey = ZqCenterPolynomial(_privateKey_, this->q);
-	this->privateKeyInv_p = ZqCenterPolynomial(_privateKeyInv_p_, this->q);
-	this->publicKey = this->publicKey * privateKeyInv_q;
-	(privateKeyZq*privateKeyInv_q).println("privateKeyZq*privateKeyInv_q");
+	publicKey.println("pg");
+	this->privateKey = _privateKey_;
+	this->privateKeyInv_p = _privateKeyInv_p_;
+	this->publicKey = this->publicKey * privateKeyInv_q;                        // Maybe something funny is going on here
+	ZqCenterPolynomial Fq(privateKeyInv_q);
+	ZqCenterPolynomial fq(privateKeyZq);
+	(fq*Fq).println("fq*Fq");
+	(publicKey*fq).println("h*fq");
 }
 

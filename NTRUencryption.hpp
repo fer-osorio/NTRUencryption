@@ -1,6 +1,8 @@
 #include<iostream>
 #include"NTRUPolynomial.hpp"
 
+using namespace NTRUPolynomial;
+
 namespace NTRU{
 class Encryption {
 	public:																		// Attributes
@@ -9,15 +11,17 @@ class Encryption {
 	const NTRU_p p;
 	private: int d;
 
-	NTRUPolynomial::ZqCenterPolynomial privateKey;
-	NTRUPolynomial::ZqCenterPolynomial privateKeyInv_p;							// Private key inverse modulo p
-	NTRUPolynomial::ZqCenterPolynomial publicKey;
+	ZpCenterPolynomial privateKey;
+	ZpCenterPolynomial privateKeyInv_p;											// Private key inverse modulo p
+	ZqCenterPolynomial publicKey;
 
-	public:Encryption(NTRU_N _N_, NTRU_q _q_, int _d_=0,NTRU_p _p_=_3_);
-	NTRUPolynomial::ZqCenterPolynomial encrypt(const NTRUPolynomial::ZpCenterPolynomial&);
-	NTRUPolynomial::ZpCenterPolynomial decrypt(const NTRUPolynomial::ZqCenterPolynomial&);
+	public:
+	Encryption(NTRU_N _N_, NTRU_q _q_, int _d_=0,NTRU_p _p_=_3_);
+	ZqCenterPolynomial encrypt(const ZpCenterPolynomial&);
+	ZpCenterPolynomial decrypt(const ZqCenterPolynomial&);
 
-	NTRU_N get_N() { return this->N; }
+	NTRU_N get_N() const{ return this->N; }
+	NTRU_p get_p() const{ return this->p; }
 
 	private: void setKeys();													// Creation of the keys
 };
