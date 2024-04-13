@@ -128,12 +128,24 @@ class RandInt {                                                                 
     std::uniform_int_distribution<> dist;
 };
 
-// |||||||||||||||||||||||||| ZpPolynomial ||||||||||||||||||||||||||||||||
+// |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZpPolynomial |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 ZpPolynomial::ZpPolynomial(const ZpPolynomial& P):N(P.N),p(P.p){
 	this->coefficients = new int[P.N];
 	for(int i=0; i<P.N; i++)
 		this->coefficients[i] = P.coefficients[i];
+}
+
+ZpPolynomial::ZpPolynomial(const ZpCenterPolynomial& P) {
+    this->coefficients = new int[this->N];
+    switch(this->p) {
+    case _3_:
+        for(int i = 0; i < this->N; i++) {
+            this->coefficients[i] = 0;
+            if(P[i] == -1) this->coefficients[i] = 2;
+            if(P[i] ==  1) this->coefficients[i] = 1;
+        }
+    }
 }
 
 ZpPolynomial::ZpPolynomial(NTRU_N _N_,int ones,int twos,NTRU_p _p_):
@@ -454,9 +466,9 @@ void ZpPolynomial::test(NTRU_N _N_, int d) const{
 	<< "\n\n";
 }
 
-//___________________________ ZpPolynomial ________________________________
+//_______________________________________________________________________ ZpPolynomial ___________________________________________________________________________
 
-//|||||||||||||||||||| ZqPolynomial::Z2Polynomial |||||||||||||||||||||||||
+//|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZqPolynomial::Z2Polynomial ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 ZqPolynomial::Z2Polynomial::Z2Polynomial(const Z2Polynomial& P): N(P.N) {
     this->coefficients = new Z2[P.N];
@@ -489,8 +501,7 @@ ZqPolynomial::Z2Polynomial::Z2Polynomial(NTRU_N _N_, int ones): N(_N_) {
 	}
 }
 
-ZqPolynomial::Z2Polynomial& ZqPolynomial::Z2Polynomial::operator =
-(const Z2Polynomial& P)  {
+ZqPolynomial::Z2Polynomial& ZqPolynomial::Z2Polynomial::operator = (const Z2Polynomial& P)  {
 	if(this != &P) {													        // Guarding against self assignment
 		if(this->N != P.N) {											        // Delete pass coefficients array. If this->N != P.N is true, there is no reason
 			if(this->coefficients != NULL) delete[] this->coefficients;	        // to delete the array
@@ -503,8 +514,7 @@ ZqPolynomial::Z2Polynomial& ZqPolynomial::Z2Polynomial::operator =
 	return *this;
 }
 
-ZqPolynomial::Z2Polynomial& ZqPolynomial::Z2Polynomial::operator =
-(const ZpPolynomial& P) {
+ZqPolynomial::Z2Polynomial& ZqPolynomial::Z2Polynomial::operator = (const ZpPolynomial& P) {
     NTRU_N P_N = P.get_N();
 	if(this->N != P_N) {											            // Delete past coefficients array. If this->N != P.N is true, there is no reason
 		if(this->coefficients != NULL) delete[] this->coefficients;	            // to delete the array
@@ -519,16 +529,14 @@ ZqPolynomial::Z2Polynomial& ZqPolynomial::Z2Polynomial::operator =
 	return *this;
 }
 
-ZqPolynomial::Z2Polynomial& ZqPolynomial::Z2Polynomial::operator =
-(Z2 t)  {
+ZqPolynomial::Z2Polynomial& ZqPolynomial::Z2Polynomial::operator = (Z2 t)  {
 	if(this->coefficients==NULL) this->coefficients = new Z2[this->N];          // In case of have been generated from the (private) default constructor
 	this->coefficients[0] = t;
 	for(int i = 1; i < this->N; i++) this->coefficients[i] = _0_;
 	return *this;
 }
 
-ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::operator +
-(const Z2Polynomial& P) const {
+ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::operator + (const Z2Polynomial& P) const {
     Z2Polynomial r(max_N(this->N, P.N));                                        // Initializing result in the "biggest polynomial ring"
     const Z2Polynomial* big;                                                    // Pointer to the 'biggest' polynomial
     int i, small_degree, big_degree;                                            // Degree of the polynomials, small_degree <= big_degree
@@ -550,13 +558,11 @@ ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::operator +
     return r;
 }
 
-ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::operator -
-(const Z2Polynomial& P) const {
+ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::operator - (const Z2Polynomial& P) const{
     return *this + P;                                                           // In this polynomial ring, subtraction coincide with addition
 }
 
-ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::operator *
-(const Z2Polynomial& P) const{                                                  // Classical polynomial multiplication algorithm
+ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::operator * (const Z2Polynomial& P) const{ // Classical polynomial multiplication algorithm
     Z2Polynomial r(max_N(this->N, P.N));
     int i, j, k;
     int this_degree = this->degree();
@@ -578,8 +584,7 @@ ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::operator *
 	return r;
 }
 
-void ZqPolynomial::Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial
-result[2]) const{
+void ZqPolynomial::Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial result[2]) const{
     if(P == _0_) {
         throw "\nvoid ZpPolynomial::ZpPolynomial::division(const Zp"
         "Polynomial& P,ZpPolynomial result[2]) const. Division by zero...\n";
@@ -625,8 +630,7 @@ result[2]) const{
     }
 }
 
-ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::gcdXNmns1(
-Z2Polynomial& thisBezout) const{
+ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::gcdXNmns1(Z2Polynomial& thisBezout) const{
     Z2Polynomial gcd;                                                           // Initializing result in the "biggest polynomial ring
     Z2Polynomial remainders;
     Z2Polynomial tmp[2];
@@ -727,9 +731,9 @@ void ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) const{
 	<< "\n\n";
 }
 
-//_____________________NTRU_ZqPolynomial::Z2Polynomial__________________________
+//______________________________________________________________NTRU_ZqPolynomial::Z2Polynomial___________________________________________________________________
 
-// |||||||||||||||||||||||||| ZqPolynomial ||||||||||||||||||||||||||||||||
+// |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZqPolynomial |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 ZqPolynomial::ZqPolynomial(NTRU_N _N_, NTRU_q _q_):N(_N_),_Zq_(_q_) {
     this->coefficients = new int[_N_];
@@ -781,8 +785,7 @@ ZqPolynomial& ZqPolynomial::operator = (const ZpPolynomial& P) {
 	return *this;
 }
 
-ZqPolynomial ZqPolynomial::operator - (const ZqPolynomial& P)
-const{
+ZqPolynomial ZqPolynomial::operator - (const ZqPolynomial& P) const{
     ZqPolynomial r(max_N(this->N, P.N),
                         max_q(this->_Zq_.get_q(),P._Zq_.get_q()) );             // Initializing result in the "biggest polynomial ring"
     int i, small_degree, big_degree;                                            // Degree of the polynomials, small_degree <= big_degree
@@ -808,8 +811,7 @@ const{
     return r;
 }
 
-ZqPolynomial ZqPolynomial::operator * (const ZqPolynomial& P)
-const{
+ZqPolynomial ZqPolynomial::operator * (const ZqPolynomial& P) const{
     ZqPolynomial r(max_N(this->N, P.N),
                         max_q(this->_Zq_.get_q(),P._Zq_.get_q()));              // Initializing result in the "biggest polynomial ring"
     int i, j, k;
@@ -957,15 +959,39 @@ ZpCenterPolynomial ZpCenterPolynomial::operator * (ZpCenterPolynomial& P) const{
 	return r;
 }
 
-bool ZpCenterPolynomial::operator == (const ZpCenterPolynomial& P) {
+bool ZpCenterPolynomial::operator == (const ZpCenterPolynomial& P) const{
     if(this->N == P.N && this->get_p() == P.get_p()) {
         if(this->coefficients != NULL && P.coefficients != NULL) {
             for(int i = 0; i < this->N; i++)
                 if(this->coefficients[i] != P.coefficients[i]) return false;
             return true;
-        } else return this->coefficients == P.coefficients;                             // This could happen with self comparison or when both pointers are NULL
+        } else return this->coefficients == P.coefficients;                     // This could happen with self comparison or when both pointers are NULL
     }
     return false;
+}
+
+bool ZpCenterPolynomial::operator == (const ZpPolynomial& P) const{
+    if(this->N == P.get_N() && this->get_p() == P.get_p()) {
+        for(int i = 0; i < this->N; i++) {
+            if(this->coefficients[i] == _1_) {if(P[i] != 2) return false;}
+            else if(this->coefficients[i] != P[i]) return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+void ZpCenterPolynomial::printTheDifferences(const ZpPolynomial& P, const char* leftName, const char* righName) const{
+    std::cout << '\n';
+    if(this->N != P.get_N()) std::cout << leftName << ".N == " << this->N << ", " << righName << ".N == " << P.get_N() << '\n';
+    if(this->get_p() != P.get_p()) std::cout << leftName << ".p == " << this->p << ", " << righName << ".p == " << P.get_p() << '\n';
+    for(int i = 0; i < this->N; i++) {
+        if(this->coefficients[i] == _1_) {
+            if(P[i] != 2) std::cout << leftName << "[" << i << "] == " << this->coefficients[i] << ", " << righName << "[" << i << "] == " << P[i] << '\n';
+        }
+        else if(this->coefficients[i] != P[i]) std::cout << leftName << "[" << i << "] == " << this->coefficients[i] << ", " << righName << "[" << i << "] == " <<
+                                               P[i] << '\n';
+    }
 }
 
 int ZpCenterPolynomial::degree() const{
@@ -975,10 +1001,10 @@ int ZpCenterPolynomial::degree() const{
 }
 
 void ZpCenterPolynomial::print(const char* name, const char* tail) const{
-    int arrlen = this->degree() + 1;                                  // This three lines is a "casting" from Z2 array to int array
+    int arrlen = this->degree() + 1;                                            // This three lines is a "casting" from Z2 array to int array
     int* array = new int[arrlen], i;                                            // ...
     for(i = 0; i < arrlen; i++)
-        array[i] = this->coefficients[i];                                            // ...
+        array[i] = this->coefficients[i];                                       // ...
     printArray(array, (unsigned)arrlen, 3, name, tail);
     delete[] array;
 }
@@ -1063,8 +1089,7 @@ ZqCenterPolynomial::~ZqCenterPolynomial() {
     if(this->coefficients != NULL) delete[] this->coefficients;
 }
 
-ZqCenterPolynomial& ZqCenterPolynomial::operator = (const ZqCenterPolynomial& P)
-{
+ZqCenterPolynomial& ZqCenterPolynomial::operator = (const ZqCenterPolynomial& P) {
     if(this != &P) {														    // Guarding against self assignment
 		if(this->N != P.N) {												    // Delete pass coefficients array. If this->N != P.N is true, there is no reason
 			if(this->coefficients != NULL) delete[] this->coefficients;		    // to delete the array
@@ -1091,8 +1116,7 @@ ZqCenterPolynomial& ZqCenterPolynomial::operator = (const ZpCenterPolynomial& P)
 	return *this;
 }
 
-ZqCenterPolynomial ZqCenterPolynomial::operator + (const ZqCenterPolynomial& P)
-const{
+ZqCenterPolynomial ZqCenterPolynomial::operator + (const ZqCenterPolynomial& P) const{
     ZqCenterPolynomial r(max_N(this->N, P.N),max_q(this->get_q(),P.get_q()));   // Initializing result in the "biggest polynomial ring"
     int i, small_degree, big_degree;                                            // Degree of the polynomials, small_degree <= big_degree
 
@@ -1117,8 +1141,7 @@ const{
     return r;
 }
 
-ZqCenterPolynomial ZqCenterPolynomial::operator * (const ZqCenterPolynomial& P)
-const {
+ZqCenterPolynomial ZqCenterPolynomial::operator * (const ZqCenterPolynomial& P) const {
     ZqCenterPolynomial r(max_N(this->N, P.N),max_q(this->get_q(),P.get_q()));   // Initializing result in the "biggest polynomial ring"
     int i, j, k;
     int this_degree = this->degree();
@@ -1129,7 +1152,7 @@ const {
 		    for(j = 0; j <= P_degree; j++) {
 			    if(P.coefficients[j] != 0) {
 			        if((k = i + j) >= r.N) k -= r.N;
-			        r.coefficients[k]+=this->coefficients[i]*P.coefficients[j];
+			        r.coefficients[k] += this->coefficients[i]*P.coefficients[j];
 			    }
 		    }
 	}
@@ -1159,6 +1182,17 @@ ZqCenterPolynomial ZqCenterPolynomial::operator * (const ZpCenterPolynomial& P) 
 	return r;
 }
 
+bool ZqCenterPolynomial::operator == (const ZqCenterPolynomial& P) const{
+    if(this->N == P.N && this->get_q() == P.get_q()) {
+        if(this->coefficients != NULL && P.coefficients != NULL) {
+            for(int i = 0; i < this->N; i++)
+                if(this->coefficients[i] != P.coefficients[i]) return false;
+            return true;
+        } else return this->coefficients == P.coefficients;                             // This could happen with self comparison or when both pointers are NULL
+    }
+    return false;
+}
+
 void ZqCenterPolynomial::mods_p(NTRU_p _p_) {
     int i;
     switch(_p_) {
@@ -1172,6 +1206,34 @@ void ZqCenterPolynomial::mods_p(NTRU_p _p_) {
     }
 }
 
+ZqCenterPolynomial ZqCenterPolynomial::randomTernary(unsigned d, NTRU_N _N_, NTRU_q _q_, bool times_p, NTRU_p _p_) {
+    ZqCenterPolynomial r(_N_, _q_);
+    RandInt ri(0,_N_- 1, _seed_++);
+    int i;
+    unsigned _d_ = d;
+    while(d << 1 >= _N_) d >>= 1;                                               // Dividing by two till getting the inequality 2*d < N
+    while(_d_ > 0) {
+        i = ri();                                                               // Filling with ones
+        if(r.coefficients[i] == 0) {r.coefficients[i] =  1; _d_--;}              // ...
+    }
+    _d_ = d;
+    while(_d_ > 0) {
+        i = ri();                                                               // Filling with negative ones
+        if(r.coefficients[i] == 0) {r.coefficients[i] = -1; _d_--;}             // ...
+    }
+    if(times_p) {
+        switch(_p_) {
+            case _3_:
+            for(i = 0; i < _N_; i++) {
+                if(r.coefficients[i] ==  1) r.coefficients[i] =  3;
+                if(r.coefficients[i] == -1) r.coefficients[i] = -3;
+            }
+            break;
+        }
+    }
+    return r;
+}
+
 void ZqCenterPolynomial::print(const char* name,const char* tail) const{
     unsigned len_q = len(this->_Zq_.get_q());
     int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
@@ -1180,6 +1242,15 @@ void ZqCenterPolynomial::print(const char* name,const char* tail) const{
 
 void ZqCenterPolynomial::println(const char* name) const{
     this->print(name, "\n");
+}
+
+bool NTRUPolynomial::operator == (const ZqCenterPolynomial& Pq, const ZpCenterPolynomial Pp) {
+    if(Pq.get_N() == Pp.get_N()) {
+        NTRU_N N = Pq.get_N();
+        for(int i = 0; i < N; i++) if(Pq[i] != Pp[i]) return false;
+        return true;
+    }
+    return false;
 }
 
 //____________________________________________________________________ ZqCenterPolynomial  ________________________________________________________________________

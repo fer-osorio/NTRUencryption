@@ -3,16 +3,24 @@
 using namespace NTRUPolynomial;
 using namespace NTRU;
 
-Encryption::Encryption(NTRU_N _N_,NTRU_q _q_,int _d_,NTRU_p _p_): N(_N_),
+ZpCenterPolynomial g(_821_, _3_);
+ZqCenterPolynomial Fq(_821_, _8192_);
+
+Encryption::Encryption(NTRU_N _N_,NTRU_q _q_,int _d_,NTRU_p _p_):N(_N_),
 q(_q_), p(_p_), d(_d_), privateKey(_N_, _p_), privateKeyInv_p(_N_, _p_),
-publicKey(ZpPolynomial(_N_,_d_,_d_),_q_,true){
+publicKey(ZqCenterPolynomial::randomTernary((unsigned)_d_, _N_, _q_)) {
 	this->setKeys();
 	(this->privateKey*this->privateKeyInv_p).println("fp*Fp");
 }
 
 ZqCenterPolynomial Encryption::encrypt(const ZpCenterPolynomial& msg) {
     ZqCenterPolynomial _msg_(msg, this->q);
-    ZqCenterPolynomial r(ZpCenterPolynomial(this->N, this->p, (unsigned)this->d, (unsigned)this->d), this->q);
+    if(_msg_ == msg) std::cout << "\nEncryption::encrypt. Correct lifting to ZqCenterPolynomial\n";
+    else std::cout << "\nEncryption::encrypt. Incorrect lifting to ZqCenterPolynomial\n";
+    ZqCenterPolynomial r = ZqCenterPolynomial::randomTernary((unsigned)this->d, this->N, this->q/*, true*/); // Ternary polynomial multiplied by p (default p = 3)
+    ZqCenterPolynomial s = r*g;
+    if(s == this->publicKey*r*this->privateKey) std::cout << "\nEncryption::encrypt. (Fq*g)*r*f == r*g\n";
+    else std::cout << "\nEncryption::encrypt.  (Fq*g)*r*f != r*g\n";
     return this->publicKey*r + _msg_;
 }
 
@@ -20,6 +28,8 @@ ZpCenterPolynomial Encryption::decrypt(const ZqCenterPolynomial& e_msg) {
     ZqCenterPolynomial a = e_msg*this->privateKey;
     a.mods_p(this->p);
     ZpCenterPolynomial b = ZpCenterPolynomial(a, this->p);
+    if(a == b) std::cout << "\nEncryption::decrypt. Correct lowering to ZpCenterPolynomial\n";
+    else std::cout << "\nEncryption::decrypt. Incorrect lowering to ZpCenterPolynomial\n";
     b = b*this->privateKeyInv_p;
     return b;
 }
@@ -87,13 +97,28 @@ void Encryption::setKeys() {
 	    privateKeyInv_q = privateKeyInv_q*(2 - privateKeyZq*privateKeyInv_q);
         k <<= l; l <<= 1;
 	}
-	publicKey.println("pg");
 	this->privateKey = _privateKey_;
+	if(this->privateKey == _privateKey_) std::cout << "\nCorrect cast from ZpPolynomial to ZpCenteredPolynomial; privateKey == _privateKey_\n";
+	else {
+	    std::cout << "\nInorrect cast from ZpPolynomial to ZpCenteredPolynomial; privateKey = _privateKey_\n";
+	    this->privateKey.printTheDifferences(_privateKey_,"this->privateKey", "_privateKey_");
+	}
+
 	this->privateKeyInv_p = _privateKeyInv_p_;
-	this->publicKey = this->publicKey * privateKeyInv_q;                        // Maybe something funny is going on here
-	ZqCenterPolynomial Fq(privateKeyInv_q);
-	ZqCenterPolynomial fq(privateKeyZq);
+	ZqCenterPolynomial g = this->publicKey;
+	Fq = privateKeyInv_q;
+
+	//this->publicKey = g*privateKeyInv_q;                          // Maybe something funny is going on here
+	this->publicKey = g*Fq;
+
+	ZqCenterPolynomial fq(this->privateKey, this->q);
 	(fq*Fq).println("fq*Fq");
-	(publicKey*fq).println("h*fq");
+
+	if(this->publicKey*this->privateKey == g) std::cout << "\nNo problem with g*Fq\n";
+	else std::cout << "\nSomething is going on with g*Fq\n";
+
+	//(this->publicKey*this->privateKey).println("h*fp");
+	fq.println("fq");
+	//(this->publicKey*fq).println("h*fp");
 }
 

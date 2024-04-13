@@ -10,6 +10,11 @@ enum NTRU_q {_2048_ = 2048, _4096_ = 4096, _8192_ = 8192 };						// All the poss
 enum NTRU_p {_3_	= 3 };
 
 namespace NTRUPolynomial {
+
+struct ZqPolynomial;
+struct ZpCenterPolynomial;
+struct ZqCenterPolynomial;
+
 struct ZpPolynomial {															// Representation of the polynomials in Zp[x]/(x^N-1)
 	private:
 	NTRU_N N;
@@ -27,6 +32,7 @@ struct ZpPolynomial {															// Representation of the polynomials in Zp[x
 
 	public:
 	ZpPolynomial(const ZpPolynomial& P);
+	ZpPolynomial(const ZpCenterPolynomial& P);
 	ZpPolynomial(NTRU_N _N_, int ones=0, int twos=0, NTRU_p _p_=_3_);			// Ones and twos will dictate the amount of 1 and 2 respectively
 	~ZpPolynomial() {
 		if(this->coefficients != NULL) delete [] this->coefficients;
@@ -76,8 +82,7 @@ struct ZpPolynomial {															// Representation of the polynomials in Zp[x
 	void test(NTRU_N _N_, int d) const;
 };
 
-struct ZqPolynomial;															// This two lines are necessary for the declaration of friend function
-ZqPolynomial operator - (int, const ZqPolynomial&);
+ZqPolynomial operator - (int, const ZqPolynomial&);								// The intention is to make this function a friend of ZqPolynomial
 
 struct ZqPolynomial {															// Representation of the polynomials in Zq[x]/(x^N-1)
 	private: NTRU_N N;
@@ -226,8 +231,6 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	void println(const char* name = "") const;
 };
 
-struct ZqCenterPolynomial;														// ZpCenterPolynomial class will use it, that's why we declare it here
-
 class ZpCenterPolynomial {
 	enum Z3{_1_ = -1, _0 = 0, _1 = 1};											// ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
 	static const Z3 Z3add [3][3];												// Centered addition in Z3
@@ -285,7 +288,9 @@ class ZpCenterPolynomial {
 		if(i > this->N) i %= this->N;
 		return this->coefficients[i];
 	}
-	bool operator == (const ZpCenterPolynomial&);
+	bool operator == (const ZpCenterPolynomial&) const;
+	bool operator == (const ZpPolynomial&) const;
+	void printTheDifferences(const ZpPolynomial&, const char* leftName, const char* righName) const;
 
 	ZpCenterPolynomial operator * (ZpCenterPolynomial&) const;
 	NTRU_N get_N() const{ return this->N; }
@@ -332,6 +337,8 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 	ZqCenterPolynomial operator * (const ZqCenterPolynomial& P) const;
 	ZqCenterPolynomial operator * (const ZpCenterPolynomial& P) const;			// This function sees the ZpCenterPolynomial as a ZqCenterPolynomial
 
+	bool operator == (const ZqCenterPolynomial& P) const;
+
 	inline int degree() const{													// Returns degree of polynomial
 		int deg = this->N;
 		while(this->coefficients[--deg] == 0 && deg > 0) {}
@@ -346,10 +353,14 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 	inline NTRU_q get_q() const { return this->_Zq_.get_q(); }
 
 	void mods_p(NTRU_p _p_);
+	static ZqCenterPolynomial randomTernary(unsigned d, NTRU_N, NTRU_q, bool=false, NTRU_p=_3_);	// Returns polynomial with d amount of 1 and d amounts of -1.
+																				// If the bool is true then the return value is "multiplied" by _p_.
 
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
 };
+
+bool operator == (const ZqCenterPolynomial&, const ZpCenterPolynomial);			// Polynomial comparison as if their coefficients were in Z rather than in Zp or Zq
 
 }
 #endif

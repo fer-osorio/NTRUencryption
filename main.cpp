@@ -38,13 +38,13 @@ int main(int argc, char* argv[])
     << "[µs]\n" << std::endl;
 
     NTRUPolynomial::ZpCenterPolynomial msg(e.get_N(), e.get_p(), 1, 1);
-    msg.println("Original message");
+    //msg.println("Original message");
     std::cout << '\n';
     NTRUPolynomial::ZqCenterPolynomial e_msg = e.encrypt(msg);
-    e_msg.println("Encrypted message");
+    //e_msg.println("Encrypted message");
     std::cout << '\n';
     NTRUPolynomial::ZpCenterPolynomial d_msg = e.decrypt(e_msg);
-    d_msg.println("decrypted message");
+    //d_msg.println("decrypted message");
     if(msg == d_msg) std::cout << "\nSuccessful decryption\n";
     else std::cout << "\nUnsuccessful decryption\n";
 
