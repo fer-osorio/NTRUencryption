@@ -86,6 +86,9 @@ void Encryption::setKeys() {
 	    if((counter & 31) == 0) std::cout << counter << std::endl;
 	}
 	Z2_gcdXNmns1.println("Z2_gcdXNmns1");
+	_privateKey_.println("privateKeyZp");
+	privateKeyZ2.println("privateKeyZ2");
+	privateKeyInv_2.println("privateKeyInv_2");
 	(privateKeyZ2*privateKeyInv_2).println("privateKeyZ2*privateKeyInv_2");
 	if(counter > 1)
 	    std::cout << "Private key was found after " <<counter<< " attempts.\n";
@@ -94,8 +97,15 @@ void Encryption::setKeys() {
 
     privateKeyZq = _privateKey_;
 	privateKeyInv_q = ZqPolynomial(privateKeyInv_2, this->q);                   // Something funny is going on here
-	privateKeyInv_2.println("privateKeyInv_2");
-	privateKeyInv_q.println("privateKeyInv_q");
+
+	if(privateKeyInv_q == privateKeyInv_2)
+	    std::cout << "Correct cast from Z2Polynomial to ZqPolynomial. privateKeyInv_q == privateKeyInv_2" << std::endl;
+	else
+	    std::cout << "Incorrect cast from Z2Polynomial to ZqPolynomial. privateKeyInv_q != privateKeyInv_2" << std::endl;
+
+	//privateKeyInv_2.println("privateKeyInv_2");
+	//privateKeyInv_q.println("privateKeyInv_q");
+
 	while(k < this->q) {
 	    privateKeyInv_q = privateKeyInv_q*(2 - privateKeyZq*privateKeyInv_q);
         k <<= l; l <<= 1;

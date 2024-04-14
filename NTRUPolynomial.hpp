@@ -28,8 +28,6 @@ struct ZpPolynomial {															// Representation of the polynomials in Zp[x
 	static const int Z3subtraction[3][3];										// Subtraction table of the Z3 ring (integers modulo 3)
 	static const int Z3product[3][3];											// Product table of the Z3 ring (integers modulo 3)
 
-	private: ZpPolynomial(): N(_509_) {}										// Initializing N, coefficients is left as NULL
-
 	public:
 	ZpPolynomial(const ZpPolynomial& P);
 	ZpPolynomial(const ZpCenterPolynomial& P);
@@ -85,8 +83,6 @@ struct ZpPolynomial {															// Representation of the polynomials in Zp[x
 ZqPolynomial operator - (int, const ZqPolynomial&);								// The intention is to make this function a friend of ZqPolynomial
 
 struct ZqPolynomial {															// Representation of the polynomials in Zq[x]/(x^N-1)
-	private: NTRU_N N;
-
 	class Zq{																	// Representation of the group of integers modulus q: Zq
 		NTRU_q q;
 		int  q_1;
@@ -120,12 +116,8 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 			return this->q - a;
 		}
 	};
-	Zq _Zq_;
-	int* coefficients = NULL;
 
 	public: struct Z2Polynomial {												// Representation of the polynomials in Z2[x]/(x^N-1)
-		private: NTRU_N N;
-
 		enum Z2 {_0_ = 0, _1_ = 1};												// Integers modulo 2 (binary numbers)
 		inline friend Z2 operator + (Z2 a,Z2 b) {								// Addition modulus 2
 			if(a!=b) return _1_;
@@ -147,9 +139,10 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 			if(a != b) a = _1_;
 			else a = _0_;
 		}
+
+		private: NTRU_N N;
 		Z2* coefficients = NULL;
 
-		private: Z2Polynomial(): N(_509_) {}
 		private: Z2Polynomial(NTRU_N _N_): N(_N_) {
 			this->coefficients = new Z2[_N_];
 			for(int i = 0; i < _N_; i++) this->coefficients[i] = _0_;
@@ -196,7 +189,9 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 		void test(NTRU_N _N_, int d) const;
 	};
 
-	private:ZqPolynomial(): N(_509_), _Zq_(_2048_) {}
+	private: NTRU_N N;
+	int* coefficients = NULL;
+	Zq _Zq_;
 
 	public:
 	ZqPolynomial(NTRU_N, NTRU_q);
@@ -219,8 +214,9 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 
 	ZqPolynomial operator - (const ZqPolynomial& P) const;
 	ZqPolynomial operator * (const ZqPolynomial& P) const;
-
 	friend ZqPolynomial operator - (int, const ZqPolynomial&);
+
+	bool operator == (const Z2Polynomial& P) const;
 
 	inline int degree() const{													// Returns degree of polynomial
 		int deg = this->N;

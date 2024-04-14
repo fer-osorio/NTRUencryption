@@ -14,8 +14,7 @@ const int ZpPolynomial::Z3subtraction[3][3] = {{0, 2, 1},                       
 
 const int ZpPolynomial::Z3product[3][3] = {{0, 0, 0},                           // Product table of the Z3 ring (integers modulo 3)
                                            {0, 1, 2},                           // ...
-                                           {0, 2, 1}};                          // ...
-static unsigned _seed_ = (unsigned)time(NULL);
+                                           {0, 2, 1}};                          // ..
 
 inline static int min(int a, int b) {
 	if(a < b) return a;
@@ -120,19 +119,21 @@ char* name = "", const char* tail = "") {
 }
 
 class RandInt {                                                                 // Little class for random integers. Taken from The C++ Programming Language 4th
+    static unsigned _seed_;
     public:                                                                     // Edition Bjarne Stroustrup
-    RandInt(int low, int high, unsigned seed): re{seed}, dist{low,high} {}
+    RandInt(int low, int high): re(this->_seed_), dist(low,high) {}
     int operator()() { return dist(re); }                                       // Draw an int
+    ~RandInt() { this->_seed_++; }
     private:
     std::default_random_engine re;
     std::uniform_int_distribution<> dist;
 };
-
+unsigned RandInt::_seed_ = (unsigned)time(NULL);
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZpPolynomial |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 ZpPolynomial::ZpPolynomial(const ZpPolynomial& P):N(P.N),p(P.p){
 	this->coefficients = new int[P.N];
-	for(int i=0; i<P.N; i++)
+	for(int i=0; i < P.N; i++)
 		this->coefficients[i] = P.coefficients[i];
 }
 
@@ -148,10 +149,9 @@ ZpPolynomial::ZpPolynomial(const ZpCenterPolynomial& P): N(P.get_N()) {
     }
 }
 
-ZpPolynomial::ZpPolynomial(NTRU_N _N_,int ones,int twos,NTRU_p _p_):
-N(_N_), p(_p_) {
+ZpPolynomial::ZpPolynomial(NTRU_N _N_,int ones,int twos,NTRU_p _p_): N(_N_), p(_p_) {
     int i, j;
-    RandInt rn{0, _N_-1, _seed_++};                                             // Random integers from 0 to N-1
+    RandInt rn(0, _N_-1);                                                       // Random integers from 0 to N-1
     if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and twos. In particular the
     if(twos < 0) twos = -twos;                                                  // inequality ones + twos < N must follow
     while(ones + twos >= this->N) {                                             // Dividing by two till getting inside the allowed range
@@ -176,9 +176,8 @@ N(_N_), p(_p_) {
 	}
 }                                                                               // Maybe is some room for optimization using JV theorem
 
-ZpPolynomial ZpPolynomial::operator + (const ZpPolynomial& P)
-const{
-    ZpPolynomial r(max_N(this->N, P.N));                                      // Initializing result in the "biggest polynomial ring"
+ZpPolynomial ZpPolynomial::operator + (const ZpPolynomial& P) const{
+    ZpPolynomial r(max_N(this->N, P.N));                                        // Initializing result in the "biggest polynomial ring"
     const ZpPolynomial *small, *big;
     int i;
 
@@ -192,8 +191,7 @@ const{
     return r;
 }
 
-ZpPolynomial ZpPolynomial::operator - (const ZpPolynomial& P)
-const{
+ZpPolynomial ZpPolynomial::operator - (const ZpPolynomial& P) const{
     const NTRU_N _n_ = min_N(this->N, P.N), _N_ = max_N(this->N, P.N);
     ZpPolynomial r(_N_);                                                        // Initializing result in the "biggest polynomial ring"
     int i;
@@ -216,8 +214,7 @@ ZpPolynomial ZpPolynomial::operator - () const{
 	return r;
 }
 
-ZpPolynomial ZpPolynomial::operator * (const ZpPolynomial& P)
-const{
+ZpPolynomial ZpPolynomial::operator * (const ZpPolynomial& P) const{
     ZpPolynomial r(max_N(this->N, P.N));                                        // Initializing with zeros
     int i, j, k;
     int this_degree = this->degree();
@@ -249,8 +246,7 @@ ZpPolynomial& ZpPolynomial::operator-=(const ZpPolynomial& P) {
     return *this;
 }
 
-void ZpPolynomial::division(const ZpPolynomial& P, ZpPolynomial
-result[2]) const{
+void ZpPolynomial::division(const ZpPolynomial& P, ZpPolynomial result[2]) const{
     if(P == 0) {
         throw "\nvoid ZpPolynomial::ZpPolynomial::division(const Zp"
         "Polynomial& P,ZpPolynomial result[2]) const. Division by zero...\n";
@@ -299,13 +295,12 @@ result[2]) const{
 
 ZpPolynomial ZpPolynomial::gcdXNmns1(ZpPolynomial& thisBezout)
 const{                                                                          // EEA will mean Extended Euclidean Algorithm
-    ZpPolynomial gcd;                                                           // Initializing result in the "biggest polynomial ring
-    ZpPolynomial remainders;
-    ZpPolynomial tmp[2];
+    ZpPolynomial gcd(this->N);                                                  // Initializing result in the "biggest polynomial ring
+    ZpPolynomial remainders(this->N);
+    ZpPolynomial tmp[2] = {ZpPolynomial(this->N),ZpPolynomial(this->N)};
     int deg = this->degree(), i, j, k, l;                                       // Degree of this and some variables for counting
     int leadCoeff = this->coefficients[deg];                                    // Lead coefficient of this polynomial
-    ZpPolynomial quoRem[2] = { ZpPolynomial(this->N),
-                                    ZpPolynomial(this->N) };
+    ZpPolynomial quoRem[2] = {ZpPolynomial(this->N),ZpPolynomial(this->N)};
 
     quoRem[0].coefficients[this->N-deg] = leadCoeff;                            // Start of division algorithm between virtual polynomial x^N-1 and this
     for(i = deg-1, j = this->N - 1; i >= 0; i--, j--) {                         // First coefficient of quotient and first subtraction
@@ -400,7 +395,7 @@ ZpPolynomial& ZpPolynomial::operator = (int t) {
 
 void ZpPolynomial::setPermutation() {                                           // Setting a permutation
     int i, j, k, *tmp = new int[this->N];
-    RandInt rn{0, 0x7FFFFFFF, _seed_++};                                        // Random integers from 0 to the maximum number for and int
+    RandInt rn(0, 0x7FFFFFFF);                                                  // Random integers from 0 to the maximum number for and int
     if(this->permutation==NULL) this->permutation = new int[this->N];
     for(i = 0; i < this->N; i++)  tmp[i] = i;
     for(i = 0, j = this->N; i < this->N; i++, j--) {
@@ -416,18 +411,16 @@ void ZpPolynomial::permute() {
 	if(this->permutation == NULL) this->setPermutation();
 	if(this->coeffCopy   == NULL) {                                             // If there is no a copy, create the copy
 	    this->coeffCopy = new int[this->N];
-	    for(i = 0; i < this->N; i++)
-	        this->coeffCopy[i]=this->coefficients[i];
+	    for(i = 0; i < this->N; i++) this->coeffCopy[i] = this->coefficients[i];
 	}
 	for(i = 0; i < this->N; i++)                                                // Permute coefficients
-		this->coefficients[i] = this->coeffCopy[permutation[i]];
+		this->coefficients[i] = this->coeffCopy[this->permutation[i]];
 	for(i = 0; i < this->N; i++)                                                // Copy coefficients
 		this->coeffCopy[i] = this->coefficients[i];
 }
 
 void ZpPolynomial::print(const char* name, const char* tail) const{
-    printArray(this->coefficients, (unsigned)this->degree() + 1,
-    len(this->p) + 1, name, tail);
+    printArray(this->coefficients, (unsigned)this->degree() + 1, len(this->p) + 1, name, tail);
 }
 
 void ZpPolynomial::println(const char* name) const{
@@ -437,9 +430,9 @@ void ZpPolynomial::println(const char* name) const{
 void ZpPolynomial::test(NTRU_N _N_, int d) const{
     ZpPolynomial Np0(_N_, d, d+1);
 	ZpPolynomial Np1(_N_, d, d);
-	ZpPolynomial quorem[2];
-	ZpPolynomial gcd;
-	ZpPolynomial Bezout;
+	ZpPolynomial quorem[2] = {ZpPolynomial(_N_),ZpPolynomial(_N_)};
+	ZpPolynomial gcd(_N_);
+	ZpPolynomial Bezout(_N_);
 	ZpPolynomial Np2(Np0);
 
 	std::cout << "\n::::"
@@ -475,21 +468,20 @@ ZqPolynomial::Z2Polynomial::Z2Polynomial(const Z2Polynomial& P): N(P.N) {
     for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
 }
 
-ZqPolynomial::Z2Polynomial::Z2Polynomial(const ZpPolynomial& P):
-N(P.get_N()) {
+ZqPolynomial::Z2Polynomial::Z2Polynomial(const ZpPolynomial& P): N(P.get_N()) {
 	this->coefficients = new Z2[this->N];
 	switch(P.get_p()) {
 	    case _3_:
 	    for(int i = 0; i < this->N; i++) {
 		    if(P[i] != 0) this->coefficients[i] = _1_;                          // Two won't go to zero because it's the additive inverse of one in Z3, therefore
 		    else this->coefficients[i] = _0_;                                   // it must go to the additive inverse of one in Z2, which if itself
-		break;
 	    }
+	    break;
 	}
 }
 
 ZqPolynomial::Z2Polynomial::Z2Polynomial(NTRU_N _N_, int ones): N(_N_) {
-	RandInt rn{0, _N_-1, _seed_++};                                             // Random integers from 0 to N-1
+	RandInt rn(0, _N_-1);                                             // Random integers from 0 to N-1
 	int i, j;
     if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and twos. In particular the
     while(ones >= _N_) ones <<= 1;                                              // Dividing by two till getting inside the allowed range
@@ -633,13 +625,12 @@ void ZqPolynomial::Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial re
 }
 
 ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::gcdXNmns1(Z2Polynomial& thisBezout) const{
-    Z2Polynomial gcd;                                                           // Initializing result in the "biggest polynomial ring
-    Z2Polynomial remainders;
-    Z2Polynomial tmp[2];
+    Z2Polynomial gcd(this->N);                                                  // Initializing result in the "biggest polynomial ring
+    Z2Polynomial remainders(this->N);
+    Z2Polynomial tmp[2] = {Z2Polynomial(this->N),Z2Polynomial(this->N)};
     int deg = this->degree(), i, j, k, l;                                       // Degree of this and some variables for counting
     Z2 leadCoeff = this->coefficients[deg];                                     // Lead coefficient of this polynomial
-    Z2Polynomial quoRem[2]={Z2Polynomial(this->N),
-                            Z2Polynomial(this->N)};
+    Z2Polynomial quoRem[2]={Z2Polynomial(this->N),Z2Polynomial(this->N)};
 
     quoRem[0].coefficients[this->N-deg] = leadCoeff;                            // Start of division algorithm between virtual polynomial x^N-1 and this
     for(i = deg-1, j = this->N - 1; i >= 0; i--, j--) {                         // First coefficient of quotient and first subtraction
@@ -677,14 +668,13 @@ ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::gcdXNmns1(Z2Polynomial& t
 	return gcd;
 }
 
-bool ZqPolynomial::Z2Polynomial::operator == (const Z2Polynomial& P)const{
+bool ZqPolynomial::Z2Polynomial::operator == (const Z2Polynomial& P) const{
 	if(this->N == P.N) {
 		for(int i = 0; i < this->N; i++)
-			if(this->coefficients[i] != P.coefficients[i])
-				return false;
+			if(this->coefficients[i] != P.coefficients[i])  return false;
 		return true;
 	}
-	else return false;
+    return false;
 }
 
 void ZqPolynomial::Z2Polynomial::print(const char* name,const char* tail)
@@ -703,9 +693,9 @@ void ZqPolynomial::Z2Polynomial::println(const char* name) const{
 void ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) const{
     Z2Polynomial Np0(_N_, d);
 	Z2Polynomial Np1(_N_, d);
-	Z2Polynomial quorem[2];
-	Z2Polynomial gcd;
-	Z2Polynomial Bezout;
+	Z2Polynomial quorem[2] = {Z2Polynomial(_N_),Z2Polynomial(_N_)};
+	Z2Polynomial gcd(_N_);
+	Z2Polynomial Bezout(_N_);
 	Z2Polynomial Np2(Np0);
 
 	std::cout << "\n::::"
@@ -860,6 +850,15 @@ ZqPolynomial NTRUPolynomial::operator - (int t, const ZqPolynomial& P) {
     return r;
 }
 
+bool ZqPolynomial::operator == (const Z2Polynomial& P) const {
+    if(this->N == P.get_N()) {
+        for(int i = 0; i < this->N; i++)
+            if(this->coefficients[i] != P[i]) return false;
+        return true;
+    }
+    return false;
+}
+
 void ZqPolynomial::print(const char* name,const char* tail) const{
     unsigned len_q = len(this->_Zq_.get_q());
     int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
@@ -904,16 +903,16 @@ p(P.get_p()) {
     }
 }
 
-ZpCenterPolynomial::ZpCenterPolynomial(NTRU_N _len_, NTRU_p _p_, unsigned ones, unsigned negOnes):
-N(_len_), p(_p_) {
+ZpCenterPolynomial::ZpCenterPolynomial(NTRU_N _N_, NTRU_p _p_, unsigned ones, unsigned negOnes):
+N(_N_), p(_p_) {
     int i, j;
-    RandInt rn{0, _len_-1, _seed_++};                                           // Random integers from 0 to N-1
-    while(ones + negOnes >= _len_) {                                            // Dividing by two till getting inside the allowed range
+    RandInt rn(0, _N_-1);                                                     // Random integers from 0 to N-1
+    while(ones + negOnes >= _N_) {                                            // Dividing by two till getting inside the allowed range
         ones <<= 1;                                                             // ...
         negOnes <<= 1;                                                          // ...
     }
-	this->coefficients = new Z3[_len_];
-	for(i = 0; i < _len_; i++) this->coefficients[i] = _0;
+	this->coefficients = new Z3[_N_];
+	for(i = 0; i < _N_; i++) this->coefficients[i] = _0;
 	while(ones > 0) {                                                           // Putting the ones first
         j = rn();
         if(this->coefficients[j] == _0) {
@@ -1217,7 +1216,7 @@ void ZqCenterPolynomial::mods_p(NTRU_p _p_) {
 
 ZqCenterPolynomial ZqCenterPolynomial::randomTernary(unsigned d, NTRU_N _N_, NTRU_q _q_, bool times_p, NTRU_p _p_) {
     ZqCenterPolynomial r(_N_, _q_);
-    RandInt ri(0,_N_- 1, _seed_++);
+    RandInt ri(0,_N_- 1);
     int i;
     unsigned _d_ = d;
     while(d << 1 >= _N_) d >>= 1;                                               // Dividing by two till getting the inequality 2*d < N
