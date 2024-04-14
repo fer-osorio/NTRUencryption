@@ -281,6 +281,9 @@ class ZpCenterPolynomial {
 	ZpCenterPolynomial(const ZpPolynomial&);
 	ZpCenterPolynomial(NTRU_N _N_, NTRU_p _p_, unsigned ones = 0, unsigned negOnes = 0);
 	ZpCenterPolynomial(const ZqCenterPolynomial&, NTRU_p);						// It will copy all the ones and negative ones. Everything else will be zero
+	~ZpCenterPolynomial() {
+		if(this->coefficients != NULL) delete[] this->coefficients;
+	}
 
 	ZpCenterPolynomial& operator = (const ZpCenterPolynomial&);
 	inline int operator[](int i) const{
@@ -328,7 +331,9 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 																				// is equivalent to a ZpPolynomial times its own p; this will help in key creation
 	ZqCenterPolynomial(const ZqPolynomial& P);									// Copies and centers a ZqPolynomial
 	ZqCenterPolynomial(const ZpCenterPolynomial&, NTRU_q);						// Copies the content of a ZpCenterPolynomial
-	~ZqCenterPolynomial();
+	~ZqCenterPolynomial() {
+		if(this->coefficients != NULL) delete[] this->coefficients;
+	}
 
 	ZqCenterPolynomial& operator = (const ZqCenterPolynomial& P);
 	ZqCenterPolynomial& operator = (const ZpCenterPolynomial& P);

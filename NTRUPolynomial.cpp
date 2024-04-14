@@ -136,7 +136,7 @@ ZpPolynomial::ZpPolynomial(const ZpPolynomial& P):N(P.N),p(P.p){
 		this->coefficients[i] = P.coefficients[i];
 }
 
-ZpPolynomial::ZpPolynomial(const ZpCenterPolynomial& P) {
+ZpPolynomial::ZpPolynomial(const ZpCenterPolynomial& P): N(P.get_N()) {
     this->coefficients = new int[this->N];
     switch(this->p) {
     case _3_:
@@ -195,7 +195,7 @@ const{
 ZpPolynomial ZpPolynomial::operator - (const ZpPolynomial& P)
 const{
     const NTRU_N _n_ = min_N(this->N, P.N), _N_ = max_N(this->N, P.N);
-    ZpPolynomial r(_N_);                                                   // Initializing result in the "biggest polynomial ring"
+    ZpPolynomial r(_N_);                                                        // Initializing result in the "biggest polynomial ring"
     int i;
 
     for(i = 0; i < _n_; i++)
@@ -218,7 +218,7 @@ ZpPolynomial ZpPolynomial::operator - () const{
 
 ZpPolynomial ZpPolynomial::operator * (const ZpPolynomial& P)
 const{
-    ZpPolynomial r(max_N(this->N, P.N));                                   // Initializing with zeros
+    ZpPolynomial r(max_N(this->N, P.N));                                        // Initializing with zeros
     int i, j, k;
     int this_degree = this->degree();
     int P_degree    = P.degree();
@@ -299,7 +299,7 @@ result[2]) const{
 
 ZpPolynomial ZpPolynomial::gcdXNmns1(ZpPolynomial& thisBezout)
 const{                                                                          // EEA will mean Extended Euclidean Algorithm
-    ZpPolynomial gcd;                                                      // Initializing result in the "biggest polynomial ring
+    ZpPolynomial gcd;                                                           // Initializing result in the "biggest polynomial ring
     ZpPolynomial remainders;
     ZpPolynomial tmp[2];
     int deg = this->degree(), i, j, k, l;                                       // Degree of this and some variables for counting
@@ -398,7 +398,7 @@ ZpPolynomial& ZpPolynomial::operator = (int t) {
 	return *this;
 }
 
-void ZpPolynomial::setPermutation() {                                      // Setting a permutation
+void ZpPolynomial::setPermutation() {                                           // Setting a permutation
     int i, j, k, *tmp = new int[this->N];
     RandInt rn{0, 0x7FFFFFFF, _seed_++};                                        // Random integers from 0 to the maximum number for and int
     if(this->permutation==NULL) this->permutation = new int[this->N];
@@ -478,11 +478,14 @@ ZqPolynomial::Z2Polynomial::Z2Polynomial(const Z2Polynomial& P): N(P.N) {
 ZqPolynomial::Z2Polynomial::Z2Polynomial(const ZpPolynomial& P):
 N(P.get_N()) {
 	this->coefficients = new Z2[this->N];
-	for(int i = 0; i < this->N; i++) {
-		if(P[i] == 1) this->coefficients[i] = _1_;
-		else this->coefficients[i] = _0_;
+	switch(P.get_p()) {
+	    case _3_:
+	    for(int i = 0; i < this->N; i++) {
+		    if(P[i] != 0) this->coefficients[i] = _1_;                          // Two won't go to zero because it's the additive inverse of one in Z3, therefore
+		    else this->coefficients[i] = _0_;                                   // it must go to the additive inverse of one in Z2, which if itself
+		break;
+	    }
 	}
-	std::cout << "\n";
 }
 
 ZqPolynomial::Z2Polynomial::Z2Polynomial(NTRU_N _N_, int ones): N(_N_) {
@@ -523,7 +526,7 @@ ZqPolynomial::Z2Polynomial& ZqPolynomial::Z2Polynomial::operator = (const ZpPoly
 	}
 	if(this->coefficients == NULL) this->coefficients = new Z2[P_N];            // In case of having an object created with the default (private) constructor
 	for(int i = 0; i < P_N; i++) {                                              // Fitting the ZpPolynomial in a Z2Polynomial
-	    if(P[i] == 1) this->coefficients[i] = _1_;
+	    if(P[i] != 0) this->coefficients[i] = _1_;
 	    else this->coefficients[i] = _0_;
 	}
 	return *this;
@@ -611,7 +614,6 @@ void ZqPolynomial::Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial re
     remDeg = dividendDegree;
     result[1] = *this;                                                          // Initializing remainder with dividend (this)
     result[0] = Z2Polynomial(this->N);
-
     for(;degreeDiff >= 0; degreeDiff = remDeg - divisorDegree) {
         result[0].coefficients[degreeDiff] =
         leadCoeffDivsrInv * result[1].coefficients[remDeg];                     // Putting new coefficient in the quotient
@@ -743,7 +745,14 @@ ZqPolynomial::ZqPolynomial(NTRU_N _N_, NTRU_q _q_):N(_N_),_Zq_(_q_) {
 ZqPolynomial::ZqPolynomial(const ZpPolynomial& P,NTRU_q _q_):
 N(P.get_N()), _Zq_(_q_) {
 	this->coefficients = new int[this->N];
-	for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
+	switch(P.get_p()){
+	    case _3_:
+	    for(int i = 0; i < this->N; i++) {
+	        if(P[i] == 2) this->coefficients[i] = _q_- 1;                       // Since (1+2) mod 3 == 0, 2 must be sent to the additive inverse of 1 in Zq;
+	        else this->coefficients[i] = P[i];
+	    }
+	    break;
+	}
 }
 
 ZqPolynomial::ZqPolynomial(const ZqPolynomial& P): N(P.N),
@@ -755,7 +764,7 @@ _Zq_(P._Zq_) {
 ZqPolynomial::ZqPolynomial(const Z2Polynomial& P,NTRU_q _q_):
 N(P.get_N()), _Zq_(_q_) {
     this->coefficients = new int[this->N];
-    for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
+    for(int i = 0; i < this->N; i++) this->coefficients[i] = (int)P[i];
 }
 
 ZqPolynomial& ZqPolynomial::operator = (const ZqPolynomial& P) {
@@ -781,7 +790,13 @@ ZqPolynomial& ZqPolynomial::operator = (const ZpPolynomial& P) {
 		this->N = P_N;
 	}
 	if(this->coefficients == NULL) this->coefficients = new int[P_N];           // In case of having an object created with the default (private) constructor
-	for(int i = 0; i < P_N; i++) this->coefficients[i] = P[i];                  // Fitting the ZpPolynomial in a ZqPolynomial
+	switch(P.get_p()){
+	    case _3_:
+	    for(int i = 0; i < P_N; i++) {
+	        if(P[i] == 2) this->coefficients[i] = this->_Zq_.get_q() - 1;
+	        else this->coefficients[i] = P[i];
+	    }
+	}
 	return *this;
 }
 
@@ -920,8 +935,8 @@ N(P.get_N()), p(_p_) {
     this->coefficients = new Z3[this->N];
     for(int i = 0; i < this->N; i++) {                                          // This process will just take in account the ones and negative ones, all the
         this->coefficients[i] = _0;                                                  // other numbers will taken as zero
-        if(P[i] ==  1) this->coefficients[i] = _1 ;
-        if(P[i] == -1) this->coefficients[i] = _1_;
+        if(P[i] ==  1 || P[i] == -2) this->coefficients[i] = _1 ;
+        if(P[i] == -1 || P[i] ==  2) this->coefficients[i] = _1_;
     }
 }
 
@@ -1085,10 +1100,6 @@ N(P.get_N()), _Zq_(_q_) {
     for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
 }
 
-ZqCenterPolynomial::~ZqCenterPolynomial() {
-    if(this->coefficients != NULL) delete[] this->coefficients;
-}
-
 ZqCenterPolynomial& ZqCenterPolynomial::operator = (const ZqCenterPolynomial& P) {
     if(this != &P) {														    // Guarding against self assignment
 		if(this->N != P.N) {												    // Delete pass coefficients array. If this->N != P.N is true, there is no reason
@@ -1185,10 +1196,12 @@ ZqCenterPolynomial ZqCenterPolynomial::operator * (const ZpCenterPolynomial& P) 
 bool ZqCenterPolynomial::operator == (const ZqCenterPolynomial& P) const{
     if(this->N == P.N && this->get_q() == P.get_q()) {
         if(this->coefficients != NULL && P.coefficients != NULL) {
-            for(int i = 0; i < this->N; i++)
-                if(this->coefficients[i] != P.coefficients[i]) return false;
+            for(int i = 0, k = 0; i < this->N; i++) {
+                k = this->coefficients[i] - P.coefficients[i];
+                if(k%3 != 0) return false;
+            }
             return true;
-        } else return this->coefficients == P.coefficients;                             // This could happen with self comparison or when both pointers are NULL
+        } else return this->coefficients == P.coefficients;                     // This could happen with self comparison or when both pointers are NULL
     }
     return false;
 }
@@ -1197,11 +1210,7 @@ void ZqCenterPolynomial::mods_p(NTRU_p _p_) {
     int i;
     switch(_p_) {
         case _3_:
-        for(i = 0; i < this->N; i++) {
-            this->coefficients[i] %= 3;
-            if(this->coefficients[i] ==  2) this->coefficients[i] = -1;
-            if(this->coefficients[i] == -2) this->coefficients[i] =  1;
-        }
+        for(i = 0; i < this->N; i++) this->coefficients[i] %= 3;
         break;
     }
 }
