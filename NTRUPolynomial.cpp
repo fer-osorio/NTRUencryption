@@ -4,6 +4,20 @@
 
 using namespace NTRUPolynomial;
 
+const ZpPolynomial::Z3 ZpPolynomial::Z3add [3][3] = {{_0_,_1_,_2_},             // Addition table of the Z3 ring (integers modulo 3)
+                                                     {_1_,_2_,_0_},             // ...
+                                                     {_2_,_0_,_1_}};            // ...
+
+const ZpPolynomial::Z3 ZpPolynomial::Z3subt[3][3] = {{_0_,_2_,_1_},             // Addition table of the Z3 ring (integers modulo 3)
+                                                     {_1_,_0_,_2_},             // ...
+                                                     {_2_,_1_,_0_}};            // ...
+
+const ZpPolynomial::Z3 ZpPolynomial::Z3prod[3][3] = {{_0_,_0_,_0_},             // Product table of the Z3 ring (integers modulo 3)
+                                                     {_0_,_1_,_2_},             // ...
+                                                     {_0_,_2_,_1_}};            // ...
+
+const ZpPolynomial::Z3 ZpPolynomial::Z3neg[3]     =  {_0_, _2_, _1_};
+
 const int ZpPolynomial::Z3addition[3][3] = {{0, 1, 2},                          // Addition table of the Z3 ring (integers modulo 3)
                                             {1, 2, 0},                          // ...
                                             {2, 0, 1}};                         // ...
@@ -14,7 +28,7 @@ const int ZpPolynomial::Z3subtraction[3][3] = {{0, 2, 1},                       
 
 const int ZpPolynomial::Z3product[3][3] = {{0, 0, 0},                           // Product table of the Z3 ring (integers modulo 3)
                                            {0, 1, 2},                           // ...
-                                           {0, 2, 1}};                          // ..
+                                           {0, 2, 1}};                          // ...
 
 inline static int min(int a, int b) {
 	if(a < b) return a;
@@ -132,19 +146,19 @@ unsigned RandInt::_seed_ = (unsigned)time(NULL);
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZpPolynomial |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 ZpPolynomial::ZpPolynomial(const ZpPolynomial& P):N(P.N),p(P.p){
-	this->coefficients = new int[P.N];
+	this->coefficients = new Z3[P.N];
 	for(int i=0; i < P.N; i++)
 		this->coefficients[i] = P.coefficients[i];
 }
 
 ZpPolynomial::ZpPolynomial(const ZpCenterPolynomial& P): N(P.get_N()) {
-    this->coefficients = new int[this->N];
+    this->coefficients = new Z3[this->N];
     switch(this->p) {
     case _3_:
         for(int i = 0; i < this->N; i++) {
-            this->coefficients[i] = 0;
-            if(P[i] == -1) this->coefficients[i] = 2;
-            if(P[i] ==  1) this->coefficients[i] = 1;
+            this->coefficients[i] = _0_;
+            if(P[i] == -1) this->coefficients[i] = _2_;
+            if(P[i] ==  1) this->coefficients[i] = _1_;
         }
     }
 }
@@ -158,19 +172,19 @@ ZpPolynomial::ZpPolynomial(NTRU_N _N_,int ones,int twos,NTRU_p _p_): N(_N_), p(_
         ones <<= 1;                                                             // ...
         twos <<= 1;                                                             // ...
     }
-	this->coefficients = new int[_N_];
-	for(i = 0; i < _N_; i++) this->coefficients[i] = 0;
+	this->coefficients = new Z3[_N_];
+	for(i = 0; i < _N_; i++) this->coefficients[i] = _0_;
 	while(ones > 0) {                                                           // Putting the ones first
         j = rn();
-        if(this->coefficients[j] == 0) {
-            this->coefficients[j] = 1;
+        if(this->coefficients[j] == _0_) {
+            this->coefficients[j] = _1_;
             ones--;
         }
 	}
 	while(twos > 0) {                                                           // Then the negative ones
         j = rn();
-        if(this->coefficients[j] == 0) {
-            this->coefficients[j] = 2;                                          // Two is congruent with -1 modulo 3
+        if(this->coefficients[j] == _0_) {
+            this->coefficients[j] = _2_;                                          // Two is congruent with -1 modulo 3
             twos--;
         }
 	}
@@ -185,7 +199,7 @@ ZpPolynomial ZpPolynomial::operator + (const ZpPolynomial& P) const{
 	else { small = &P; big = this; }                                            // polynomial with the biggest N
 
     for(i = 0; i < small->N; i++)
-        r.coefficients[i]=Z3addition[this->coefficients[i]][P.coefficients[i]]; // Addition element by element till the smallest degree of the arguments
+        r.coefficients[i] = this->coefficients[i] + P.coefficients[i];          // Addition element by element till the smallest degree of the arguments
     for(; i < big->N; i++)
         r.coefficients[i] = big->coefficients[i];                               // Just copying, equivalent to filling with zeros the small polynomial
     return r;
@@ -197,10 +211,9 @@ ZpPolynomial ZpPolynomial::operator - (const ZpPolynomial& P) const{
     int i;
 
     for(i = 0; i < _n_; i++)
-        r.coefficients[i] =                                                     // Subtraction element by element till the smallest degree of the arguments
-        Z3subtraction[this->coefficients[i]][P.coefficients[i]];
+        r.coefficients[i] = this->coefficients[i] - P.coefficients[i];                                                    // Subtraction element by element till the smallest degree of the arguments
     if(P.N == _N_) for(; i < _N_; i++)                                          // Second argument bigger, virtually filling the first argument with zeros
-        r.coefficients[i] = Z3subtraction[0][P.coefficients[i]];
+        r.coefficients[i] = -P.coefficients[i];
     else for(; i < _N_; i++)                                                    // First argument bigger, virtually filling the second argument with zeros
         r.coefficients[i] = this->coefficients[i];
     return r;
@@ -210,7 +223,7 @@ ZpPolynomial ZpPolynomial::operator - () const{
 	ZpPolynomial r = *this;
 	int i, _degree_ = this->degree();
 	for(i = 0; i <= _degree_; i++)
-		r.coefficients[i] = Z3subtraction[0][r.coefficients[i]];
+		r.coefficients[i] = -r.coefficients[i];
 	return r;
 }
 
@@ -224,13 +237,8 @@ ZpPolynomial ZpPolynomial::operator * (const ZpPolynomial& P) const{
 		if(this->coefficients[i] != 0)
 		for(j = 0; j <= P_degree; j++) {
 			if(P.coefficients[j] != 0) {
-			    if((k = i + j) < this->N)
-			        r.coefficients[k] = Z3addition[r.coefficients[k]]
-    			    [Z3product[this->coefficients[i]][P.coefficients[j]]];
-			    else
-			        r.coefficients[k-this->N] =
-			        Z3addition[r.coefficients[k-this->N]]
-			        [Z3product[this->coefficients[i]][P.coefficients[j]]];
+			    if((k = i + j) >= this->N) k-= this->N;
+			    r.coefficients[k] += this->coefficients[i]*P.coefficients[j];
 			}
 		}
 	}
@@ -241,25 +249,24 @@ ZpPolynomial& ZpPolynomial::operator-=(const ZpPolynomial& P) {
     const NTRU_N _n_ = min_N(this->N, P.N);
     int i;
     for(i = 0; i < _n_; i++)
-        this->coefficients[i] =                                                 // Subtraction element by element till the smallest degree of the arguments
-        Z3subtraction[this->coefficients[i]][P.coefficients[i]];
+        this->coefficients[i] = this->coefficients[i] - P.coefficients[i];      // Subtraction element by element till the smallest degree of the arguments
     return *this;
 }
 
 void ZpPolynomial::division(const ZpPolynomial& P, ZpPolynomial result[2]) const{
-    if(P == 0) {
+    if(P == _0_) {
         throw "\nvoid ZpPolynomial::ZpPolynomial::division(const Zp"
         "Polynomial& P,ZpPolynomial result[2]) const. Division by zero...\n";
     }
     if(*this == 0) {                                                            // Case zero divided by anything
-        result[0] = 0;                                                          // Zero polynomial
-        result[1] = 0;                                                          // Zero polynomial
+        result[0] = _0_;                                                          // Zero polynomial
+        result[1] = _0_;                                                          // Zero polynomial
         return;
     }
 
     const int dividendDegree = this->degree();
     const int divisorDegree  = P.degree();
-    const int leadCoeffDivsrInv = P.coefficients[divisorDegree];                // In Z3, each element is its own inverse
+    const Z3  leadCoeffDivsrInv = P.coefficients[divisorDegree];                // In Z3, each element is its own inverse
     int degreeDiff;                                                             // Difference between degrees
     int remDeg;                                                                 // Remainder degree
     int i;                                                                      // For counting
@@ -275,56 +282,46 @@ void ZpPolynomial::division(const ZpPolynomial& P, ZpPolynomial result[2]) const
     result[0] = ZpPolynomial(this->N);
 
     for(;degreeDiff >= 0; degreeDiff = remDeg - divisorDegree) {
-        result[0].coefficients[degreeDiff] = Z3product[
-        leadCoeffDivsrInv][result[1].coefficients[remDeg]];                     // Putting new coefficient in the quotient
+        result[0].coefficients[degreeDiff] = leadCoeffDivsrInv*result[1].coefficients[remDeg];  // Putting new coefficient in the quotient
 
         for(i = remDeg; i >= degreeDiff; i--) {                                 // Updating remainder
-            result[1].coefficients[i] =
-            Z3subtraction[result[1].coefficients[i]][Z3product[
-            result[0].coefficients[degreeDiff]][P.coefficients[i-degreeDiff]]];
+            result[1].coefficients[i] -= result[0].coefficients[degreeDiff]*P.coefficients[i-degreeDiff];
         }
 
-        if(result[1].coefficients[remDeg] != 0) {                               // No congruence with 0 mod q, throwing exception
-            throw "\nvoid ZpPolynomial::ZpPolynomial::division(const Zp"
-            "Polynomial& P,ZpPolynomial result[2]) const. result[1]."
-            "coefficients[remDeg] != 0\n";
+        if(result[1].coefficients[remDeg] != _0_) {                             // No congruence with 0 mod p, throwing exception
+            throw "\nvoid ZpPolynomial::ZpPolynomial::division(const ZpPolynomial& P,ZpPolynomial result[2]) const. result[1]. coefficients[remDeg] != 0\n";
         }                                                                       // At this point we know result[1].coefficients[remDeg] = 0
-        while(remDeg >= 0 && result[1].coefficients[remDeg] == 0) remDeg--;     // Updating value of the degree of the remainder
+        while(remDeg >= 0 && result[1].coefficients[remDeg] == _0_) remDeg--;   // Updating value of the degree of the remainder
     }
 }
 
-ZpPolynomial ZpPolynomial::gcdXNmns1(ZpPolynomial& thisBezout)
-const{                                                                          // EEA will mean Extended Euclidean Algorithm
+ZpPolynomial ZpPolynomial::gcdXNmns1(ZpPolynomial& thisBezout) const{           // EEA will mean Extended Euclidean Algorithm
     ZpPolynomial gcd(this->N);                                                  // Initializing result in the "biggest polynomial ring
     ZpPolynomial remainders(this->N);
     ZpPolynomial tmp[2] = {ZpPolynomial(this->N),ZpPolynomial(this->N)};
     int deg = this->degree(), i, j, k, l;                                       // Degree of this and some variables for counting
-    int leadCoeff = this->coefficients[deg];                                    // Lead coefficient of this polynomial
+    Z3  leadCoeff = this->coefficients[deg];                                    // Lead coefficient of this polynomial
     ZpPolynomial quoRem[2] = {ZpPolynomial(this->N),ZpPolynomial(this->N)};
 
     quoRem[0].coefficients[this->N-deg] = leadCoeff;                            // Start of division algorithm between virtual polynomial x^N-1 and this
     for(i = deg-1, j = this->N - 1; i >= 0; i--, j--) {                         // First coefficient of quotient and first subtraction
-        quoRem[1].coefficients[j] =
-        Z3subtraction[0][Z3product[ leadCoeff ][ this->coefficients[i]] ];
+        quoRem[1].coefficients[j] = _0_ - leadCoeff * this->coefficients[i];
     }
-    quoRem[1].coefficients[0] = 2;                                              // Putting the -1 that is at the end of the polynomial x^N-1
+    quoRem[1].coefficients[0] = _2_;                                            // Putting the -1 that is at the end of the polynomial x^N-1
     for(i = this->N-1 - deg, j = this->N-1; j >= deg; i = j - deg) {            // Continuing with division algorithm; i is the place of the next coefficient of
-        quoRem[0].coefficients[i] =                                             // the quotient, j is the degree of the remainders.
-        Z3product[leadCoeff][quoRem[1].coefficients[j]];
+        quoRem[0].coefficients[i] = leadCoeff*quoRem[1].coefficients[j];        // the quotient, j is the degree of the remainders.
         for(k = deg, l = j; k >= 0; k--, l--) {                                 // Multiplication-subtraction step
-            quoRem[1].coefficients[l] =
-            Z3subtraction[ quoRem[1].coefficients[l] ]
-            [Z3product[ quoRem[0].coefficients[i] ][ this->coefficients[k] ]];
+            quoRem[1].coefficients[l] -= quoRem[0].coefficients[i]*this->coefficients[k];
         }
         while(quoRem[1].coefficients[j] == 0) {j--;};
     }                                                                           // End of division algorithm between virtual polynomial x^N-1 and this
 
-    tmp[1] = -quoRem[0]; thisBezout = 1;                                        // Initializing values for the execution of the rest of the EEA
+    tmp[1] = -quoRem[0]; thisBezout = _1_;                                        // Initializing values for the execution of the rest of the EEA
     tmp[0] = tmp[1];                                                            // v[-1] = 0, v[0] = 1 ==> v[1] = v[-1] - q[1]*v[0] = - q[1]
     gcd = *this;                                                                // ...
     remainders = quoRem[1];                                                     // ...
 
-	while(remainders != 0) {                                                    // EEA implementation (continuation)
+	while(remainders != _0_) {                                                    // EEA implementation (continuation)
         try{ gcd.division(remainders, quoRem); }
         catch(const char* exp) {
             std::cout << "\nIn NTRUencryption.cpp; function ZpPolynomial "
@@ -350,8 +347,7 @@ const{                                                                          
 bool ZpPolynomial::operator == (const ZpPolynomial& P) const{
 	if(this->N == P.N && this->p == P.p) {									    // The comparison this->p == P.p is naive, but maybe will be useful in the future
 		for(int i = 0; i < this->N; i++)
-			if(this->coefficients[i]!=P.coefficients[i])
-				return false;
+			if(this->coefficients[i] != P.coefficients[i]) return false;
 		return true;
 	}
 	else return false;
@@ -369,27 +365,26 @@ bool ZpPolynomial::operator != (const ZpPolynomial& P) const{
 
 ZpPolynomial& ZpPolynomial::operator = (const ZpPolynomial& P) {
     if(this != &P) {													        // Guarding against self assignment
-		if(this->coefficients == NULL) {
-			this->coefficients = new int[P.N];
-			this->N = P.N;
-		} else if(this->N != P.N) {
-			delete [] this->coefficients;
-			this->coefficients = new int[P.N];
+        if(this->N != P.N) {                                                    // Just in this case makes sense to delete this->coefficients instead of just
+			delete [] this->coefficients;                                       // rewrite it
+			this->coefficients = new Z3[P.N];
 			this->N = P.N;
 		}
-	    for(int i = 0; i < P.N; i++)
-	    	this->coefficients[i] = P.coefficients[i];
+		this->p = P.p;
+	    for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
 	}
 	return *this;
 }
 
 ZpPolynomial& ZpPolynomial::operator = (int t) {
     if(this->coefficients == NULL)
-		this->coefficients = new int[this->N];                                  // Dealing with already initialized object, so this->N is well defined
+		this->coefficients = new Z3[this->N];                                   // Dealing with already initialized object, so this->N is well defined
 	if(t < 0) t = -t;
 	if(t >= this->p) t %= this->p;
-	this->coefficients[0] = t;
-	for(int i=1; i < this->N; i++) this->coefficients[i] = 0;                   // Filling with zeros the rest of the array
+	switch(this->p) {
+	    case _3_: this->coefficients[0] = (Z3)t; break;
+	}
+	for(int i = 1; i < this->N; i++) this->coefficients[i] = _0_;               // Filling with zeros the rest of the array
 	return *this;
 }
 
@@ -410,7 +405,7 @@ void ZpPolynomial::permute() {
 	int i;
 	if(this->permutation == NULL) this->setPermutation();
 	if(this->coeffCopy   == NULL) {                                             // If there is no a copy, create the copy
-	    this->coeffCopy = new int[this->N];
+	    this->coeffCopy = new Z3[this->N];
 	    for(i = 0; i < this->N; i++) this->coeffCopy[i] = this->coefficients[i];
 	}
 	for(i = 0; i < this->N; i++)                                                // Permute coefficients
@@ -420,7 +415,11 @@ void ZpPolynomial::permute() {
 }
 
 void ZpPolynomial::print(const char* name, const char* tail) const{
-    printArray(this->coefficients, (unsigned)this->degree() + 1, len(this->p) + 1, name, tail);
+    int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
+    int* array = new int[coeffAmount], i;                                       // ...
+    for(i = 0; i < coeffAmount; i++) array[i] = (int)this->coefficients[i];     // ...
+    printArray(array, (unsigned)coeffAmount, 2, name, tail);
+    delete[] array;
 }
 
 void ZpPolynomial::println(const char* name) const{
@@ -677,8 +676,7 @@ bool ZqPolynomial::Z2Polynomial::operator == (const Z2Polynomial& P) const{
     return false;
 }
 
-void ZqPolynomial::Z2Polynomial::print(const char* name,const char* tail)
-const{
+void ZqPolynomial::Z2Polynomial::print(const char* name,const char* tail) const{
     int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
     int* array = new int[coeffAmount], i;                                       // ...
     for(i = 0; i < coeffAmount; i++) array[i] = (int)this->coefficients[i];     // ...

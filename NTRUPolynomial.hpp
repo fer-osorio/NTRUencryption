@@ -14,14 +14,36 @@ namespace NTRUPolynomial {
 struct ZqPolynomial;
 struct ZpCenterPolynomial;
 struct ZqCenterPolynomial;
-
 struct ZpPolynomial {															// Representation of the polynomials in Zp[x]/(x^N-1)
+	private: enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};									// ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
+	static const Z3 Z3add [3][3];												// Addition in Z3
+	static const Z3 Z3subt[3][3];												// Subtraction in Z3
+	static const Z3 Z3prod[3][3];												// Product in Z3
+	static const Z3 Z3neg [3];													// Negative in Z3
+	friend Z3 operator + (Z3 a, Z3 b) {
+    	return Z3add[a][b];
+	}
+	friend void operator += (Z3& a, Z3 b) {
+    	a = Z3add[a][b];
+	}
+	friend Z3 operator - (Z3 a, Z3 b) {
+    	return Z3subt[a][b];
+	}
+	friend Z3 operator - (Z3 a) {
+		return Z3neg[a];
+	}
+	friend void operator -= (Z3& a, Z3 b) {
+    	a = Z3subt[a][b];
+	}
+	friend Z3 operator * (Z3 a, Z3 b) {
+    	return Z3prod[a][b];
+	}
 	private:
 	NTRU_N N;
 	NTRU_p p = _3_;
-	int* coefficients = NULL;
+	Z3*  coefficients = NULL;
 	int* permutation  = NULL;													// This could be enhanced by making this attributes static
-	int* coeffCopy 	  = NULL;													// Copy of the coefficients. Useful at the moment of permute the coefficients
+	Z3*  coeffCopy 	  = NULL;													// Copy of the coefficients. Useful at the moment of permute the coefficients
 
 	public:
 	static const int Z3addition[3][3];											// Addition table of the Z3 ring (integers modulo 3)
