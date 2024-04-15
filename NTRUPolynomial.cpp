@@ -1194,13 +1194,9 @@ ZqCenterPolynomial ZqCenterPolynomial::operator * (const ZpCenterPolynomial& P) 
 
 bool ZqCenterPolynomial::operator == (const ZqCenterPolynomial& P) const{
     if(this->N == P.N && this->get_q() == P.get_q()) {
-        if(this->coefficients != NULL && P.coefficients != NULL) {
-            for(int i = 0, k = 0; i < this->N; i++) {
-                k = this->coefficients[i] - P.coefficients[i];
-                if(k%3 != 0) return false;
-            }
-            return true;
-        } else return this->coefficients == P.coefficients;                     // This could happen with self comparison or when both pointers are NULL
+        for(int i = 0; i < this->N; i++)
+            if(this->coefficients[i] != P.coefficients[i]) return false;
+        return true;
     }
     return false;
 }
@@ -1209,7 +1205,11 @@ void ZqCenterPolynomial::mods_p(NTRU_p _p_) {
     int i;
     switch(_p_) {
         case _3_:
-        for(i = 0; i < this->N; i++) this->coefficients[i] %= 3;
+        for(i = 0; i < this->N; i++) {
+            this->coefficients[i] %= 3;
+            if(this->coefficients[i] == -2) this->coefficients[i] =  1;
+            if(this->coefficients[i] ==  2) this->coefficients[i] = -1;
+        }
         break;
     }
 }
@@ -1255,11 +1255,13 @@ void ZqCenterPolynomial::println(const char* name) const{
 bool NTRUPolynomial::operator == (const ZqCenterPolynomial& Pq, const ZpCenterPolynomial Pp) {
     if(Pq.get_N() == Pp.get_N()) {
         NTRU_N N = Pq.get_N();
-        for(int i = 0; i < N; i++) if(Pq[i] != Pp[i]) return false;
+        for(int i = 0; i < N; i++)
+            if(Pq[i] != Pp[i]) return false;
         return true;
     }
     return false;
 }
 
 //____________________________________________________________________ ZqCenterPolynomial  ________________________________________________________________________
+
 

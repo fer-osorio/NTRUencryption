@@ -5,7 +5,7 @@
 
 #define DECIMAL_BASE 10
 
-enum NTRU_N {_509_  = 509,  _677_  = 677,  _701_  = 701,  _821_ = 821 };		// All the possible values for the N
+enum NTRU_N {_509_  = 509,  _677_  = 677,  _701_  = 701,  _821_ = 821, _1171_ = 1171 };	// All the possible values for the N
 enum NTRU_q {_2048_ = 2048, _4096_ = 4096, _8192_ = 8192 };						// All the possible values for the q
 enum NTRU_p {_3_	= 3 };
 
@@ -217,6 +217,9 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	friend ZqPolynomial operator - (int, const ZqPolynomial&);
 
 	bool operator == (const Z2Polynomial& P) const;
+	inline bool operator == (int t) const {
+		return this->degree() == 0 && this->coefficients[0] == t;
+	}
 
 	inline int degree() const{													// Returns degree of polynomial
 		int deg = this->N;
@@ -289,6 +292,9 @@ class ZpCenterPolynomial {
 	}
 	bool operator == (const ZpCenterPolynomial&) const;
 	bool operator == (const ZpPolynomial&) const;
+	inline bool operator == (int t) const {
+		return this->degree() == 0 && this->coefficients[0] == t;
+	}
 	void printTheDifferences(const ZpPolynomial&, const char* leftName, const char* righName) const;
 
 	ZpCenterPolynomial operator * (ZpCenterPolynomial&) const;
@@ -339,6 +345,9 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 	ZqCenterPolynomial operator * (const ZpCenterPolynomial& P) const;			// This function sees the ZpCenterPolynomial as a ZqCenterPolynomial
 
 	bool operator == (const ZqCenterPolynomial& P) const;
+	inline bool operator == (int t) const {
+		return this->degree() == 0 && this->coefficients[0] == t;
+	}
 
 	inline int degree() const{													// Returns degree of polynomial
 		int deg = this->N;

@@ -30,21 +30,34 @@ int main(int argc, char* argv[])
     std::chrono::steady_clock::time_point end;
 
     begin = std::chrono::steady_clock::now();
-    NTRU::Encryption e(_821_, _8192_, _821_/3 + 1);
+    NTRU::Encryption e(_1171_, _8192_, _1171_/3 + 1);
     end = std::chrono::steady_clock::now();
-
-    std::cout << "\nNTRUencryption e(_821_,_8192_,_821_/3+1) execution time = "
+    std::cout << "\nGeneration of private and public keys took "
     << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()
     << "[µs]\n" << std::endl;
 
     NTRUPolynomial::ZpCenterPolynomial msg(e.get_N(), e.get_p(), 1, 1);
-    //msg.println("Original message");
+    msg.println("Original message");
     std::cout << '\n';
+
+    begin = std::chrono::steady_clock::now();
     NTRUPolynomial::ZqCenterPolynomial e_msg = e.encrypt(msg);
-    //e_msg.println("Encrypted message");
+    end = std::chrono::steady_clock::now();
+    std::cout << "\nMessage was encrypted in "
+    << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()
+    << "[µs]\n" << std::endl;
+
+    e_msg.println("Encrypted message");
     std::cout << '\n';
+
+    begin = std::chrono::steady_clock::now();
     NTRUPolynomial::ZpCenterPolynomial d_msg = e.decrypt(e_msg);
-    //d_msg.println("decrypted message");
+    end = std::chrono::steady_clock::now();
+    std::cout << "\nMessage was decrypted in "
+    << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()
+    << "[µs]\n" << std::endl;
+
+    d_msg.println("decrypted message");
     if(msg == d_msg) std::cout << "\nSuccessful decryption\n";
     else std::cout << "\nUnsuccessful decryption\n";
 
