@@ -8,12 +8,6 @@ STANDARD = -std=c++2a
 NTRUencryption.exe: Makefile main.cpp NTRUencryption.cpp NTRUencryption.hpp NTRUPolynomial.cpp NTRUPolynomial.hpp
 	$(CXX) -o $@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) main.cpp NTRUencryption.cpp NTRUPolynomial.cpp
 
-qmod3Array.o: Makefile qmod3ArrayGen.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o qmod3ArrayGen.c
-
-qmod3Array: Makefile qmod3ArrayGen.o
-	$(CC) $(LDFLAGS) -o $@ qmod3ArrayGen.o $(LOADLIBES) $(LDLIBS)
-
 clean:
 	rm -f NTRUencryption.exe
 
