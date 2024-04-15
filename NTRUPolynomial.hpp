@@ -102,40 +102,31 @@ struct ZpPolynomial {															// Representation of the polynomials in Zp[x
 	void test(NTRU_N _N_, int d) const;
 };
 
-ZqPolynomial operator - (int, const ZqPolynomial&);								// The intention is to make this function a friend of ZqPolynomial
+ZqPolynomial operator - (unsigned, const ZqPolynomial&);								// The intention is to make this function a friend of ZqPolynomial
 
 struct ZqPolynomial {															// Representation of the polynomials in Zq[x]/(x^N-1)
 	class Zq{																	// Representation of the group of integers modulus q: Zq
 		NTRU_q q;
-		int  q_1;
+		unsigned  q_1;															// Will hold q-1, this will help with mod q operation
 
 		public: Zq(NTRU_q _q_): q(_q_), q_1(_q_-1) {}
 		public: inline NTRU_q get_q() const{ return q; }
 
-		int mod_q(int t) const{													// operation t % q
-			while(t < 0) t += this->q;											// Ensuring a positive t
+		unsigned mod_q(unsigned t) const{										// operation t % q
 			return t & this->q_1;												// Since q is a power of two, t & (q-1) is equivalent to t%q, but much faster
 		}
-
-		int add(int a, int b) const{
-			int r = a + b;
-			while(r < 0) r += this->q;
-			return r & this->q_1;
+		unsigned add(unsigned a, unsigned b) const{
+			return a+b & this->q_1;
 		}
-		int subtract(int a, int b) const{
-			int r = a - b;
-			while(r < 0) r += this->q;
-			return r & this->q_1;
+		unsigned subtract(unsigned a, unsigned b) const{
+			return a+this->negative(b) & this->q_1;
 		}
-		int product(int a, int b) const{
-			int r = a * b;
-			while(r < 0) r += this->q;
-			return r & this->q_1;
+		unsigned product(unsigned a, unsigned b) const{
+			return a*b & this->q_1;
 		}
-		int negative(int a) const{
-			while(a < 0) a += this->q;
-			a &= this->q_1;
-			return this->q - a;
+		unsigned negative(unsigned a) const{
+			if(a == 0) return a;
+			return  this->q - (a&this->q_1);
 		}
 	};
 
@@ -212,7 +203,7 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	};
 
 	private: NTRU_N N;
-	int* coefficients = NULL;
+	unsigned* coefficients = NULL;
 	Zq _Zq_;
 
 	public:
@@ -236,10 +227,10 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 
 	ZqPolynomial operator - (const ZqPolynomial& P) const;
 	ZqPolynomial operator * (const ZqPolynomial& P) const;
-	friend ZqPolynomial operator - (int, const ZqPolynomial&);
+	friend ZqPolynomial operator - (unsigned, const ZqPolynomial&);
 
 	bool operator == (const Z2Polynomial& P) const;
-	inline bool operator == (int t) const {
+	inline bool operator == (unsigned t) const {
 		return this->degree() == 0 && this->coefficients[0] == t;
 	}
 
