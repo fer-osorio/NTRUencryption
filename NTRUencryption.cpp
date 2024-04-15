@@ -3,14 +3,13 @@
 using namespace NTRUPolynomial;
 using namespace NTRU;
 
-Encryption::Encryption(NTRU_N _N_,NTRU_q _q_,int _d_,NTRU_p _p_):N(_N_),
-q(_q_), p(_p_), d(_d_), privateKey(_N_, _p_), privateKeyInv_p(_N_, _p_),
+Encryption::Encryption(NTRU_N _N_,NTRU_q _q_,int _d_,NTRU_p _p_): N(_N_), q(_q_), p(_p_), d(_d_), privateKey(_N_, _p_), privateKeyInv_p(_N_, _p_),
 publicKey(_N_, _q_) {
 	try {
 	    this->setKeys();
 	}catch(const char* exp) {
-	    std::cout << "\nIn file NTRUencryption.cpp, function Encryption::Encryption(NTRU_N _N_,NTRU_q _q_,int _d_,NTRU_p "
-        "_p_):N(_N_),q(_q_), p(_p_), d(_d_), privateKey(_N_, _p_), privateKeyInv_p(_N_, _p_),publicKey(_N_, _q_)\n";
+	    std::cout << "\nIn file NTRUencryption.cpp, function Encryption::Encryption(NTRU_N _N_,NTRU_q _q_,int _d_,NTRU_p _p_): N(_N_),q(_q_), p(_p_), d(_d_), "
+        "privateKey(_N_, _p_), privateKeyInv_p(_N_, _p_), publicKey(_N_, _q_)\n";
         std::cout << exp;
 	}
 	(this->privateKey*this->privateKeyInv_p).println("fp*Fp");
@@ -46,20 +45,18 @@ void Encryption::setKeys() {
 	try{
 	    Zp_gcdXNmns1 = _privateKey_.gcdXNmns1(_privateKeyInv_p_);
 	}catch(const char* exp) {
-        std::cout<<"\nIn file Encryption.cpp, function void Encryption"
-        "::setKeys()\n";
+        std::cout<<"\nIn file Encryption.cpp, function void Encryption::setKeys()\n";
         throw;
 	}
 	try{
 	    Z2_gcdXNmns1 = privateKeyZ2.gcdXNmns1(privateKeyInv_2);
 	}catch(const char* exp) {
-        std::cout<<"\nIn file Encryption.cpp, function void Encryption"
-        "::setKeys()\n";
+        std::cout<<"\nIn file Encryption.cpp, function void Encryption::setKeys()\n";
         throw;
 	}
-	counter = 1;
 
-    while((Zp_gcdXNmns1 != 1 || Z2_gcdXNmns1 != 1) /*&& counter < 3*/) {
+	counter = 1;
+    while(Zp_gcdXNmns1 != 1 || Z2_gcdXNmns1 != 1) {
         if((counter & 3) != 0) {                                                // If we have not tried to much times, just permute the coefficients
             _privateKey_.permute();                                             // counter & 3 == counter % 4
 	        privateKeyZ2 = _privateKey_;                                        // ...
@@ -70,22 +67,19 @@ void Encryption::setKeys() {
 	    }
 	    try{ Zp_gcdXNmns1=_privateKey_.gcdXNmns1(_privateKeyInv_p_); }
 	    catch(const char* exp) {
-            std::cout<<"\nIn file Encryption.cpp, function void NTRU"
-            "encryption::setKeys()\n";
+            std::cout<<"\nIn file Encryption.cpp, function void NTRUencryption::setKeys()\n";
             throw;
 	    }
 	    try{ Z2_gcdXNmns1 = privateKeyZ2.gcdXNmns1(privateKeyInv_2); }
 	    catch(const char* exp) {
-            std::cout<<"\nIn file Encryption.cpp, function void NTRU"
-            "encryption::setKeys()\n";
+            std::cout<<"\nIn file Encryption.cpp, function void NTRUencryption::setKeys()\n";
             throw;
     	}
 	    counter++;
-	    if((counter & 31) == 0) std::cout << counter << std::endl;
 	}
 
     privateKeyZq = _privateKey_;
-	privateKeyInv_q = ZqPolynomial(privateKeyInv_2, this->q);                   // Something funny is going on here
+	privateKeyInv_q = ZqPolynomial(privateKeyInv_2, this->q);
 
 	while(k < this->q) {
 	    privateKeyInv_q = privateKeyInv_q*(2 - privateKeyZq*privateKeyInv_q);
@@ -95,9 +89,9 @@ void Encryption::setKeys() {
 	this->privateKey = _privateKey_;
 	this->privateKeyInv_p = _privateKeyInv_p_;
 	if(Fq*this->privateKey == 1) {
-	    (Fq*this->privateKey).println("Fq*fq");
+	    //(Fq*this->privateKey).println("Fq*fq");
 	    if(this->privateKey*this->privateKeyInv_p == 1) {
-	        (this->privateKey*this->privateKeyInv_p).println("Fp*fp");
+	        //(this->privateKey*this->privateKeyInv_p).println("Fp*fp");
 	        if(counter > 1)
 	            std::cout << "Private key was found after " <<counter<< " attempts.\n";
 	        else
@@ -111,4 +105,3 @@ void Encryption::setKeys() {
 	g = ZqCenterPolynomial::randomTernary((unsigned)this->d, this->N, this->q, true);
 	this->publicKey = g*Fq;
 }
-
