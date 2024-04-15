@@ -15,7 +15,7 @@ struct ZqPolynomial;
 struct ZpCenterPolynomial;
 struct ZqCenterPolynomial;
 struct ZpPolynomial {															// Representation of the polynomials in Zp[x]/(x^N-1)
-	private: enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};									// ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
+	private: enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};								// ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
 	static const Z3 Z3add [3][3];												// Addition in Z3
 	static const Z3 Z3subt[3][3];												// Subtraction in Z3
 	static const Z3 Z3prod[3][3];												// Product in Z3
@@ -109,24 +109,27 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 		NTRU_q q;
 		unsigned  q_1;															// Will hold q-1, this will help with mod q operation
 
-		public: Zq(NTRU_q _q_): q(_q_), q_1(_q_-1) {}
+		public: Zq(NTRU_q _q_): q(_q_), q_1((unsigned)_q_-1) {}
 		public: inline NTRU_q get_q() const{ return q; }
 
 		unsigned mod_q(unsigned t) const{										// operation t % q
 			return t & this->q_1;												// Since q is a power of two, t & (q-1) is equivalent to t%q, but much faster
 		}
 		unsigned add(unsigned a, unsigned b) const{
-			return a+b & this->q_1;
+			return (a+b) & this->q_1;
+		}
+		void addEqual(unsigned& a, unsigned b) const{
+			a = (a+b) & this->q_1;
 		}
 		unsigned subtract(unsigned a, unsigned b) const{
-			return a+this->negative(b) & this->q_1;
+			return (a+this->negative(b)) & this->q_1;
 		}
 		unsigned product(unsigned a, unsigned b) const{
 			return a*b & this->q_1;
 		}
 		unsigned negative(unsigned a) const{
 			if(a == 0) return a;
-			return  this->q - (a&this->q_1);
+			return -(a&this->q_1)&this->q_1;									// Since q is a power of two, this is equivalent to q - a%q
 		}
 	};
 
@@ -217,7 +220,7 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	ZqPolynomial& operator = (const ZqPolynomial& P);
 	ZqPolynomial& operator = (const ZpPolynomial& P);
 
-	inline int operator[](int i) const{
+	inline unsigned operator[](int i) const{
 		if(i < 0) i = -i;
 		if(i > this->N) i %= this->N;
 		return this->coefficients[i];

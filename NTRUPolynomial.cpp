@@ -725,44 +725,42 @@ void ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) const{
 
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZqPolynomial |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-ZqPolynomial::ZqPolynomial(NTRU_N _N_, NTRU_q _q_):N(_N_),_Zq_(_q_) {
-    this->coefficients = new int[_N_];
+ZqPolynomial::ZqPolynomial(NTRU_N _N_, NTRU_q _q_): N(_N_), _Zq_(_q_) {
+    this->coefficients = new unsigned[_N_];
     for(int i = 0; i < this->N; i++) this->coefficients[i] = 0;
 }
 
-ZqPolynomial::ZqPolynomial(const ZpPolynomial& P,NTRU_q _q_):
-N(P.get_N()), _Zq_(_q_) {
-	this->coefficients = new int[this->N];
+ZqPolynomial::ZqPolynomial(const ZpPolynomial& P,NTRU_q _q_): N(P.get_N()), _Zq_(_q_) {
+	this->coefficients = new unsigned[this->N];
 	switch(P.get_p()){
 	    case _3_:
 	    for(int i = 0; i < this->N; i++) {
-	        if(P[i] == 2) this->coefficients[i] = _q_- 1;                       // Since (1+2) mod 3 == 0, 2 must be sent to the additive inverse of 1 in Zq;
-	        else this->coefficients[i] = P[i];
+	        if(P[i] == 2) this->coefficients[i] = (unsigned)_q_- 1;                       // Since (1+2) mod 3 == 0, 2 must be sent to the additive inverse of 1 in Zq;
+	        else this->coefficients[i] = (unsigned)P[i];
 	    }
 	    break;
 	}
 }
 
-ZqPolynomial::ZqPolynomial(const ZqPolynomial& P): N(P.N),
-_Zq_(P._Zq_) {
-    this->coefficients = new int[P.N];
+ZqPolynomial::ZqPolynomial(const ZqPolynomial& P): N(P.N), _Zq_(P._Zq_) {
+    this->coefficients = new unsigned[P.N];
     for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
 }
 
 ZqPolynomial::ZqPolynomial(const Z2Polynomial& P,NTRU_q _q_):
 N(P.get_N()), _Zq_(_q_) {
-    this->coefficients = new int[this->N];
-    for(int i = 0; i < this->N; i++) this->coefficients[i] = (int)P[i];
+    this->coefficients = new unsigned[this->N];
+    for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
 }
 
 ZqPolynomial& ZqPolynomial::operator = (const ZqPolynomial& P) {
 	if(this != &P) {														    // Guarding against self assignment
 		if(this->N != P.N) {												    // Delete pass coefficients array. If this->N != P.N is true, there is no reason
 			if(this->coefficients != NULL) delete[] this->coefficients;		    // to delete the array
-			this->coefficients = new int[P.N];
+			this->coefficients = new unsigned[P.N];
 			this->N = P.N;
 		}
-		if(this->coefficients == NULL) this->coefficients = new int[P.N];
+		if(this->coefficients == NULL) this->coefficients = new unsigned[P.N];
 		this->_Zq_ = P._Zq_;
 		for(int i = 0; i < this->N; i++)
 			this->coefficients[i] = P.coefficients[i];
@@ -774,23 +772,22 @@ ZqPolynomial& ZqPolynomial::operator = (const ZpPolynomial& P) {
     NTRU_N P_N = P.get_N();
 	if(this->N != P_N) {											            // Delete past coefficients array. If this->N != P.N is true, there is no reason
 		if(this->coefficients != NULL) delete[] this->coefficients;	            // to delete the array
-		this->coefficients = new int[P_N];
+		this->coefficients = new unsigned[P_N];
 		this->N = P_N;
 	}
-	if(this->coefficients == NULL) this->coefficients = new int[P_N];           // In case of having an object created with the default (private) constructor
+	if(this->coefficients == NULL) this->coefficients = new unsigned[P_N];           // In case of having an object created with the default (private) constructor
 	switch(P.get_p()){
 	    case _3_:
 	    for(int i = 0; i < P_N; i++) {
-	        if(P[i] == 2) this->coefficients[i] = this->_Zq_.get_q() - 1;
-	        else this->coefficients[i] = P[i];
+	        if(P[i] == 2) this->coefficients[i] = (unsigned)this->_Zq_.get_q() - 1;
+	        else this->coefficients[i] = (unsigned)P[i];
 	    }
 	}
 	return *this;
 }
 
 ZqPolynomial ZqPolynomial::operator - (const ZqPolynomial& P) const{
-    ZqPolynomial r(max_N(this->N, P.N),
-                        max_q(this->_Zq_.get_q(),P._Zq_.get_q()) );             // Initializing result in the "biggest polynomial ring"
+    ZqPolynomial r(max_N(this->N, P.N), max_q(this->_Zq_.get_q(),P._Zq_.get_q())); // Initializing result in the "biggest polynomial ring
     int i, small_degree, big_degree;                                            // Degree of the polynomials, small_degree <= big_degree
 
     if(this->degree() < P.degree()) {
@@ -803,20 +800,16 @@ ZqPolynomial ZqPolynomial::operator - (const ZqPolynomial& P) const{
 	}
 
     for(i = 0; i <= small_degree; i++)
-        r.coefficients[i] =
-        r._Zq_.subtract(this->coefficients[i],P.coefficients[i]);               // Subtraction element by element till the smallest degree of the arguments
+        r.coefficients[i] = r._Zq_.subtract(this->coefficients[i],P.coefficients[i]); // Subtraction element by element till the smallest degree of the arguments
     if(this->degree() == big_degree)
-        for(; i <= big_degree; i++)
-            r.coefficients[i] = this->coefficients[i];
+        for(; i <= big_degree; i++) r.coefficients[i] = this->coefficients[i];
     else
-        for(; i <= big_degree; i++)
-            r.coefficients[i] = r._Zq_.negative(this->coefficients[i]);
+        for(; i <= big_degree; i++) r.coefficients[i] = r._Zq_.negative(P.coefficients[i]);
     return r;
 }
 
 ZqPolynomial ZqPolynomial::operator * (const ZqPolynomial& P) const{
-    ZqPolynomial r(max_N(this->N, P.N),
-                        max_q(this->_Zq_.get_q(),P._Zq_.get_q()));              // Initializing result in the "biggest polynomial ring"
+    ZqPolynomial r(max_N(this->N, P.N),max_q(this->_Zq_.get_q(),P._Zq_.get_q())); // Initializing result in the "biggest polynomial ring"
     int i, j, k;
     int this_degree = this->degree();
     int P_degree    = P.degree();
@@ -825,22 +818,15 @@ ZqPolynomial ZqPolynomial::operator * (const ZqPolynomial& P) const{
 		if(this->coefficients[i] != 0)                                          // Taking advantage this polynomials have a big proportion of zeros
 		    for(j = 0; j <= P_degree; j++) {
 			    if(P.coefficients[j] != 0) {
-			        if((k = i + j) < r.N) {
-			            r.coefficients[k] += r._Zq_.product(
-			            this->coefficients[i], P.coefficients[j]);
-			        } else {
-			            k -= r.N;
-			            r.coefficients[k] += r._Zq_.product(
-			            this->coefficients[i], P.coefficients[j]);
-			        }
-			        r.coefficients[k] = r._Zq_.mod_q(r.coefficients[k]);
+			        if((k = i + j) >= r.N) k -= r.N;
+			        r._Zq_.addEqual(r.coefficients[k], r._Zq_.product(this->coefficients[i], P.coefficients[j]));
 			    }
 		    }
 	}
 	return r;
 }
 
-ZqPolynomial NTRUPolynomial::operator - (int t, const ZqPolynomial& P) {
+ZqPolynomial NTRUPolynomial::operator - (unsigned t, const ZqPolynomial& P) {
     ZqPolynomial r(P.N, P.get_q());
     r.coefficients[0] = P._Zq_.subtract(t, P.coefficients[0]);
     for(int i = 1; i < P.N; i++)
@@ -895,7 +881,7 @@ p(P.get_p()) {
     case _3_:
         for(int i = 0; i < this->N; i++) {                                      // Just centering
             this->coefficients[i] = _0;
-            if(P[i] == 2) this->coefficients[i] = _1_;
+            if(P[i] == 2) this->coefficients[i] = _1_;                          // Two goes to -1
             if(P[i] == 1) this->coefficients[i] = _1 ;
         }
     }
@@ -996,13 +982,14 @@ bool ZpCenterPolynomial::operator == (const ZpPolynomial& P) const{
 void ZpCenterPolynomial::printTheDifferences(const ZpPolynomial& P, const char* leftName, const char* righName) const{
     std::cout << '\n';
     if(this->N != P.get_N()) std::cout << leftName << ".N == " << this->N << ", " << righName << ".N == " << P.get_N() << '\n';
-    if(this->get_p() != P.get_p()) std::cout << leftName << ".p == " << this->p << ", " << righName << ".p == " << P.get_p() << '\n';
+    if(this->p != P.get_p()) std::cout << leftName << ".p == " << this->p << ", " << righName << ".p == " << P.get_p() << '\n';
     for(int i = 0; i < this->N; i++) {
         if(this->coefficients[i] == _1_) {
-            if(P[i] != 2) std::cout << leftName << "[" << i << "] == " << this->coefficients[i] << ", " << righName << "[" << i << "] == " << P[i] << '\n';
-        }
-        else if(this->coefficients[i] != P[i]) std::cout << leftName << "[" << i << "] == " << this->coefficients[i] << ", " << righName << "[" << i << "] == " <<
-                                               P[i] << '\n';
+            if(P[i] != 2)
+                std::cout << leftName << "[" << i << "] == " << this->coefficients[i] << ", " << righName << "[" << i << "] == " << P[i] << '\n';
+        } else
+            if(this->coefficients[i] != P[i])
+                std::cout << leftName << "[" << i << "] == " << this->coefficients[i] << ", " << righName << "[" << i << "] == " << P[i] << '\n';
     }
 }
 
