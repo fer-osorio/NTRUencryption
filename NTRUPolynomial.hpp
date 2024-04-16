@@ -46,11 +46,6 @@ struct ZpPolynomial {															// Representation of the polynomials in Zp[x
 	Z3*  coeffCopy 	  = NULL;													// Copy of the coefficients. Useful at the moment of permute the coefficients
 
 	public:
-	static const int Z3addition[3][3];											// Addition table of the Z3 ring (integers modulo 3)
-	static const int Z3subtraction[3][3];										// Subtraction table of the Z3 ring (integers modulo 3)
-	static const int Z3product[3][3];											// Product table of the Z3 ring (integers modulo 3)
-
-	public:
 	ZpPolynomial(const ZpPolynomial& P);
 	ZpPolynomial(const ZpCenterPolynomial& P);
 	ZpPolynomial(NTRU_N _N_, int ones=0, int twos=0, NTRU_p _p_=_3_);			// Ones and twos will dictate the amount of 1 and 2 respectively
@@ -334,8 +329,22 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 
 		public:
 		ZqCentered(NTRU_q _q_): q(_q_), q_1(_q_-1), negq_1(~q_1) {}
-		int addition(int a, int b) const;
-		int mods_q(int a) const;
+		int addition(int a, int b) const{
+    		return this->mods_q(a+b);
+		}
+		int mods_q(int a) const{
+    		int r, q_div_2 = this->q >> 1;
+    		if(a >= 0) {
+    	    	r = a & this->q_1;												// Equivalent to a % q since q is a power of 2
+    		} else {
+    	    	r = -(-a & this->q_1)&this->q_1;								// Computing q - (q - (a % q)) with a fast algorithm
+    	    	if(r == 0) return r;											// Possible at least for the multiples of q
+    		}																	// Optimization possible with the pre-computing of the negatives in Zq
+    		if(r < q_div_2) {													// At this point we know -q < r < q
+    	    	if(r > -q_div_2) return r;
+    		    else return r&this->q_1;										// Equivalent to r + q
+    		} else return r | this->negq_1;										// This is equivalent to r - this->q when r < q
+		}
 
 		NTRU_q get_q() const{return this->q;}
 	};

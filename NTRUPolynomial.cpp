@@ -18,18 +18,6 @@ const ZpPolynomial::Z3 ZpPolynomial::Z3prod[3][3] = {{_0_,_0_,_0_},             
 
 const ZpPolynomial::Z3 ZpPolynomial::Z3neg[3]     =  {_0_, _2_, _1_};
 
-const int ZpPolynomial::Z3addition[3][3] = {{0, 1, 2},                          // Addition table of the Z3 ring (integers modulo 3)
-                                            {1, 2, 0},                          // ...
-                                            {2, 0, 1}};                         // ...
-
-const int ZpPolynomial::Z3subtraction[3][3] = {{0, 2, 1},                       // Addition table of the Z3 ring (integers modulo 3)
-                                               {1, 0, 2},                       // ...
-                                               {2, 1, 0}};                      // ...
-
-const int ZpPolynomial::Z3product[3][3] = {{0, 0, 0},                           // Product table of the Z3 ring (integers modulo 3)
-                                           {0, 1, 2},                           // ...
-                                           {0, 2, 1}};                          // ...
-
 inline static int min(int a, int b) {
 	if(a < b) return a;
 	return b;
@@ -231,15 +219,20 @@ ZpPolynomial ZpPolynomial::operator * (const ZpPolynomial& P) const{
     ZpPolynomial r(max_N(this->N, P.N));                                        // Initializing with zeros
     int i, j, k;
     int this_degree = this->degree();
-    int P_degree    = P.degree();
 
 	for(i = 0; i <= this_degree; i++) {
-		if(this->coefficients[i] != 0)
-		for(j = 0; j <= P_degree; j++) {
-			if(P.coefficients[j] != 0) {
-			    if((k = i + j) >= this->N) k-= this->N;
-			    r.coefficients[k] += this->coefficients[i]*P.coefficients[j];
-			}
+		if(this->coefficients[i] != 0) {
+		    k = this->N - i;
+		    for(j = 0; j < k; j++) {                                            // Adding and multiplying while the inequality i+j < N holds
+			    if(P.coefficients[j] != 0) {                                    // We expect a big proportion of zeros
+			        r.coefficients[i+j] += this->coefficients[i]*P.coefficients[j];
+			    }
+		    }
+		    for(k = 0; k < i; j++, k++) {                                       // Using the definition of convolution polynomial rings
+			    if(P.coefficients[j] != 0) {                                    // Notice i+k is congruent with j mod N
+			        r.coefficients[k] += this->coefficients[i]*P.coefficients[j];
+			    }
+		    }
 		}
 	}
     return r;
@@ -560,20 +553,21 @@ ZqPolynomial::Z2Polynomial ZqPolynomial::Z2Polynomial::operator * (const Z2Polyn
     Z2Polynomial r(max_N(this->N, P.N));
     int i, j, k;
     int this_degree = this->degree();
-    int P_degree    = P.degree();
 
 	for(i = 0; i <= this_degree; i++) {
-		if(this->coefficients[i] != _0_)                                        // Taking advantage this polynomials have a big proportion of zeros
-		    for(j = 0; j <= P_degree; j++) {
-			    if(P.coefficients[j] != _0_) {
-			        if((k = i + j) < r.N)
-			            r.coefficients[k] +=
-			            this->coefficients[i]*P.coefficients[j];
-			        else
-			            r.coefficients[k-r.N] +=
-			            this->coefficients[i]*P.coefficients[j];
+		if(this->coefficients[i] != 0) {
+		    k = this->N - i;
+		    for(j = 0; j < k; j++) {                                            // Adding and multiplying while the inequality i+j < N holds
+			    if(P.coefficients[j] != 0) {                                    // We expect a big proportion of zeros
+			        r.coefficients[i+j] += this->coefficients[i]*P.coefficients[j];
 			    }
 		    }
+		    for(k = 0; k < i; j++, k++) {                                       // Using the definition of convolution polynomial rings
+			    if(P.coefficients[j] != 0) {                                    // Notice i+j = i +(k+N-i), so i+j is congruent with k mod N
+			        r.coefficients[k] += this->coefficients[i]*P.coefficients[j];
+			    }
+		    }
+		}
 	}
 	return r;
 }
@@ -812,16 +806,21 @@ ZqPolynomial ZqPolynomial::operator * (const ZqPolynomial& P) const{
     ZqPolynomial r(max_N(this->N, P.N),max_q(this->_Zq_.get_q(),P._Zq_.get_q())); // Initializing result in the "biggest polynomial ring"
     int i, j, k;
     int this_degree = this->degree();
-    int P_degree    = P.degree();
 
 	for(i = 0; i <= this_degree; i++) {
-		if(this->coefficients[i] != 0)                                          // Taking advantage this polynomials have a big proportion of zeros
-		    for(j = 0; j <= P_degree; j++) {
-			    if(P.coefficients[j] != 0) {
-			        if((k = i + j) >= r.N) k -= r.N;
+		if(this->coefficients[i] != 0) {                                        // Taking advantage this polynomials have a big proportion of zeros
+		    k = this->N - i;
+		    for(j = 0; j < k; j++) {                                            // Ensuring we do not get out of the polynomial
+			    if(P.coefficients[j] != 0) {                                    // Expecting a big proportion of zeros
+			        r._Zq_.addEqual(r.coefficients[i+j], r._Zq_.product(this->coefficients[i], P.coefficients[j]));
+			    }
+		    }
+		    for(k = 0; k < i; j++, k++) {                                       // Using the definition of convolution polynomial ring
+			    if(P.coefficients[j] != 0) {                                    // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
 			        r._Zq_.addEqual(r.coefficients[k], r._Zq_.product(this->coefficients[i], P.coefficients[j]));
 			    }
 		    }
+		}
 	}
 	return r;
 }
@@ -868,14 +867,12 @@ const ZpCenterPolynomial::Z3 ZpCenterPolynomial::Z3subs[3][3] = { {_0 ,_1_,_1 },
                                                                   {_1 ,_0 ,_1_},
                                                                   {_1_,_1 ,_0 } };
 
-ZpCenterPolynomial::ZpCenterPolynomial(const ZpCenterPolynomial& P): N(P.N),
-p(P.get_p()) {
+ZpCenterPolynomial::ZpCenterPolynomial(const ZpCenterPolynomial& P): N(P.N), p(P.get_p()) {
     this->coefficients = new Z3[P.N];
     for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
 }
 
-ZpCenterPolynomial::ZpCenterPolynomial(const ZpPolynomial& P): N(P.get_N()),
-p(P.get_p()) {
+ZpCenterPolynomial::ZpCenterPolynomial(const ZpPolynomial& P): N(P.get_N()), p(P.get_p()) {
     this->coefficients = new Z3[this->N];
     switch(this->p) {
     case _3_:
@@ -943,16 +940,21 @@ ZpCenterPolynomial ZpCenterPolynomial::operator * (ZpCenterPolynomial& P) const{
     ZpCenterPolynomial r(max_N(this->N, P.N),max_p(this->get_p(),P.get_p()));   // Initializing result in the "biggest polynomial ring"
     int i, j, k;
     int this_degree = this->degree();
-    int P_degree    = P.degree();
 
 	for(i = 0; i <= this_degree; i++) {
-		if(this->coefficients[i] != _0)                                          // Taking advantage this polynomials have a big proportion of zeros
-		    for(j = 0; j <= P_degree; j++) {
-			    if(P.coefficients[j] != _0) {
-			        if((k = i + j) >= r.N) k -= r.N;
+		if(this->coefficients[i] != 0) {
+		    k = this->N - i;
+		    for(j = 0; j < k; j++) {                                            // Adding and multiplying while the inequality i+j < N holds
+			    if(P.coefficients[j] != 0) {                                    // We expect a big proportion of zeros
+			        r.coefficients[i+j] += this->coefficients[i]*P.coefficients[j];
+			    }
+		    }
+		    for(k = 0; k < i; j++, k++) {                                       // Using the definition of convolution polynomial rings
+			    if(P.coefficients[j] != 0) {                                    // Notice i+k is congruent with j mod N
 			        r.coefficients[k] += this->coefficients[i]*P.coefficients[j];
 			    }
 		    }
+		}
 	}
 	return r;
 }
@@ -1016,39 +1018,17 @@ void ZpCenterPolynomial::println(const char* name) const{
 
 // ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZqCenterPolynomial ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-int ZqCenterPolynomial::ZqCentered::addition(int a, int b) const{
-    return this->mods_q(a+b);
-}
-
-int ZqCenterPolynomial::ZqCentered::mods_q(int a) const{
-    int r, q_div_2 = this->q >> 1;
-    if(a >= 0) {
-        r = a & this->q_1;                                                      // Equivalent to a % q since q is a power of 2
-    } else {
-        r = -a & this->q_1;                                                     // Computing q - (-a % q) with a fast algorithm
-        if(r == 0) return r;                                                    // Possible at least for the multiples of q
-        r = this->q - r;                                                        // q - (-a & (q-1)) = q + [~(-a & (q-1)) + 1]
-    }                                                                           // Optimization possible with the pre-computing of the negatives in Zq
-    if(r < q_div_2) {
-        if(r > -q_div_2) return r;
-        else return r + this->q;                                                // Look for optimizations here
-    } else return r | this->negq_1;                                             // This is equivalent to r - this->q when r < q
-}
-
-ZqCenterPolynomial::ZqCenterPolynomial(const ZqCenterPolynomial& P): N(P.N),
-_Zq_(P._Zq_) {
+ZqCenterPolynomial::ZqCenterPolynomial(const ZqCenterPolynomial& P): N(P.N), _Zq_(P._Zq_) {
     this->coefficients = new int[P.N];
     for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
 }
 
-ZqCenterPolynomial::ZqCenterPolynomial(NTRU_N _N_, NTRU_q _q_):
-N(_N_), _Zq_(_q_) {
+ZqCenterPolynomial::ZqCenterPolynomial(NTRU_N _N_, NTRU_q _q_): N(_N_), _Zq_(_q_) {
     this->coefficients = new int[_N_];
     for(int i = 0; i < _N_; i++) this->coefficients[i] = 0;
 }
 
-ZqCenterPolynomial::ZqCenterPolynomial(const ZpPolynomial& P, NTRU_q _q_, bool times_p):
-N(P.get_N()), _Zq_(_q_) {
+ZqCenterPolynomial::ZqCenterPolynomial(const ZpPolynomial& P, NTRU_q _q_, bool times_p): N(P.get_N()), _Zq_(_q_) {
     NTRU_p _p_ = P.get_p();
     this->coefficients = new int[this->N];
     switch(_p_) {
@@ -1140,16 +1120,21 @@ ZqCenterPolynomial ZqCenterPolynomial::operator * (const ZqCenterPolynomial& P) 
     ZqCenterPolynomial r(max_N(this->N, P.N),max_q(this->get_q(),P.get_q()));   // Initializing result in the "biggest polynomial ring"
     int i, j, k;
     int this_degree = this->degree();
-    int P_degree    = P.degree();
 
 	for(i = 0; i <= this_degree; i++) {
-		if(this->coefficients[i] != 0)                                          // Taking advantage this polynomials have a big proportion of zeros
-		    for(j = 0; j <= P_degree; j++) {
-			    if(P.coefficients[j] != 0) {
-			        if((k = i + j) >= r.N) k -= r.N;
+		if(this->coefficients[i] != 0) {                                        // Taking advantage this polynomials have a big proportion of zeros
+		    k = this->N - i;
+		    for(j = 0; j < k; j++) {                                            // Adding and multiplying while the inequality i+j < N holds
+			    if(P.coefficients[j] != 0) {                                    // We expect a big proportion of zeros
+			        r.coefficients[i+j] += this->coefficients[i]*P.coefficients[j];
+			    }
+		    }
+		    for(k = 0; k < i; j++, k++) {                                       // Using the definition of convolution polynomial rings
+			    if(P.coefficients[j] != 0) {                                    // Notice i+k is congruent with j mod N
 			        r.coefficients[k] += this->coefficients[i]*P.coefficients[j];
 			    }
 		    }
+		}
 	}
 	for(k = 0; k < r.N; k++)
 	    r.coefficients[k] = r._Zq_.mods_q(r.coefficients[k]);                   // Computing the center modulus (check the function mods_q)
