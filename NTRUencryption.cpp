@@ -21,6 +21,14 @@ ZqCenterPolynomial Encryption::encrypt(const ZpCenterPolynomial& msg) {
     return this->publicKey*r + _msg_;
 }
 
+ZqCenterPolynomial Encryption::encrypt(const char fstring[]) {
+    int l = -1;
+    while(fstring[++l] != 0) {}
+    ZqCenterPolynomial _msg_(ZpCenterPolynomial(this->N, this->p, fstring, l), this->q);
+    ZqCenterPolynomial r = ZqCenterPolynomial::randomTernary((unsigned)this->d, this->N, this->q, true); // Ternary polynomial multiplied by p (default p = 3)
+    return this->publicKey*r + _msg_;
+}
+
 ZpCenterPolynomial Encryption::decrypt(const ZqCenterPolynomial& e_msg) {
     ZqCenterPolynomial a = e_msg*this->privateKey;
     a.mods_p(this->p);

@@ -18,6 +18,7 @@ class Encryption {
 	public:
 	Encryption(NTRU_N _N_, NTRU_q _q_, int _d_=0,NTRU_p _p_=_3_);
 	ZqCenterPolynomial encrypt(const ZpCenterPolynomial&);
+	ZqCenterPolynomial encrypt(const char fstring[]);							// Encryption of formatted string
 	ZpCenterPolynomial decrypt(const ZqCenterPolynomial&);
 
 	NTRU_N get_N() const{ return this->N; }
