@@ -5,7 +5,7 @@
 
 #define DECIMAL_BASE 10
 
-enum NTRU_N {_509_  = 509,  _677_  = 677,  _701_  = 701,  _821_ = 821, _1171_ = 1171 };	// All the possible values for the N
+enum NTRU_N {_509_  = 509,  _677_  = 677,  _701_  = 701,  _821_ = 821, _1087_ = 1087, _1171_ = 1171, _1499_ = 1499 };	// All the possible values for the N
 enum NTRU_q {_2048_ = 2048, _4096_ = 4096, _8192_ = 8192 };						// All the possible values for the q
 enum NTRU_p {_3_	= 3 };
 
@@ -291,6 +291,7 @@ class ZpCenterPolynomial {
 	ZpCenterPolynomial(const ZpPolynomial&);
 	ZpCenterPolynomial(NTRU_N _N_, NTRU_p _p_, unsigned ones = 0, unsigned negOnes = 0);
 	ZpCenterPolynomial(const ZqCenterPolynomial&, NTRU_p);						// It will copy all the ones and negative ones. Everything else will be zero
+	ZpCenterPolynomial(NTRU_N _N_, NTRU_p _p_, const char data[], int length);	// Creating polynomial from array of bytes
 	~ZpCenterPolynomial() {
 		if(this->coefficients != NULL) delete[] this->coefficients;
 	}
@@ -312,6 +313,7 @@ class ZpCenterPolynomial {
 	NTRU_N get_N() const{ return this->N; }
 	NTRU_p get_p() const{ return this->p; }
 	int degree() const;															// Gets the last nonzero index. If this is the zero polynomial, returns -1
+	void toByteArray(char dest[]) const;
 
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
@@ -354,8 +356,6 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 	public:
 	ZqCenterPolynomial(const ZqCenterPolynomial& P);
 	ZqCenterPolynomial(NTRU_N, NTRU_q);											// Returns the zero polynomial in this ring
-	ZqCenterPolynomial(const ZpPolynomial& P,NTRU_q _q_,bool times_p=false);	// Copies and centers a ZpPolynomial. If times_p is true, the polynomial created
-																				// is equivalent to a ZpPolynomial times its own p; this will help in key creation
 	ZqCenterPolynomial(const ZqPolynomial& P);									// Copies and centers a ZqPolynomial
 	ZqCenterPolynomial(const ZpCenterPolynomial&, NTRU_q);						// Copies the content of a ZpCenterPolynomial
 	~ZqCenterPolynomial() {

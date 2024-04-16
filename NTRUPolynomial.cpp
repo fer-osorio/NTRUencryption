@@ -910,14 +910,39 @@ N(_N_), p(_p_) {
 	}
 }
 
-ZpCenterPolynomial::ZpCenterPolynomial(const ZqCenterPolynomial& P, NTRU_p _p_):
-N(P.get_N()), p(_p_) {
+ZpCenterPolynomial::ZpCenterPolynomial(const ZqCenterPolynomial& P, NTRU_p _p_): N(P.get_N()), p(_p_) {
     this->coefficients = new Z3[this->N];
     for(int i = 0; i < this->N; i++) {                                          // This process will just take in account the ones and negative ones, all the
-        this->coefficients[i] = _0;                                                  // other numbers will taken as zero
+        this->coefficients[i] = _0;                                             // other numbers will taken as zero
         if(P[i] ==  1 || P[i] == -2) this->coefficients[i] = _1 ;
         if(P[i] == -1 || P[i] ==  2) this->coefficients[i] = _1_;
     }
+}
+
+ZpCenterPolynomial::ZpCenterPolynomial(NTRU_N _N_, NTRU_p _p_, const char data[], int length): N(_N_), p(_p_) {
+    int i,j,k,l,s;
+
+    this->coefficients = new Z3[_N_];
+    for(i = 0; i < _N_; i++) this->coefficients[i] = _0;
+    if(length <= 0) return;                                                     // Guarding against negative or null length
+
+    for(i = 0, j = 0; i < length && j < _N_; i++) {                             // i will run through data, j through coefficients
+        l = (int)(unsigned char)data[i];
+        for(k = 0; k < 5 && j < _N_; k++, s/=3) {                               // Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
+            switch(s=l%3) {                                                     // in big endian notation. Notice that the maximum value allowed is 242
+                case  1:
+                    this->coefficients[j++] = _1;
+                break;
+                case  2:
+                    this->coefficients[j++] = _1_;
+                break;
+                default:
+                    this->coefficients[j++] = _0;
+            }
+        }
+    }
+    if(j < _N_)                                                                 // Padding with zeros (provisional, not intended to be secure)
+        for(; j < N; j++) this->coefficients[j++] = _0;
 }
 
 ZpCenterPolynomial& ZpCenterPolynomial::operator = (const ZpCenterPolynomial& P) {
@@ -1001,6 +1026,26 @@ int ZpCenterPolynomial::degree() const{
     return i;                                                                   // Notice that in case of zero polynomial the return is -1
 }
 
+void ZpCenterPolynomial::toByteArray(char dest[]) const{
+    int i,j,k;
+    unsigned s;
+    for(i = 0, j = this->N; j > 0; i++) {                                       // i will run through dest, j through coefficients
+        for(k = 0, s = 0; k < 5 && j > 0; k++) {                                // Here we're supposing _p_ == 3. Basically we're changing from base 3 to base 2
+            switch(this->coefficients[--j]) {                                   // Supposing the numbers in base 3 are in big endian notation, that's the reason
+                case  _1:                                                       // for --j
+                    s = s*3 + 1;
+                break;
+                case  _1_:
+                    s = s*3 + 2;
+                break;
+                default:
+                    s *= 3;
+            }
+        }
+        dest[i] = (char)(int)s;
+    }
+}
+
 void ZpCenterPolynomial::print(const char* name, const char* tail) const{
     int arrlen = this->degree() + 1;                                            // This three lines is a "casting" from Z2 array to int array
     int* array = new int[arrlen], i;                                            // ...
@@ -1026,25 +1071,6 @@ ZqCenterPolynomial::ZqCenterPolynomial(const ZqCenterPolynomial& P): N(P.N), _Zq
 ZqCenterPolynomial::ZqCenterPolynomial(NTRU_N _N_, NTRU_q _q_): N(_N_), _Zq_(_q_) {
     this->coefficients = new int[_N_];
     for(int i = 0; i < _N_; i++) this->coefficients[i] = 0;
-}
-
-ZqCenterPolynomial::ZqCenterPolynomial(const ZpPolynomial& P, NTRU_q _q_, bool times_p): N(P.get_N()), _Zq_(_q_) {
-    NTRU_p _p_ = P.get_p();
-    this->coefficients = new int[this->N];
-    switch(_p_) {
-    case _3_:                                                                   // We're supposing the coefficients of P are in the set {0,1,2}
-        if(times_p)                                                             // If true, it will do the equivalent to center multiply each coefficient time p
-            for(int i = 0; i < this->N; i++) {
-                this->coefficients[i] = 0;
-                if(P[i] == 1) this->coefficients[i] =  3;
-                if(P[i] == 2) this->coefficients[i] = -3;
-            }
-        else
-            for(int i = 0; i < this->N; i++) {                                  // Just centering
-                if(P[i] == 2) this->coefficients[i] = -1;
-                else this->coefficients[i] = P[i];
-            }
-    }
 }
 
 ZqCenterPolynomial::ZqCenterPolynomial(const ZqPolynomial& P): N(P.get_N()),
@@ -1233,5 +1259,3 @@ bool NTRUPolynomial::operator == (const ZqCenterPolynomial& Pq, const ZpCenterPo
 }
 
 //____________________________________________________________________ ZqCenterPolynomial  ________________________________________________________________________
-
-
