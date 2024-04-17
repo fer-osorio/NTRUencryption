@@ -920,7 +920,7 @@ ZpCenterPolynomial::ZpCenterPolynomial(const ZqCenterPolynomial& P, NTRU_p _p_):
 }
 
 ZpCenterPolynomial::ZpCenterPolynomial(NTRU_N _N_, NTRU_p _p_, const char data[], int length): N(_N_), p(_p_) {
-    int i,j,k,l,s;
+    int i,j,k,l;
 
     this->coefficients = new Z3[_N_];
     for(i = 0; i < _N_; i++) this->coefficients[i] = _0;
@@ -928,8 +928,8 @@ ZpCenterPolynomial::ZpCenterPolynomial(NTRU_N _N_, NTRU_p _p_, const char data[]
 
     for(i = 0, j = 0; i < length && j < _N_; i++) {                             // i will run through data, j through coefficients
         l = (int)(unsigned char)data[i];
-        for(k = 0; k < 5 && j < _N_; k++, s/=3) {                               // Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
-            switch(s=l%3) {                                                     // in big endian notation. Notice that the maximum value allowed is 242
+        for(k = 0; k < 5 && j < _N_; k++, l/=3) {                               // Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
+            switch(l%3) {                                                     // in big endian notation. Notice that the maximum value allowed is 242
                 case  1:
                     this->coefficients[j++] = _1;
                 break;
@@ -1028,11 +1028,13 @@ int ZpCenterPolynomial::degree() const{
 
 void ZpCenterPolynomial::toByteArray(char dest[]) const{
     int i,j,k;
+    int N_mod_5 = this->N%5;
+    int _N_ = this->N - N_mod_5;
     unsigned s;
-    for(i = 0, j = this->N; j > 0; i++) {                                       // i will run through dest, j through coefficients
-        for(k = 0, s = 0; k < 5 && j > 0; k++) {                                // Here we're supposing _p_ == 3. Basically we're changing from base 3 to base 2
-            switch(this->coefficients[--j]) {                                   // Supposing the numbers in base 3 are in big endian notation, that's the reason
-                case  _1:                                                       // for --j
+    for(i = 0, j = 0; i < _N_; i += 5, j++) {                                        // i will run through dest, j through coefficients
+        for(k = 4, s = 0; k >= 0; k--) {                                        // Here we're supposing _p_ == 3. Basically we're changing from base 3 to base 2
+            switch(this->coefficients[i+k]) {                                   // Supposing the numbers in base 3 are in big endian notation
+                case  _1:
                     s = s*3 + 1;
                 break;
                 case  _1_:
@@ -1042,7 +1044,20 @@ void ZpCenterPolynomial::toByteArray(char dest[]) const{
                     s *= 3;
             }
         }
-        dest[i] = (char)(int)s;
+        dest[j] = (char)(int)s;
+    }
+    for(k = N_mod_5-1, s = 0; k >= 0; k--) {
+        switch(this->coefficients[i+k]) {                                   // Supposing the numbers in base 3 are in big endian notation
+                case  _1:
+                    s = s*3 + 1;
+                break;
+                case  _1_:
+                    s = s*3 + 2;
+                break;
+                default:
+                    s *= 3;
+        }
+        dest[j] = (char)(int)s;
     }
 }
 
