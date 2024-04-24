@@ -21,9 +21,7 @@
 #include<chrono>
 #include"NTRUencryption.hpp"
 
-int main(int argc, char* argv[])
-{
-
+int main(int argc, char* argv[]) {
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
 
@@ -33,13 +31,16 @@ int main(int argc, char* argv[])
     std::cout << "\nPrivate and public keys generation took "<< std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()<<"[µs]\n"<<std::endl;
 
     if(argc > 1) {
-        char str[301];
+        char str[301], enc_str[18001];
         str[300] = 0;
+        enc_str[18000] = 0;
         begin = std::chrono::steady_clock::now();
         ZqCenterPolynomial e_msg = e.encrypt(argv[1]);
         end = std::chrono::steady_clock::now();
         std::cout << "\nMessage was encrypted in " << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
         e_msg.println("Encrypted message");
+        e_msg.toBytes(enc_str);
+        std::cout << enc_str;
 
         begin = std::chrono::steady_clock::now();
         NTRUPolynomial::ZpCenterPolynomial d_msg = e.decrypt(e_msg);

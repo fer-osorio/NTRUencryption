@@ -4,6 +4,11 @@
 
 using namespace NTRUPolynomial;
 
+union longlong_to_char {                                                        // Allows to cast from an long long to an array of four bytes (char)
+    long long  _longlong_;
+    char       _char[8];
+};
+
 const ZpPolynomial::Z3 ZpPolynomial::Z3add [3][3] = {{_0_,_1_,_2_},             // Addition table of the Z3 ring (integers modulo 3)
                                                      {_1_,_2_,_0_},             // ...
                                                      {_2_,_0_,_1_}};            // ...
@@ -16,7 +21,7 @@ const ZpPolynomial::Z3 ZpPolynomial::Z3prod[3][3] = {{_0_,_0_,_0_},             
                                                      {_0_,_1_,_2_},             // ...
                                                      {_0_,_2_,_1_}};            // ...
 
-const ZpPolynomial::Z3 ZpPolynomial::Z3neg[3]     =  {_0_, _2_, _1_};
+const ZpPolynomial::Z3 ZpPolynomial::Z3neg[3]     =  {_0_,_2_,_1_};
 
 inline static int min(int a, int b) {
 	if(a < b) return a;
@@ -1238,7 +1243,28 @@ ZqCenterPolynomial ZqCenterPolynomial::randomTernary(unsigned d, NTRU_N _N_, NTR
     return r;
 }
 
-void ZqCenterPolynomial::print(const char* name,const char* tail) const{
+void ZqCenterPolynomial::toBytes(char* dest) const{                             // Supposing dest is pointing to a suitable memory location
+    int i = 0, j = 0, k = 0, l = 0, log2q = 0;                                  // log2q will hold the logarithm base two of q. Here we are assuming q < 2^32
+    int const _q_ = this->_Zq_.get_q();
+    longlong_to_char ll_c = {0};                                                // ll_c will do the cast from int to char[]
+    int _64 = 64;
+    long long buff;
+    for(buff = _q_; buff > 1; buff >>= 1, log2q++) {}                           // Computing log2q using the fact q is a power of two
+
+    for(k = 0, buff = 0; i < this->N;) {
+        ll_c._longlong_ >>= (l<<3);                                             // l*8; Ruling out the bits allocated in the last cycle
+        while(k < _64 - log2q) {
+            buff = this->coefficients[i++];
+            if(buff <= 0) buff += _q_;
+            ll_c._longlong_ |= buff << k; k += log2q;                           // Allocating log2q bits in ll_c._int_; increasing k
+            if(i >= this->N) break;
+        }
+        for(l = 0; k >= 8; l++, k -= 8) dest[j++] = ll_c._char[l];              // Writing the last two bytes on destination
+    }
+    if(k > 0) dest[j++] = ll_c._char[l];
+}
+
+void ZqCenterPolynomial::print(const char* name, const char* tail) const{
     unsigned len_q = len(this->_Zq_.get_q());
     int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
     printArray(this->coefficients, (unsigned)coeffAmount, len_q+1, name, tail);

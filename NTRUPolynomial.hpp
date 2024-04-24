@@ -390,7 +390,8 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 	void mods_p(NTRU_p _p_);
 	static ZqCenterPolynomial randomTernary(unsigned d, NTRU_N, NTRU_q, bool=false, NTRU_p=_3_);	// Returns polynomial with d amount of 1 and d amounts of -1.
 																				// If the bool is true then the return value is "multiplied" by _p_.
-
+	void toBytes(char* dest) const;												// -Writes the coefficients into an array of bytes. If a certain coefficient is
+																				//  negative, +=q is applied in order to write a positive number
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
 };
