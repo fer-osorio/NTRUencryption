@@ -47,9 +47,7 @@ int main(int argc, char* argv[]) {
         end = std::chrono::steady_clock::now();
         std::cout << "\nMessage was decrypted in " << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
         d_msg.toByteArray(str);
-        //std::cout << str;
-        for(int i = 0; i < 301; i++) if(str[i] != 0) std::cout << str[i];
-        std::cout << '\n';
+        std::cout << "Decrypted message: " << str << '\n';
 
         return 0;
     }
