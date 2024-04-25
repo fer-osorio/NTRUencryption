@@ -1264,7 +1264,7 @@ void ZqCenterPolynomial::toBytes(char* dest) const{                             
     longlong_to_char ll_c = {0};                                                // ll_c will do the cast from int to char[]
     int _64 = 64;
     long long buff;
-    for(buff = _q_; buff > 1; buff >>= 1, log2q++) {}                           // Computing log2q using the fact q is a power of two
+    for(buff = _q_ >> 1; buff > 1; buff >>= 1, log2q++) {}                      // Computing log2q using the fact q is a power of two
 
     for(k = 0, buff = 0; i < this->N;) {
         ll_c._longlong_ >>= (l<<3);                                             // l*8; Ruling out the bits allocated in the last cycle
