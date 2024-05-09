@@ -358,6 +358,7 @@ struct ZqCenterPolynomial {														// Polynomial with coefficients in {q/2
 	ZqCenterPolynomial(NTRU_N, NTRU_q);											// Returns the zero polynomial in this ring
 	ZqCenterPolynomial(const ZqPolynomial& P);									// Copies and centers a ZqPolynomial
 	ZqCenterPolynomial(const ZpCenterPolynomial&, NTRU_q);						// Copies the content of a ZpCenterPolynomial
+	ZqCenterPolynomial(const char bytes[], unsigned length, NTRU_N, NTRU_q);	// Building polynomial from array of bytes
 	~ZqCenterPolynomial() {
 		if(this->coefficients != NULL) delete[] this->coefficients;
 	}

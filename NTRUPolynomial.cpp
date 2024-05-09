@@ -1104,6 +1104,28 @@ _Zq_(P.get_q()) {
     }
 }
 
+ZqCenterPolynomial::ZqCenterPolynomial(const char bytes[], unsigned length, NTRU_N _N_, NTRU_q _q_): N(_N_), _Zq_(_q_) {
+    longlong_to_char ll_c = {0};                                                // ll_c will do the cast from char[8] to int64
+    int i = 0, j = 0, k = 0, l = 0, log2q = 0;                                  // log2q will hold the logarithm base two of q. Here we are assuming q < 2^32
+    int occupiedBits = 0;                                                       // How many bits we can write on ll_c
+    long long q_1 = _q_-1;
+    long long buff;
+    for(buff = _q_ >> 1; buff > 1; buff >>= 1, log2q++) {}                      // Computing log2q using the fact q is a power of two
+
+    for(i=0, j=0, k=0, buff=0; i < length && j < this->N; ll_c._longlong_ = 0) {
+        for(l = 0; k < 64; l++, k += 8) ll_c._char[l] = bytes[j++];             // Allocating bytes in (64-occupiedBits) bits
+        buff <<= (l <<= 3);                                                     // l <- l * 8, latter, buff = buff << l
+        buff |= ll_c._longlong_;
+        for(; k >= log2q; k -= log2q) {                                         // k is the amount of bits in the int64 that can be taken to form a coeff
+            this->coefficients[j] = buff & q_1;                                 // Allocating log2q bits in a coefficient of the polynomial
+            if(j >= this->N) break;
+            buff >>= log2q;                                                     // Disposing of the bits already allocated in the polynomial
+        }
+    }
+    if(buff > 0 && j < this->N) this->coefficients[j++] = buff;                 // Something is left in the buffer
+    while(j < this->N)  this->coefficients[j++] = 0;                            // Filling the rest with zeros
+}
+
 ZqCenterPolynomial::ZqCenterPolynomial(const ZpCenterPolynomial& P, NTRU_q _q_):
 N(P.get_N()), _Zq_(_q_) {
     this->coefficients = new int[this->N];
