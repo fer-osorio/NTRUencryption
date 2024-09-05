@@ -338,7 +338,6 @@ ZpPolynomial ZpPolynomial::gcdXNmns1(ZpPolynomial& thisBezout) const{           
         gcd = remainders;                                                       // ...
         remainders = quoRem[1];                                                 // ...
 	}
-	thisBezout = thisBezout;
 	return gcd;
 }
 
