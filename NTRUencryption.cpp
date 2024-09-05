@@ -1,3 +1,4 @@
+#include<fstream>
 #include"NTRUencryption.hpp"
 
 using namespace NTRUPolynomial;
@@ -35,6 +36,21 @@ ZpCenterPolynomial Encryption::decrypt(const ZqCenterPolynomial& e_msg) {
     ZpCenterPolynomial b = ZpCenterPolynomial(a, this->p);
     b = b*this->privateKeyInv_p;
     return b;
+}
+
+void Encryption::savePrivateKey_txt() {
+    char buff[301];
+    std::ofstream file;
+    buff[300] = 0;
+
+    this->privateKey.toBytes(buff);
+    file.open("PrivateKey.txt");
+    if(file.is_open()) {
+        file.write(buff, 301);
+        file.close();
+    } else {
+        throw "File could not be written.";
+    }
 }
 
 void Encryption::setKeys() {

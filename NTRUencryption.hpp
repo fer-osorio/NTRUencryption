@@ -23,6 +23,7 @@ class Encryption {
 
 	NTRU_N get_N() const{ return this->N; }
 	NTRU_p get_p() const{ return this->p; }
+	void savePrivateKey_txt();
 
 	private: void setKeys();													// Creation of the keys
 };
