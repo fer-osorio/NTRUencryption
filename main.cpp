@@ -20,6 +20,7 @@
 
 #include<chrono>
 #include<fstream>
+#include<cstring>
 #include"NTRUencryption.hpp"
 
 #define NAME_MAX_LEN 50
@@ -91,7 +92,7 @@ struct TXT {
 	    if(this->content != NULL) delete[] this->content;                       // -Deleting old content
 	    this->size = dataLen;
 	    this->content = new char[dataLen];
-	    for(int i = 0; i < dataLen; i++) this->content[i] = data[i];
+	    for(unsigned i = 0; i < dataLen; i++) this->content[i] = data[i];
 	}
 
     void save(const char* fname = NULL) const{                                  // -Saving the content in a .txt file
@@ -156,17 +157,46 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    NTRUPolynomial::ZpCenterPolynomial msg(e.get_N(), e.get_p(), 1, 1);
+    char* input = NULL;
+    char cipherText[2500];
+    char* aux   = NULL;
+    char output[512];
+    unsigned size = 0, i = 0;
+    input = new char[1025];
+    size = 0;
+    std::cout << "\nWrite the string you want to encrypt. To process the string sent the value 'EOF', which you can do by:\n\n"
+                 "- Pressing twice the keys CTRL+Z for Windows.\n"
+                 "- Pressing twice the keys CTRL+D for Unix and Linux.\n\n";
+    while(std::cin.get(input[size++])) {                                        // -Input from CLI.
+        if(i == 1024) {
+            aux = new char[size];
+            std::memcpy(aux, input, size);
+            delete[] input;
+            input = new char[size + 1025];
+            std::memcpy(input, aux, size);
+            delete[] aux;
+            i = 0;
+        } else { i++; }
+    }
+    while(size < 16) input[size++] = ' ';
+    input[size] = 0;
+
+    /*NTRUPolynomial::ZpCenterPolynomial msg(e.get_N(), e.get_p(), 1, 1);
     msg.println("Original message");
     std::cout << '\n';
-
     begin = std::chrono::steady_clock::now();
     NTRUPolynomial::ZqCenterPolynomial e_msg = e.encrypt(msg);
-    end = std::chrono::steady_clock::now();
-    std::cout << "\nMessage was encrypted in "
-    << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
+    end = std::chrono::steady_clock::now();*/
 
-    e_msg.println("Encrypted message"); std::cout << '\n';
+    begin = std::chrono::steady_clock::now();
+    ZqCenterPolynomial e_msg = e.encrypt(input);
+    end = std::chrono::steady_clock::now();
+    std::cout << "\nMessage was encrypted in " << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
+
+    e_msg.println("Encrypted message in polynomial form"); std::cout << '\n';
+    e_msg.toBytes(cipherText);
+    cipherText[2436] = 0;
+    std::cout << "Encrypted message with ASCII codification\n\n" << cipherText << "\n\n";
 
     begin = std::chrono::steady_clock::now();
     NTRUPolynomial::ZpCenterPolynomial d_msg = e.decrypt(e_msg);
@@ -174,9 +204,10 @@ int main(int argc, char* argv[]) {
     std::cout << "\nMessage was decrypted in "
     << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
 
-    d_msg.println("decrypted message");
-    if(msg == d_msg) std::cout << "\nSuccessful decryption\n";
-    else std::cout << "\nUnsuccessful decryption\n";
+    d_msg.toBytes(output);
+    std::cout << "Decrypted message: " << output << '\n';
 
+    if(input != NULL) delete[] input;
+    if(aux   != NULL) delete[] aux;
     return 0;
 }
