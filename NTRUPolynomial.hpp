@@ -313,7 +313,7 @@ class ZpCenterPolynomial {
 	NTRU_N get_N() const{ return this->N; }
 	NTRU_p get_p() const{ return this->p; }
 	int degree() const;															// Gets the last nonzero index. If this is the zero polynomial, returns -1
-	void toByteArray(char dest[]) const;
+	void toBytes(char dest[]) const;
 
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;

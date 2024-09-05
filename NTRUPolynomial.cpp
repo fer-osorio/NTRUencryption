@@ -1031,12 +1031,12 @@ int ZpCenterPolynomial::degree() const{
     return i;                                                                   // Notice that in case of zero polynomial the return is -1
 }
 
-void ZpCenterPolynomial::toByteArray(char dest[]) const{
+void ZpCenterPolynomial::toBytes(char dest[]) const{
     int i,j,k;
     int N_mod_5 = this->N%5;
     int _N_ = this->N - N_mod_5;
     unsigned s;
-    for(i = 0, j = 0; i < _N_; i += 5, j++) {                                        // i will run through dest, j through coefficients
+    for(i = 0, j = 0; i < _N_; i += 5, j++) {                                   // i will run through dest, j through coefficients
         for(k = 4, s = 0; k >= 0; k--) {                                        // Here we're supposing _p_ == 3. Basically we're changing from base 3 to base 2
             switch(this->coefficients[i+k]) {                                   // Supposing the numbers in base 3 are in big endian notation
                 case  _1:
@@ -1052,7 +1052,7 @@ void ZpCenterPolynomial::toByteArray(char dest[]) const{
         dest[j] = (char)(int)s;
     }
     for(k = N_mod_5-1, s = 0; k >= 0; k--) {
-        switch(this->coefficients[i+k]) {                                   // Supposing the numbers in base 3 are in big endian notation
+        switch(this->coefficients[i+k]) {                                       // Supposing the numbers in base 3 are in big endian notation
                 case  _1:
                     s = s*3 + 1;
                 break;
