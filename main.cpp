@@ -196,7 +196,9 @@ int main(int argc, char* argv[]) {
     e_msg.println("Encrypted message in polynomial form"); std::cout << '\n';
     e_msg.toBytes(cipherText);
     cipherText[2436] = 0;
-    std::cout << "Encrypted message with ASCII codification\n\n" << cipherText << "\n\n";
+    std::cout << "Encrypted message with ASCII codification\n\n";
+    for(i = 0; i < 2435; i++) std::cout << cipherText[i];
+    std::cout << "\n\n";
 
     begin = std::chrono::steady_clock::now();
     NTRUPolynomial::ZpCenterPolynomial d_msg = e.decrypt(e_msg);
