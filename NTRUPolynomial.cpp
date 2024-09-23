@@ -69,17 +69,17 @@ static int intToString(int n, char* dest) {                                     
     }
     return l;                                                                   // Returning length
 }
-inline static int copyString(const char* origin,char* dest) {
+static int copyString(const char* origin,char* dest) {
     int i;                                                                      // Counting variable. At the end it will contain the length of the origin string
     for(i = 0; origin[i] != 0; i++) dest[i] = origin[i];                        // Coping element by element
     dest[i] = 0;                                                                // End of string.
     return i;                                                                   // Returning string length
 }
-inline static int printSpaces(unsigned t) {
+static int printSpaces(unsigned t) {
 	while(t-- > 0) std::cout << ' ' ;
 	return 0;
 }																				// Functions for printing
-inline static int len(const char* str) {										// Length of a string
+static int len(const char* str) {										        // Length of a string
 	int l = -1;
 	while(str[++l] != 0) {}
 	return l;
@@ -136,24 +136,13 @@ class RandInt {                                                                 
     std::uniform_int_distribution<> dist;
 };
 unsigned RandInt::_seed_ = (unsigned)time(NULL);
+
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZpPolynomial |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 ZpPolynomial::ZpPolynomial(const ZpPolynomial& P):N(P.N),p(P.p){
 	this->coefficients = new Z3[P.N];
 	for(int i=0; i < P.N; i++)
 		this->coefficients[i] = P.coefficients[i];
-}
-
-ZpPolynomial::ZpPolynomial(const ZpCenterPolynomial& P): N(P.get_N()) {
-    this->coefficients = new Z3[this->N];
-    switch(this->p) {
-    case _3_:
-        for(int i = 0; i < this->N; i++) {
-            this->coefficients[i] = _0_;
-            if(P[i] == -1) this->coefficients[i] = _2_;
-            if(P[i] ==  1) this->coefficients[i] = _1_;
-        }
-    }
 }
 
 ZpPolynomial::ZpPolynomial(NTRU_N _N_,int ones,int twos,NTRU_p _p_): N(_N_), p(_p_) {
@@ -182,6 +171,32 @@ ZpPolynomial::ZpPolynomial(NTRU_N _N_,int ones,int twos,NTRU_p _p_): N(_N_), p(_
         }
 	}
 }                                                                               // Maybe is some room for optimization using JV theorem
+
+ZpPolynomial::ZpPolynomial(NTRU_N _N_, NTRU_p _p_, const char data[], int length): N(_N_), p(_p_) {
+    int i,j,k,l;
+
+    this->coefficients = new Z3[_N_];
+    for(i = 0; i < _N_; i++) this->coefficients[i] = _0_;
+    if(length <= 0) return;                                                     // Guarding against negative or null length
+
+    for(i = 0, j = 0; i < length && j < _N_; i++) {                             // i will run through data, j through coefficients
+        l = (int)(unsigned char)data[i];
+        for(k = 0; k < 5 && j < _N_; k++, l/=3) {                               // Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
+            switch(l%3) {                                                     // in big endian notation. Notice that the maximum value allowed is 242
+                case  1:
+                    this->coefficients[j++] = _1_;
+                break;
+                case  2:
+                    this->coefficients[j++] = _2_;
+                break;
+                default:
+                    this->coefficients[j++] = _0_;
+            }
+        }
+    }
+    if(j < _N_)                                                                 // Padding with zeros (provisional, not intended to be secure)
+        for(; j < N; j++) this->coefficients[j++] = _0_;
+}
 
 ZpPolynomial ZpPolynomial::operator + (const ZpPolynomial& P) const{
     ZpPolynomial r(max_N(this->N, P.N));                                        // Initializing result in the "biggest polynomial ring"
@@ -294,11 +309,11 @@ void ZpPolynomial::division(const ZpPolynomial& P, ZpPolynomial result[2]) const
 }
 
 ZpPolynomial ZpPolynomial::gcdXNmns1(ZpPolynomial& thisBezout) const{           // EEA will mean Extended Euclidean Algorithm
+    int deg = this->degree(), i, j, k, l;                                       // Degree of this and some variables for counting
+    Z3 leadCoeff = this->coefficients[deg];                                     // Lead coefficient of this polynomial
     ZpPolynomial gcd(this->N);                                                  // Initializing result in the "biggest polynomial ring
     ZpPolynomial remainders(this->N);
     ZpPolynomial tmp[2] = {ZpPolynomial(this->N),ZpPolynomial(this->N)};
-    int deg = this->degree(), i, j, k, l;                                       // Degree of this and some variables for counting
-    Z3  leadCoeff = this->coefficients[deg];                                    // Lead coefficient of this polynomial
     ZpPolynomial quoRem[2] = {ZpPolynomial(this->N),ZpPolynomial(this->N)};
 
     quoRem[0].coefficients[this->N-deg] = leadCoeff;                            // Start of division algorithm between virtual polynomial x^N-1 and this
@@ -327,11 +342,6 @@ ZpPolynomial ZpPolynomial::gcdXNmns1(ZpPolynomial& thisBezout) const{           
             "Bezout)\n";
             throw;
         }
-        /*
-        std::cout <<      "tmp[0].degree = " <<    tmp[0].degree;
-        std::cout << ", quoRem[0].degree = " << quoRem[0].degree;
-        std::cout << ", quoRem[1].degree = " << quoRem[1].degree << '\n';
-        */
         tmp[1] = thisBezout - quoRem[0]*tmp[0];                                 // u[k+2] = u[k] - q[k+2]*u[k+1]
         thisBezout = tmp[0];                                                    // Updating values
         tmp[0] = tmp[1];                                                        // ...
@@ -411,6 +421,96 @@ void ZpPolynomial::permute() {
 		this->coeffCopy[i] = this->coefficients[i];
 }
 
+static int64_t multiplyBy_3(int64_t t) {
+    return (t << 1) + t;                                                        // -This expression is equivalent to t*2 + t
+}
+
+ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey) const{
+    ZqPolynomial encryption(publicKey.get_N(), publicKey.get_q());
+    int*  randTernaryTimes_p = new int[this->N];                                // -Will represent the random polynomial needed for encryption
+    RandInt ri(0,this->N-1);
+    const int d = this->N/3;
+    int _d_ = d, i, j, k;
+    int q_div_2 = publicKey.zq.get_q() >> 1;
+    int neg_qdiv2 = -q_div_2;
+    int q_div_2_minus1 = q_div_2 - 1;
+
+    for(i = 0; i < this->N; i++) randTernaryTimes_p[i] = 0;
+
+    while(_d_ > 0) {
+        i = ri();                                                               // -Filling with threes. It represent the random polynomial multiplied by p
+        if(randTernaryTimes_p[i] == 0) {randTernaryTimes_p[i] =  3; _d_--;}     //  ...
+    }
+    _d_ = d;
+    while(_d_ > 0) {
+        i = ri();                                                               // -Filling with negative threes
+        if(randTernaryTimes_p[i] == 0) {randTernaryTimes_p[i] = -3; _d_--;}     //  ...
+    }
+	for(i = 0; i < this->N; i++) {                                              // -Convolution process
+	    k = this->N - i;
+	    if(randTernaryTimes_p[i] != 0) {
+	        if(randTernaryTimes_p[i] == 3) {
+	            for(j = 0; j < k; j++)                                          // -Ensuring we do not get out of the polynomial
+                    encryption.coefficients[i+j] += multiplyBy_3(publicKey[j]);
+	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
+	    	        encryption.coefficients[k] += multiplyBy_3(publicKey[j]);   // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
+	        }
+	        if(randTernaryTimes_p[i] == -3) {
+	            for(j = 0; j < k; j++)                                          // Ensuring we do not get out of the polynomial
+                    encryption.coefficients[i+j] -= multiplyBy_3(publicKey[j]);
+	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
+	    	        encryption.coefficients[k] -= multiplyBy_3(publicKey[j]);   // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
+	        }
+	    }
+	}
+	encryption.mods_q();                                                        // -Obtaining center modulus for each coefficient
+	for(i = 0; i < this->N; i++) {                                              // -Adding this polynomial (adding message)
+	    if(this->coefficients[i] == _1_)
+	        if((++encryption.coefficients[i]) == q_div_2)                       // -Possible case: e[i] = q/2, but the -q/2 <= e[i] < q/2 must bet met, so
+	            encryption.coefficients[i] = neg_qdiv2;                         //  e[i]<-e[i]-q = q/2 -(q/2 + q/2) = -q/2
+	    if(this->coefficients[i] == _2_)
+	        if((--encryption.coefficients[i]) < neg_qdiv2)                      // -Possible case: e[i] = -q/2-1, but the -q/2 <= e[i] < q/2 must bet met, so
+	            encryption.coefficients[i] = q_div_2_minus1;                    //  e[i]<-e[i]+q = (-q/2-1) + (q/2 + q/2) = q/2 - 1
+	}
+	delete[] randTernaryTimes_p;
+	return encryption;
+}
+
+void ZpPolynomial::toBytes(char dest[]) const{
+    int i,j,k;
+    int N_mod_5 = this->N%5;
+    int _N_ = this->N - N_mod_5;
+    unsigned s;
+    for(i = 0, j = 0; i < _N_; i += 5, j++) {                                   // i will run through dest, j through coefficients
+        for(k = 4, s = 0; k >= 0; k--) {                                        // Here we're supposing _p_ == 3. Basically we're changing from base 3 to base 2
+            switch(this->coefficients[i+k]) {                                   // Supposing the numbers in base 3 are in big endian notation
+                case  _1_:
+                    s = s*3 + 1;
+                break;
+                case  _2_:
+                    s = s*3 + 2;
+                break;
+                default:
+                    s *= 3;
+            }
+        }
+        dest[j] = (char)(int)s;
+    }
+    for(k = N_mod_5-1, s = 0; k >= 0; k--) {
+        switch(this->coefficients[i+k]) {                                       // Supposing the numbers in base 3 are in big endian notation
+                case  _1_:
+                    s = s*3 + 1;
+                break;
+                case  _2_:
+                    s = s*3 + 2;
+                break;
+                default:
+                    s *= 3;
+        }
+        dest[j] = (char)(int)s;
+    }
+}
+
 void ZpPolynomial::print(const char* name, const char* tail) const{
     int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
     int* array = new int[coeffAmount], i;                                       // ...
@@ -421,38 +521,6 @@ void ZpPolynomial::print(const char* name, const char* tail) const{
 
 void ZpPolynomial::println(const char* name) const{
 	this->print(name, "\n");
-}
-
-void ZpPolynomial::test(NTRU_N _N_, int d) const{
-    ZpPolynomial Np0(_N_, d, d+1);
-	ZpPolynomial Np1(_N_, d, d);
-	ZpPolynomial quorem[2] = {ZpPolynomial(_N_),ZpPolynomial(_N_)};
-	ZpPolynomial gcd(_N_);
-	ZpPolynomial Bezout(_N_);
-	ZpPolynomial Np2(Np0);
-
-	std::cout << "\n::::"
-	"ZpPolynomial testing start ........................................."
-	"........................."
-	<< '\n';
-
-    try { Np0.division(Np1, quorem); }
-	catch(const char* exp) { std::cout << exp; }
-
-	if( Np1*quorem[0] + quorem[1] == Np0 && Np1.degree() > quorem[1].degree())
-	    std::cout << "\nSuccesful division.\n";
-
-	try{ gcd = Np2.gcdXNmns1(Bezout); }
-	catch(const char* exp) { std::cout << exp; }
-	gcd.println("gcd");
-	//Bezout.println("Bezout");
-	//Np2.println("Np2");
-	(Np2*Bezout).println("Np2*Bezout");
-
-	std::cout << "\n::::"
-	"ZpPolynomial testing end ..........................................."
-	".........................."
-	<< "\n\n";
 }
 
 //_______________________________________________________________________ ZpPolynomial ___________________________________________________________________________
@@ -477,13 +545,13 @@ ZqPolynomial::Z2Polynomial::Z2Polynomial(const ZpPolynomial& P): N(P.get_N()) {
 }
 
 ZqPolynomial::Z2Polynomial::Z2Polynomial(NTRU_N _N_, int ones): N(_N_) {
-	RandInt rn(0, _N_-1);                                             // Random integers from 0 to N-1
 	int i, j;
+	RandInt rn(0, _N_-1);                                                       // Random integers from 0 to N-1
     if(ones < 0) ones = -ones;                                                  // Guarding against invalid values of ones and twos. In particular the
-    while(ones >= _N_) ones <<= 1;                                              // Dividing by two till getting inside the allowed range
+    while(ones >= _N_) ones >>= 1;                                              // Dividing by two till getting inside the allowed range
 	this->coefficients = new Z2[_N_];
 	for(i = 0; i < _N_; i++) this->coefficients[i] = _0_;
-	while(ones > 0) {                                                           // Putting the ones first
+	while(ones > 0) {                                                           // Putting the ones
         j = rn();
         if(this->coefficients[j] == _0_) {
             this->coefficients[j] = _1_;
@@ -686,68 +754,34 @@ void ZqPolynomial::Z2Polynomial::println(const char* name) const{
     this->print(name, "\n");
 }
 
-void ZqPolynomial::Z2Polynomial::test(NTRU_N _N_, int d) const{
-    Z2Polynomial Np0(_N_, d);
-	Z2Polynomial Np1(_N_, d);
-	Z2Polynomial quorem[2] = {Z2Polynomial(_N_),Z2Polynomial(_N_)};
-	Z2Polynomial gcd(_N_);
-	Z2Polynomial Bezout(_N_);
-	Z2Polynomial Np2(Np0);
-
-	std::cout << "\n::::"
-	"ZqPolynomial::Z2Polynomial testing start ..........................."
-	"........................."
-	<< '\n';
-    try { Np0.division(Np1, quorem); }
-	catch(const char* exp) { std::cout << exp; }
-
-	if( Np1*quorem[0] + quorem[1] == Np0 && Np1.degree() > quorem[1].degree())
-	    std::cout << "\nSuccesful division...\n";
-	else
-	    std::cout << "\nDivision filure...\n";
-
-	try{ gcd = Np2.gcdXNmns1(Bezout); }
-	catch(const char* exp) { std::cout << exp; }
-	gcd.print("gcd", "\n");
-	//Bezout.println("Bezout");
-	//Np2.println("Np2");
-	(Np2*Bezout).println("Np2*Bezout");
-
-	std::cout << "\n::::"
-	"ZqPolynomial::Z2Polynomial testing end ............................."
-	".........................."
-	<< "\n\n";
-}
-
 //______________________________________________________________NTRU_ZqPolynomial::Z2Polynomial___________________________________________________________________
 
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZqPolynomial |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-ZqPolynomial::ZqPolynomial(NTRU_N _N_, NTRU_q _q_): N(_N_), _Zq_(_q_) {
-    this->coefficients = new unsigned[_N_];
+ZqPolynomial::ZqPolynomial(NTRU_N _N_, NTRU_q _q_): N(_N_), zq(_q_) {
+    this->coefficients = new int64_t[_N_];
     for(int i = 0; i < this->N; i++) this->coefficients[i] = 0;
 }
 
-ZqPolynomial::ZqPolynomial(const ZpPolynomial& P,NTRU_q _q_): N(P.get_N()), _Zq_(_q_) {
-	this->coefficients = new unsigned[this->N];
+ZqPolynomial::ZqPolynomial(const ZpPolynomial& P,NTRU_q _q_): N(P.get_N()), zq(_q_) {
+	this->coefficients = new int64_t[this->N];
 	switch(P.get_p()){
 	    case _3_:
 	    for(int i = 0; i < this->N; i++) {
-	        if(P[i] == 2) this->coefficients[i] = (unsigned)_q_- 1;                       // Since (1+2) mod 3 == 0, 2 must be sent to the additive inverse of 1 in Zq;
-	        else this->coefficients[i] = (unsigned)P[i];
+	        if(P[i] == 2) this->coefficients[i] = -1;                           // Since (1+2) mod 3 == 0, 2 must be sent to the additive inverse of 1 in Zq;
+	        else          this->coefficients[i] = (int64_t)P[i];
 	    }
 	    break;
 	}
 }
 
-ZqPolynomial::ZqPolynomial(const ZqPolynomial& P): N(P.N), _Zq_(P._Zq_) {
-    this->coefficients = new unsigned[P.N];
+ZqPolynomial::ZqPolynomial(const ZqPolynomial& P): N(P.N), zq(P.zq) {
+    this->coefficients = new int64_t[P.N];
     for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
 }
 
-ZqPolynomial::ZqPolynomial(const Z2Polynomial& P,NTRU_q _q_):
-N(P.get_N()), _Zq_(_q_) {
-    this->coefficients = new unsigned[this->N];
+ZqPolynomial::ZqPolynomial(const Z2Polynomial& P,NTRU_q _q_): N(P.get_N()), zq(_q_) {
+    this->coefficients = new int64_t[this->N];
     for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
 }
 
@@ -755,13 +789,12 @@ ZqPolynomial& ZqPolynomial::operator = (const ZqPolynomial& P) {
 	if(this != &P) {														    // Guarding against self assignment
 		if(this->N != P.N) {												    // Delete pass coefficients array. If this->N != P.N is true, there is no reason
 			if(this->coefficients != NULL) delete[] this->coefficients;		    // to delete the array
-			this->coefficients = new unsigned[P.N];
+			this->coefficients = new int64_t[P.N];
 			this->N = P.N;
 		}
-		if(this->coefficients == NULL) this->coefficients = new unsigned[P.N];
-		this->_Zq_ = P._Zq_;
-		for(int i = 0; i < this->N; i++)
-			this->coefficients[i] = P.coefficients[i];
+		if(this->coefficients == NULL) this->coefficients = new int64_t[P.N];
+		this->zq = P.zq;
+		for(int i = 0; i < this->N; i++) this->coefficients[i] = P.coefficients[i];
 	}
 	return *this;
 }
@@ -770,395 +803,22 @@ ZqPolynomial& ZqPolynomial::operator = (const ZpPolynomial& P) {
     NTRU_N P_N = P.get_N();
 	if(this->N != P_N) {											            // Delete past coefficients array. If this->N != P.N is true, there is no reason
 		if(this->coefficients != NULL) delete[] this->coefficients;	            // to delete the array
-		this->coefficients = new unsigned[P_N];
+		this->coefficients = new int64_t[P_N];
 		this->N = P_N;
 	}
-	if(this->coefficients == NULL) this->coefficients = new unsigned[P_N];           // In case of having an object created with the default (private) constructor
-	switch(P.get_p()){
-	    case _3_:
-	    for(int i = 0; i < P_N; i++) {
-	        if(P[i] == 2) this->coefficients[i] = (unsigned)this->_Zq_.get_q() - 1;
-	        else this->coefficients[i] = (unsigned)P[i];
+	if(this->coefficients == NULL) this->coefficients = new int64_t[P_N];       // In case of having an object created with the default (private) constructor
+	    switch(P.get_p()){
+	        case _3_:
+	        for(int i = 0; i < P_N; i++) {
+	            if(P[i] == 2) this->coefficients[i] = -1;                       // Since (1+2) mod 3 == 0, 2 must be sent to the additive inverse of 1 in Zq;
+	            else          this->coefficients[i] = (int64_t)P[i];
+	        }
 	    }
-	}
 	return *this;
 }
 
-ZqPolynomial ZqPolynomial::operator - (const ZqPolynomial& P) const{
-    ZqPolynomial r(max_N(this->N, P.N), max_q(this->_Zq_.get_q(),P._Zq_.get_q())); // Initializing result in the "biggest polynomial ring
-    int i, small_degree, big_degree;                                            // Degree of the polynomials, small_degree <= big_degree
-
-    if(this->degree() < P.degree()) {
-        small_degree = this->degree();
-        big_degree = P.degree();
-    }
-	else {
-	    small_degree = P.degree();
-	    big_degree = this->degree();
-	}
-
-    for(i = 0; i <= small_degree; i++)
-        r.coefficients[i] = r._Zq_.subtract(this->coefficients[i],P.coefficients[i]); // Subtraction element by element till the smallest degree of the arguments
-    if(this->degree() == big_degree)
-        for(; i <= big_degree; i++) r.coefficients[i] = this->coefficients[i];
-    else
-        for(; i <= big_degree; i++) r.coefficients[i] = r._Zq_.negative(P.coefficients[i]);
-    return r;
-}
-
-ZqPolynomial ZqPolynomial::operator * (const ZqPolynomial& P) const{
-    ZqPolynomial r(max_N(this->N, P.N),max_q(this->_Zq_.get_q(),P._Zq_.get_q())); // Initializing result in the "biggest polynomial ring"
-    int i, j, k;
-    int this_degree = this->degree();
-
-	for(i = 0; i <= this_degree; i++) {
-		if(this->coefficients[i] != 0) {                                        // Taking advantage this polynomials have a big proportion of zeros
-		    k = this->N - i;
-		    for(j = 0; j < k; j++) {                                            // Ensuring we do not get out of the polynomial
-			    if(P.coefficients[j] != 0) {                                    // Expecting a big proportion of zeros
-			        r._Zq_.addEqual(r.coefficients[i+j], r._Zq_.product(this->coefficients[i], P.coefficients[j]));
-			    }
-		    }
-		    for(k = 0; k < i; j++, k++) {                                       // Using the definition of convolution polynomial ring
-			    if(P.coefficients[j] != 0) {                                    // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
-			        r._Zq_.addEqual(r.coefficients[k], r._Zq_.product(this->coefficients[i], P.coefficients[j]));
-			    }
-		    }
-		}
-	}
-	return r;
-}
-
-ZqPolynomial NTRUPolynomial::operator - (unsigned t, const ZqPolynomial& P) {
-    ZqPolynomial r(P.N, P.get_q());
-    r.coefficients[0] = P._Zq_.subtract(t, P.coefficients[0]);
-    for(int i = 1; i < P.N; i++)
-        r.coefficients[i] = P._Zq_.negative(P.coefficients[i]);
-    return r;
-}
-
-bool ZqPolynomial::operator == (const Z2Polynomial& P) const {
-    if(this->N == P.get_N()) {
-        for(int i = 0; i < this->N; i++)
-            if(this->coefficients[i] != P[i]) return false;
-        return true;
-    }
-    return false;
-}
-
-void ZqPolynomial::print(const char* name,const char* tail) const{
-    unsigned len_q = len(this->_Zq_.get_q());
-    int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
-    int* array = new int[coeffAmount], i;                                       // ...
-    for(i = 0; i < coeffAmount; i++) array[i] = (int)this->coefficients[i];     // ...
-    printArray(array, (unsigned)coeffAmount, len_q+1, name, tail);
-    delete[] array;
-}
-
-void ZqPolynomial::println(const char* name) const{
-    this->print(name, "\n");
-}
-
-//_______________________________________________________________________ ZqPolynomial ____________________________________________________________________________
-
-// ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZpCenterPolynomial |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-
-const ZpCenterPolynomial::Z3 ZpCenterPolynomial::Z3add [3][3] = { {_0 ,_1 ,_1_}, // Addition table Z3 centered
-                                                                  {_1 ,_1_,_0 },
-                                                                  {_1_,_0 ,_1 } };
-
-const ZpCenterPolynomial::Z3 ZpCenterPolynomial::Z3subs[3][3] = { {_0 ,_1_,_1 }, // Subtraction table Z3 centered
-                                                                  {_1 ,_0 ,_1_},
-                                                                  {_1_,_1 ,_0 } };
-
-ZpCenterPolynomial::ZpCenterPolynomial(const ZpCenterPolynomial& P): N(P.N), p(P.get_p()) {
-    this->coefficients = new Z3[P.N];
-    for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
-}
-
-ZpCenterPolynomial::ZpCenterPolynomial(const ZpPolynomial& P): N(P.get_N()), p(P.get_p()) {
-    this->coefficients = new Z3[this->N];
-    switch(this->p) {
-    case _3_:
-        for(int i = 0; i < this->N; i++) {                                      // Just centering
-            this->coefficients[i] = _0;
-            if(P[i] == 2) this->coefficients[i] = _1_;                          // Two goes to -1
-            if(P[i] == 1) this->coefficients[i] = _1 ;
-        }
-    }
-}
-
-ZpCenterPolynomial::ZpCenterPolynomial(NTRU_N _N_, NTRU_p _p_, unsigned ones, unsigned negOnes):
-N(_N_), p(_p_) {
-    int i, j;
-    RandInt rn(0, _N_-1);                                                     // Random integers from 0 to N-1
-    while(ones + negOnes >= _N_) {                                            // Dividing by two till getting inside the allowed range
-        ones <<= 1;                                                             // ...
-        negOnes <<= 1;                                                          // ...
-    }
-	this->coefficients = new Z3[_N_];
-	for(i = 0; i < _N_; i++) this->coefficients[i] = _0;
-	while(ones > 0) {                                                           // Putting the ones first
-        j = rn();
-        if(this->coefficients[j] == _0) {
-            this->coefficients[j] = _1;
-            ones--;
-        }
-	}
-	while(negOnes > 0) {                                                        // Then the negative ones
-        j = rn();
-        if(this->coefficients[j] == _0) {
-            this->coefficients[j] = _1_;
-            negOnes--;
-        }
-	}
-}
-
-ZpCenterPolynomial::ZpCenterPolynomial(const ZqCenterPolynomial& P, NTRU_p _p_): N(P.get_N()), p(_p_) {
-    this->coefficients = new Z3[this->N];
-    for(int i = 0; i < this->N; i++) {                                          // This process will just take in account the ones and negative ones, all the
-        this->coefficients[i] = _0;                                             // other numbers will taken as zero
-        if(P[i] ==  1 || P[i] == -2) this->coefficients[i] = _1 ;
-        if(P[i] == -1 || P[i] ==  2) this->coefficients[i] = _1_;
-    }
-}
-
-ZpCenterPolynomial::ZpCenterPolynomial(NTRU_N _N_, NTRU_p _p_, const char data[], int length): N(_N_), p(_p_) {
-    int i,j,k,l;
-
-    this->coefficients = new Z3[_N_];
-    for(i = 0; i < _N_; i++) this->coefficients[i] = _0;
-    if(length <= 0) return;                                                     // Guarding against negative or null length
-
-    for(i = 0, j = 0; i < length && j < _N_; i++) {                             // i will run through data, j through coefficients
-        l = (int)(unsigned char)data[i];
-        for(k = 0; k < 5 && j < _N_; k++, l/=3) {                               // Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
-            switch(l%3) {                                                     // in big endian notation. Notice that the maximum value allowed is 242
-                case  1:
-                    this->coefficients[j++] = _1;
-                break;
-                case  2:
-                    this->coefficients[j++] = _1_;
-                break;
-                default:
-                    this->coefficients[j++] = _0;
-            }
-        }
-    }
-    if(j < _N_)                                                                 // Padding with zeros (provisional, not intended to be secure)
-        for(; j < N; j++) this->coefficients[j++] = _0;
-}
-
-ZpCenterPolynomial& ZpCenterPolynomial::operator = (const ZpCenterPolynomial& P) {
-    if(this != &P) {
-        if(P.coefficients != NULL) {                                            // Not performing the assignation if second argument has a null pointer
-            this->p = P.p;
-            if(this->N != P.N) {
-                if(this->coefficients != NULL) delete[] this->coefficients;
-                this->coefficients = new Z3[P.N];
-                this->N = P.N;
-            }
-            if(this->coefficients == NULL) this->coefficients = new Z3[P.N];
-            for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
-        }
-    }
-    return *this;
-}
-
-ZpCenterPolynomial ZpCenterPolynomial::operator * (ZpCenterPolynomial& P) const{
-    ZpCenterPolynomial r(max_N(this->N, P.N),max_p(this->get_p(),P.get_p()));   // Initializing result in the "biggest polynomial ring"
-    int i, j, k;
-    int this_degree = this->degree();
-
-	for(i = 0; i <= this_degree; i++) {
-		if(this->coefficients[i] != 0) {
-		    k = this->N - i;
-		    for(j = 0; j < k; j++) {                                            // Adding and multiplying while the inequality i+j < N holds
-			    if(P.coefficients[j] != 0) {                                    // We expect a big proportion of zeros
-			        r.coefficients[i+j] += this->coefficients[i]*P.coefficients[j];
-			    }
-		    }
-		    for(k = 0; k < i; j++, k++) {                                       // Using the definition of convolution polynomial rings
-			    if(P.coefficients[j] != 0) {                                    // Notice i+k is congruent with j mod N
-			        r.coefficients[k] += this->coefficients[i]*P.coefficients[j];
-			    }
-		    }
-		}
-	}
-	return r;
-}
-
-bool ZpCenterPolynomial::operator == (const ZpCenterPolynomial& P) const{
-    if(this->N == P.N && this->get_p() == P.get_p()) {
-        if(this->coefficients != NULL && P.coefficients != NULL) {
-            for(int i = 0; i < this->N; i++)
-                if(this->coefficients[i] != P.coefficients[i]) return false;
-            return true;
-        } else return this->coefficients == P.coefficients;                     // This could happen with self comparison or when both pointers are NULL
-    }
-    return false;
-}
-
-bool ZpCenterPolynomial::operator == (const ZpPolynomial& P) const{
-    if(this->N == P.get_N() && this->get_p() == P.get_p()) {
-        for(int i = 0; i < this->N; i++) {
-            if(this->coefficients[i] == _1_) {if(P[i] != 2) return false;}
-            else if(this->coefficients[i] != P[i]) return false;
-        }
-        return true;
-    }
-    return false;
-}
-
-void ZpCenterPolynomial::printTheDifferences(const ZpPolynomial& P, const char* leftName, const char* righName) const{
-    std::cout << '\n';
-    if(this->N != P.get_N()) std::cout << leftName << ".N == " << this->N << ", " << righName << ".N == " << P.get_N() << '\n';
-    if(this->p != P.get_p()) std::cout << leftName << ".p == " << this->p << ", " << righName << ".p == " << P.get_p() << '\n';
-    for(int i = 0; i < this->N; i++) {
-        if(this->coefficients[i] == _1_) {
-            if(P[i] != 2)
-                std::cout << leftName << "[" << i << "] == " << this->coefficients[i] << ", " << righName << "[" << i << "] == " << P[i] << '\n';
-        } else
-            if(this->coefficients[i] != P[i])
-                std::cout << leftName << "[" << i << "] == " << this->coefficients[i] << ", " << righName << "[" << i << "] == " << P[i] << '\n';
-    }
-}
-
-int ZpCenterPolynomial::degree() const{
-    int i = this->N;
-    while(--i >= 0 && this->coefficients[i] == 0) {}
-    return i;                                                                   // Notice that in case of zero polynomial the return is -1
-}
-
-void ZpCenterPolynomial::toBytes(char dest[]) const{
-    int i,j,k;
-    int N_mod_5 = this->N%5;
-    int _N_ = this->N - N_mod_5;
-    unsigned s;
-    for(i = 0, j = 0; i < _N_; i += 5, j++) {                                   // i will run through dest, j through coefficients
-        for(k = 4, s = 0; k >= 0; k--) {                                        // Here we're supposing _p_ == 3. Basically we're changing from base 3 to base 2
-            switch(this->coefficients[i+k]) {                                   // Supposing the numbers in base 3 are in big endian notation
-                case  _1:
-                    s = s*3 + 1;
-                break;
-                case  _1_:
-                    s = s*3 + 2;
-                break;
-                default:
-                    s *= 3;
-            }
-        }
-        dest[j] = (char)(int)s;
-    }
-    for(k = N_mod_5-1, s = 0; k >= 0; k--) {
-        switch(this->coefficients[i+k]) {                                       // Supposing the numbers in base 3 are in big endian notation
-                case  _1:
-                    s = s*3 + 1;
-                break;
-                case  _1_:
-                    s = s*3 + 2;
-                break;
-                default:
-                    s *= 3;
-        }
-        dest[j] = (char)(int)s;
-    }
-}
-
-void ZpCenterPolynomial::print(const char* name, const char* tail) const{
-    int arrlen = this->degree() + 1;                                            // This three lines is a "casting" from Z2 array to int array
-    int* array = new int[arrlen], i;                                            // ...
-    for(i = 0; i < arrlen; i++)
-        array[i] = this->coefficients[i];                                       // ...
-    printArray(array, (unsigned)arrlen, 3, name, tail);
-    delete[] array;
-}
-
-void ZpCenterPolynomial::println(const char* name) const{
-    this->print(name, "\n");
-}
-
-//____________________________________________________________________ ZpCenterPolynomial ______________________________________________________________________________
-
-// ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZqCenterPolynomial ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-
-ZqCenterPolynomial::ZqCenterPolynomial(const ZqCenterPolynomial& P): N(P.N), _Zq_(P._Zq_) {
-    this->coefficients = new int[P.N];
-    for(int i = 0; i < P.N; i++) this->coefficients[i] = P.coefficients[i];
-}
-
-ZqCenterPolynomial::ZqCenterPolynomial(NTRU_N _N_, NTRU_q _q_): N(_N_), _Zq_(_q_) {
-    this->coefficients = new int[_N_];
-    for(int i = 0; i < _N_; i++) this->coefficients[i] = 0;
-}
-
-ZqCenterPolynomial::ZqCenterPolynomial(const ZqPolynomial& P): N(P.get_N()),
-_Zq_(P.get_q()) {
-    int _q_ = _Zq_.get_q();
-    int q_div_2 = _q_ >> 1;                                                     // Dividing by two. Possible optimization through a case by case function
-    this->coefficients = new int[this->N];
-    for(int i = 0, nq = ~(_q_ - 1); i < this->N; i++) {                         // Centering coefficients
-        if((int)P[i] > q_div_2) this->coefficients[i] = (int)P[i] | nq;         // Equivalent to P[i] - _q_ when P[i] < q
-        else this->coefficients[i] = (int)P[i];
-    }
-}
-
-ZqCenterPolynomial::ZqCenterPolynomial(const char bytes[], unsigned length, NTRU_N _N_, NTRU_q _q_): N(_N_), _Zq_(_q_) {
-    longlong_to_char ll_c = {0};                                                // ll_c will do the cast from char[8] to int64
-    int i = 0, j = 0, k = 0, l = 0, log2q = 0;                                  // log2q will hold the logarithm base two of q. Here we are assuming q < 2^32
-    long long q_1 = _q_-1;
-    long long buff;
-    for(buff = _q_ >> 1; buff > 1; buff >>= 1, log2q++) {}                      // Computing log2q using the fact q is a power of two
-
-    for(i=0, j=0, k=0, buff=0; i < (int)length && j < this->N; ll_c._longlong_ = 0) {
-        for(l = 0; k < 64; l++, k += 8) ll_c._char[l] = bytes[j++];             // Allocating bytes in (64-occupiedBits) bits
-        buff <<= (l <<= 3);                                                     // l <- l * 8, latter, buff = buff << l
-        buff |= ll_c._longlong_;
-        for(; k >= log2q; k -= log2q) {                                         // k is the amount of bits in the int64 that can be taken to form a coeff
-            this->coefficients[j] = buff & q_1;                                 // Allocating log2q bits in a coefficient of the polynomial
-            if(j >= this->N) break;
-            buff >>= log2q;                                                     // Disposing of the bits already allocated in the polynomial
-        }
-    }
-    if(buff > 0 && j < this->N) this->coefficients[j++] = buff;                 // Something is left in the buffer
-    while(j < this->N)  this->coefficients[j++] = 0;                            // Filling the rest with zeros
-}
-
-ZqCenterPolynomial::ZqCenterPolynomial(const ZpCenterPolynomial& P, NTRU_q _q_):
-N(P.get_N()), _Zq_(_q_) {
-    this->coefficients = new int[this->N];
-    for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
-}
-
-ZqCenterPolynomial& ZqCenterPolynomial::operator = (const ZqCenterPolynomial& P) {
-    if(this != &P) {														    // Guarding against self assignment
-		if(this->N != P.N) {												    // Delete pass coefficients array. If this->N != P.N is true, there is no reason
-			if(this->coefficients != NULL) delete[] this->coefficients;		    // to delete the array
-			this->coefficients = new int[P.N];
-			this->N = P.N;
-		}
-		if(this->coefficients == NULL) this->coefficients = new int[P.N];
-		this->_Zq_ = P._Zq_;
-		for(int i = 0; i < this->N; i++)
-			this->coefficients[i] = P.coefficients[i];
-	}
-	return *this;
-}
-
-ZqCenterPolynomial& ZqCenterPolynomial::operator = (const ZpCenterPolynomial& P) {
-    NTRU_N _N_ = P.get_N();
-	if(this->N != _N_) {												        // Delete pass coefficients array. If this->N != P.N is true, there is no reason
-		if(this->coefficients != NULL) delete[] this->coefficients;		        // to delete the array
-		this->coefficients = new int[_N_];
-		this->N = _N_;
-	}
-	if(this->coefficients == NULL) this->coefficients = new int[_N_];
-	for(int i = 0; i < this->N; i++) this->coefficients[i] = P[i];
-	return *this;
-}
-
-ZqCenterPolynomial ZqCenterPolynomial::operator + (const ZqCenterPolynomial& P) const{
-    ZqCenterPolynomial r(max_N(this->N, P.N),max_q(this->get_q(),P.get_q()));   // Initializing result in the "biggest polynomial ring"
+ZqPolynomial ZqPolynomial::operator + (const ZqPolynomial& P) const{
+    ZqPolynomial r(max_N(this->N, P.N),max_q(this->get_q(),P.get_q()));         // Initializing result in the "biggest polynomial ring"
     int i, small_degree, big_degree;                                            // Degree of the polynomials, small_degree <= big_degree
 
     if(this->degree() < P.degree()) {                                           // Determining the smallest degree
@@ -1171,116 +831,153 @@ ZqCenterPolynomial ZqCenterPolynomial::operator + (const ZqCenterPolynomial& P) 
 	}
 
     for(i = 0; i <= small_degree; i++)
-        r.coefficients[i] =
-        r._Zq_.addition(this->coefficients[i],P.coefficients[i]);               // Addition element by element till the smallest degree of the arguments
+        r.coefficients[i] = r.zq.add(this->coefficients[i],P.coefficients[i]);  // Addition element by element till the smallest degree of the arguments
     if(this->degree() == big_degree)
-        for(; i <= big_degree; i++)
-            r.coefficients[i] = this->coefficients[i];
+        for(; i <= big_degree; i++) r.coefficients[i] = this->coefficients[i];
     else
-        for(; i <= big_degree; i++)
-            r.coefficients[i] = P.coefficients[i];
+        for(; i <= big_degree; i++) r.coefficients[i] = P.coefficients[i];
     return r;
 }
 
-ZqCenterPolynomial ZqCenterPolynomial::operator * (const ZqCenterPolynomial& P) const {
-    ZqCenterPolynomial r(max_N(this->N, P.N),max_q(this->get_q(),P.get_q()));   // Initializing result in the "biggest polynomial ring"
+ZqPolynomial ZqPolynomial::operator - (const ZqPolynomial& P) const{
+    ZqPolynomial r(max_N(this->N, P.N),max_q(this->zq.get_q(),P.zq.get_q()));   // Initializing result in the "biggest polynomial ring
+    int i, small_degree, big_degree;                                            // Degree of the polynomials, small_degree <= big_degree
+
+    if(this->degree() < P.degree()) {
+        small_degree = this->degree();
+        big_degree = P.degree();
+    }
+	else {
+	    small_degree = P.degree();
+	    big_degree = this->degree();
+	}
+
+    for(i = 0; i <= small_degree; i++)
+        r.coefficients[i] = r.zq.subtract(this->coefficients[i],P.coefficients[i]); // Subtraction element by element till the smallest degree of the arguments
+    if(this->degree() == big_degree)
+        for(; i <= big_degree; i++) r.coefficients[i] = r.zq.mod_q(this->coefficients[i]);
+    else
+        for(; i <= big_degree; i++) r.coefficients[i] = r.zq.mod_q(-P.coefficients[i]);
+    return r;
+}
+
+ZqPolynomial ZqPolynomial::operator * (const ZqPolynomial& P) const{
+    ZqPolynomial r(max_N(this->N, P.N),max_q(this->zq.get_q(),P.zq.get_q()));   // Initializing result in the "biggest polynomial ring"
     int i, j, k;
     int this_degree = this->degree();
 
 	for(i = 0; i <= this_degree; i++) {
 		if(this->coefficients[i] != 0) {                                        // Taking advantage this polynomials have a big proportion of zeros
 		    k = this->N - i;
-		    for(j = 0; j < k; j++) {                                            // Adding and multiplying while the inequality i+j < N holds
-			    if(P.coefficients[j] != 0) {                                    // We expect a big proportion of zeros
-			        r.coefficients[i+j] += this->coefficients[i]*P.coefficients[j];
-			    }
-		    }
-		    for(k = 0; k < i; j++, k++) {                                       // Using the definition of convolution polynomial rings
-			    if(P.coefficients[j] != 0) {                                    // Notice i+k is congruent with j mod N
-			        r.coefficients[k] += this->coefficients[i]*P.coefficients[j];
-			    }
+		    for(j = 0; j < k; j++)                                              // Ensuring we do not get out of the polynomial
+			    if(P.coefficients[j] != 0)                                      // Expecting a big proportion of zeros
+			        r.coefficients[i+j] += this->coefficients[i] * P.coefficients[j];
+		    for(k = 0; k < i; j++, k++)                                         // Using the definition of convolution polynomial ring
+			    if(P.coefficients[j] != 0)                                      // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
+			        r.coefficients[k] += this->coefficients[i] * P.coefficients[j];
+		}
+	}
+	for(i = 0; i < r.N; i++) r.coefficients[i] = r.zq.mod_q(r.coefficients[i]); // Applying mod q
+	return r;
+}
+
+ZqPolynomial ZqPolynomial::operator * (const ZpPolynomial& P) const{
+    ZqPolynomial r(max_N(this->N, P.get_N()),this->get_q());                    // Initializing result in the "biggest polynomial ring"
+    NTRU_N PN = P.get_N();
+    int i, j, k;
+
+	for(i = 0; i < PN; i++) {
+		if(P[i] != ZpPolynomial::_0_) {                                         // -Taking advantage this polynomials have a big proportion of zeros
+		    if(P[i] == ZpPolynomial::_1_) {                                     // -The other two cases are one, as in this line is showed
+		        k = this->N - i;
+		        for(j = 0; j < k; j++)
+		            r.coefficients[i+j] += this->coefficients[j];
+		        for(k = 0; k < i; j++, k++)
+		            r.coefficients[k] += this->coefficients[j];
+		    } else {                                                            // -The only other case is two, which is interpreted as -1
+		        k = this->N - i;
+		        for(j = 0; j < k; j++)
+		            r.coefficients[i+j] -= this->coefficients[j];
+		        for(k = 0; k < i; j++, k++)
+		            r.coefficients[k] -= this->coefficients[j];
 		    }
 		}
 	}
-	for(k = 0; k < r.N; k++)
-	    r.coefficients[k] = r._Zq_.mods_q(r.coefficients[k]);                   // Computing the center modulus (check the function mods_q)
+	r.mods_q();                                                                 // Computing the center modulus (check the function mods_q)
 	return r;
 }
 
-ZqCenterPolynomial ZqCenterPolynomial::operator * (const ZpCenterPolynomial& P) const{
-    ZqCenterPolynomial r(max_N(this->N, P.get_N()),this->get_q());              // Initializing result in the "biggest polynomial ring"
-    int i, j, k;
-    int this_degree = this->degree();
-    int P_degree    = P.degree();
-
-	for(i = 0; i <= this_degree; i++) {
-		if(this->coefficients[i] != 0)                                          // Taking advantage this polynomials have a big proportion of zeros
-		    for(j = 0; j <= P_degree; j++) {
-			    if(P[j] != 0) {                                                 // Inside this if, we'll take advantage of the fact the ZpCenterPolynomial have their
-			        if((k = i + j) >= r.N) k -= r.N;                            // coefficients in {-1, 0, 1}
-			        if(P[j] == -1) r.coefficients[k] -= this->coefficients[i];  // ...
-			        else r.coefficients[k] += this->coefficients[i];            // ...
-			    }
-		    }
-	}
-	for(k = 0; k < r.N; k++)
-	    r.coefficients[k] = r._Zq_.mods_q(r.coefficients[k]);                   // Computing the center modulus (check the function mods_q)
-	return r;
+ZqPolynomial NTRUPolynomial::operator - (int64_t t, const ZqPolynomial& P) {
+    ZqPolynomial r(P.N, P.get_q());
+    r.coefficients[0] = P.zq.subtract(t, P.coefficients[0]);
+    for(int i = 1; i < P.N; i++) r.coefficients[i] = r.zq.mod_q(-P.coefficients[i]);
+    return r;
 }
 
-bool ZqCenterPolynomial::operator == (const ZqCenterPolynomial& P) const{
-    if(this->N == P.N && this->get_q() == P.get_q()) {
-        for(int i = 0; i < this->N; i++)
-            if(this->coefficients[i] != P.coefficients[i]) return false;
+bool ZqPolynomial::operator == (const Z2Polynomial& P) const {
+    if(this->N == P.get_N()) {
+        for(int i = 0; i < this->N; i++) if(this->coefficients[i] != P[i]) return false;
         return true;
     }
     return false;
 }
 
-void ZqCenterPolynomial::mods_p(NTRU_p _p_) {
-    int i;
-    switch(_p_) {
-        case _3_:
-        for(i = 0; i < this->N; i++) {
-            this->coefficients[i] %= 3;
-            if(this->coefficients[i] == -2) this->coefficients[i] =  1;
-            if(this->coefficients[i] ==  2) this->coefficients[i] = -1;
-        }
-        break;
-    }
-}
-
-ZqCenterPolynomial ZqCenterPolynomial::randomTernary(unsigned d, NTRU_N _N_, NTRU_q _q_, bool times_p, NTRU_p _p_) {
-    ZqCenterPolynomial r(_N_, _q_);
-    RandInt ri(0,_N_- 1);
-    int i;
-    unsigned _d_ = d;
-    while(d << 1 >= _N_) d >>= 1;                                               // Dividing by two till getting the inequality 2*d < N
-    while(_d_ > 0) {
-        i = ri();                                                               // Filling with ones
-        if(r.coefficients[i] == 0) {r.coefficients[i] =  1; _d_--;}              // ...
-    }
-    _d_ = d;
-    while(_d_ > 0) {
-        i = ri();                                                               // Filling with negative ones
-        if(r.coefficients[i] == 0) {r.coefficients[i] = -1; _d_--;}             // ...
-    }
-    if(times_p) {
-        switch(_p_) {
-            case _3_:
-            for(i = 0; i < _N_; i++) {
-                if(r.coefficients[i] ==  1) r.coefficients[i] =  3;
-                if(r.coefficients[i] == -1) r.coefficients[i] = -3;
-            }
-            break;
-        }
+ZpPolynomial NTRUPolynomial::mods_p(ZqPolynomial P) {
+    NTRU_N _N_ = P.get_N();
+    ZpPolynomial r(_N_);
+    for(int i = 0, buff = 0; i < _N_; i++) {
+        buff = P[i] % 3;
+        if(buff == -2 || buff == 1) r.coefficients[i] = ZpPolynomial::_1_;
+        if(buff == -1 || buff == 2) r.coefficients[i] = ZpPolynomial::_2_;
     }
     return r;
 }
 
-void ZqCenterPolynomial::toBytes(char* dest) const{                             // Supposing dest is pointing to a suitable memory location
+ZqPolynomial ZqPolynomial::getNTRUpublicKey() {                                 // -Returns public key provided this ZqPolynomial object is the inverse mod q in
+    NTRU_q _q_ = this->get_q();                                                 //  Z[x]/X^N-1 of the private key
+    ZqPolynomial publicKey(this->N, _q_);
+    int* randTernary = new int[this->N];
+    RandInt ri(0,this->N- 1);                                                   // -Random integers from 0 to this->N - 1
+    const int d_=this->N/3;
+    int _d_ = d_;
+    int i, j, k;
+
+    for(i = 0; i < this->N; i++) randTernary[i] = 0;
+
+    while(_d_ > 0) {                                                            // -Building ternary polynomial multiplied by p
+        i = ri();                                                               // -Filling with p
+        if(randTernary[i] == 0) {randTernary[i] =  1; _d_--;}                   // ...
+    }
+    _d_ = d_;
+    while(_d_ > 0) {
+        i = ri();                                                               // -Filling with negative p
+        if(randTernary[i] == 0) {randTernary[i] = -1; _d_--;}                   // ...
+    }
+	for(i = 0; i < this->N; i++) {                                              // -Convolution process
+	    k = this->N - i;
+	    if(randTernary[i] != 0) {
+	        if(randTernary[i] == 1) {
+	            for(j = 0; j < k; j++)                                          // Ensuring we do not get out of the polynomial
+                    publicKey.coefficients[i+j] += this->coefficients[j];
+	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
+	    	        publicKey.coefficients[k] += this->coefficients[j];         // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
+	        }
+	        if(randTernary[i] == -1) {
+	            for(j = 0; j < k; j++)                                          // Ensuring we do not get out of the polynomial
+                    publicKey.coefficients[i+j] -= this->coefficients[j];
+	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
+	    	        publicKey.coefficients[k] -= this->coefficients[j];         // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
+	        }
+	    }
+	}
+	delete[] randTernary;
+	publicKey.mods_q();                                                         // Applying mods q
+	return publicKey;
+}
+
+void ZqPolynomial::toBytes(char* dest) const{                                   // Supposing dest is pointing to a suitable memory location
     int i = 0, j = 0, k = 0, l = 0, log2q = 0;                                  // log2q will hold the logarithm base two of q. Here we are assuming q < 2^32
-    int const _q_ = this->_Zq_.get_q();
+    int const _q_ = this->zq.get_q();
     longlong_to_char ll_c = {0};                                                // ll_c will do the cast from int to char[]
     int _64 = 64;
     long long buff;
@@ -1299,24 +996,17 @@ void ZqCenterPolynomial::toBytes(char* dest) const{                             
     if(k > 0) dest[j++] = ll_c._char[l];
 }
 
-void ZqCenterPolynomial::print(const char* name, const char* tail) const{
-    unsigned len_q = len(this->_Zq_.get_q());
-    int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
-    printArray(this->coefficients, (unsigned)coeffAmount, len_q+1, name, tail);
+void ZqPolynomial::print(const char* name,const char* tail) const{
+    unsigned len_q = len(this->zq.get_q());
+    int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from int64_t array to int array
+    int* array = new int[coeffAmount], i;                                       // ...
+    for(i = 0; i < coeffAmount; i++) array[i] = (int)this->coefficients[i];     // ...
+    printArray(array, (unsigned)coeffAmount, len_q+1, name, tail);
+    delete[] array;
 }
 
-void ZqCenterPolynomial::println(const char* name) const{
+void ZqPolynomial::println(const char* name) const{
     this->print(name, "\n");
 }
 
-bool NTRUPolynomial::operator == (const ZqCenterPolynomial& Pq, const ZpCenterPolynomial Pp) {
-    if(Pq.get_N() == Pp.get_N()) {
-        NTRU_N N = Pq.get_N();
-        for(int i = 0; i < N; i++)
-            if(Pq[i] != Pp[i]) return false;
-        return true;
-    }
-    return false;
-}
-
-//____________________________________________________________________ ZqCenterPolynomial  ________________________________________________________________________
+//_______________________________________________________________________ ZqPolynomial ____________________________________________________________________________
