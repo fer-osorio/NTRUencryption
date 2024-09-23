@@ -31,3 +31,7 @@
 *.out
 *.app
 *.txt
+
+# Others
+Tests.cpp
+tests.cpp
