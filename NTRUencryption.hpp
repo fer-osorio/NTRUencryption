@@ -11,15 +11,16 @@ class Encryption {
 	const NTRU_p p;
 	private: int d;
 
-	ZpCenterPolynomial privateKey;
-	ZpCenterPolynomial privateKeyInv_p;											// Private key inverse modulo p
-	ZqCenterPolynomial publicKey;
+	ZqPolynomial publicKey;
+	ZpPolynomial privateKey;
+	ZpPolynomial privateKeyInv_p;												// Private key inverse modulo p
 
 	public:
 	Encryption(NTRU_N _N_, NTRU_q _q_, int _d_=0,NTRU_p _p_=_3_);
-	ZqCenterPolynomial encrypt(const ZpCenterPolynomial&);
-	ZqCenterPolynomial encrypt(const char fstring[]);							// Encryption of formatted string
-	ZpCenterPolynomial decrypt(const ZqCenterPolynomial&);
+
+	ZqPolynomial encrypt(const ZpPolynomial&);
+	ZqPolynomial encrypt(const char fstring[]);									// Encryption of formatted string
+	ZpPolynomial decrypt(const ZqPolynomial&);
 
 	NTRU_N get_N() const{ return this->N; }
 	NTRU_p get_p() const{ return this->p; }
