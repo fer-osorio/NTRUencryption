@@ -131,7 +131,7 @@ int main(int argc, char* argv[]) {
         enc_str[2436] = 0;
 
         begin = std::chrono::steady_clock::now();
-        ZqPolynomial e_msg = e.encrypt(text.content);
+        NTRU::ZqPolynomial e_msg = e.encrypt(text.content);
         end = std::chrono::steady_clock::now();
         std::cout << "\nMessage was encrypted in " << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
         e_msg.println("Encrypted message");
@@ -182,7 +182,7 @@ int main(int argc, char* argv[]) {
     input[size] = 0;
 
     begin = std::chrono::steady_clock::now();
-    ZqPolynomial e_msg = e.encrypt(input);
+    NTRU::ZqPolynomial e_msg = e.encrypt(input);
     end = std::chrono::steady_clock::now();
     std::cout << "\nMessage was encrypted in " << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
 
@@ -193,7 +193,7 @@ int main(int argc, char* argv[]) {
     std::cout << "\n\n";
 
     begin = std::chrono::steady_clock::now();
-    NTRUPolynomial::ZpPolynomial d_msg = e.decrypt(e_msg);
+    NTRU::ZpPolynomial d_msg = e.decrypt(e_msg);
     end = std::chrono::steady_clock::now();
     std::cout << "\nMessage was decrypted in "
     << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
