@@ -158,10 +158,11 @@ int main(int argc, char* argv[]) {
     }
 
     char* input = NULL;
-    char cipherText[2500];
+    char  cipherText[2500];
     char* aux   = NULL;
-    char output[512];
+    char  output[512];
     unsigned size = 0, i = 0;
+
     input = new char[1025];
     size = 0;
     std::cout << "\nWrite the string you want to encrypt. To process the string sent the value 'EOF', which you can do by:\n\n"
@@ -178,8 +179,8 @@ int main(int argc, char* argv[]) {
             i = 0;
         } else { i++; }
     }
-    while(size < 16) input[size++] = ' ';
-    input[size] = 0;
+    input[--size] = 0;
+    std::cout << "\n\nInput: " << input << '\n';
 
     begin = std::chrono::steady_clock::now();
     NTRU::ZqPolynomial e_msg = e.encrypt(input);
