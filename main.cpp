@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
     std::chrono::steady_clock::time_point end;
 
     begin = std::chrono::steady_clock::now();
-    NTRU::Encryption e(_1499_, _8192_, _1499_/3 + 1);
+    NTRU::Encryption e;
     end = std::chrono::steady_clock::now();
     std::cout << "\nPrivate and public keys generation took "<< std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()<<"[µs]\n"<<std::endl;
 
