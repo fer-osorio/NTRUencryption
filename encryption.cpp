@@ -18,7 +18,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#include<chrono>
 #include<fstream>
 #include<cstring>
 #include"NTRUencryption.hpp"
@@ -34,7 +33,6 @@ struct TXT {
     unsigned size = 0;
     char* content = NULL; // text file content.
 
-    public:
     TXT(): name() {}                                                            // -Just for type declaration.
 
     TXT(const char* fname) {                                                    // -Building from file.
@@ -63,9 +61,6 @@ struct TXT {
             throw errmsg;
         }
     }
-    /*TXT(const char* data, unsigned len) {
-
-    }*/
     TXT(const TXT& t): size(t.size){                                            // -Copy constructor
         copyStr(t.name, this->name);
         this->content = new char[t.size];
@@ -114,14 +109,7 @@ struct TXT {
 };
 
 int main(int argc, char* argv[]) {
-    std::chrono::steady_clock::time_point begin;
-    std::chrono::steady_clock::time_point end;
-
-    begin = std::chrono::steady_clock::now();
-    NTRU::Encryption e;
-    end = std::chrono::steady_clock::now();
-    std::cout << "\nPrivate and public keys generation took "<< std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()<<"[µs]\n"<<std::endl;
-
+    NTRU::Encryption e(_1499_,_8192_);
     if(argc == 2) {
         TXT text, prvKeytxt;
         char enc_str[2437];
@@ -130,10 +118,8 @@ int main(int argc, char* argv[]) {
         catch(const char* str) { std::cout << str; }
         enc_str[2436] = 0;
 
-        begin = std::chrono::steady_clock::now();
-        NTRU::ZqPolynomial e_msg = e.encrypt(text.content);
-        end = std::chrono::steady_clock::now();
-        std::cout << "\nMessage was encrypted in " << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
+
+        NTRU::ZqPolynomial e_msg = e.encrypt(text.content, true);
         e_msg.println("Encrypted message");
 
         e_msg.toBytes(enc_str);
@@ -146,14 +132,6 @@ int main(int argc, char* argv[]) {
         try{ text.save(); }
         catch(const char* str) { std::cout << str; }
 
-        e.savePrivateKey_txt();
-
-        /*begin = std::chrono::steady_clock::now();
-        NTRUPolynomial::ZpCenterPolynomial d_msg = e.decrypt(e_msg);
-        end = std::chrono::steady_clock::now();
-        std::cout << "\nMessage was decrypted in " << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
-        d_msg.toBytes(str);
-        std::cout << "Decrypted message: " << str << '\n';*/
         return 0;
     }
 
@@ -182,10 +160,7 @@ int main(int argc, char* argv[]) {
     input[--size] = 0;
     std::cout << "\n\nInput: " << input << '\n';
 
-    begin = std::chrono::steady_clock::now();
-    NTRU::ZqPolynomial e_msg = e.encrypt(input);
-    end = std::chrono::steady_clock::now();
-    std::cout << "\nMessage was encrypted in " << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
+    NTRU::ZqPolynomial e_msg = e.encrypt(input, true);
 
     e_msg.println("Encrypted message in polynomial form"); std::cout << '\n';
     e_msg.toBytes(cipherText);
@@ -193,11 +168,7 @@ int main(int argc, char* argv[]) {
     for(i = 0; i < 2435; i++) std::cout << cipherText[i];
     std::cout << "\n\n";
 
-    begin = std::chrono::steady_clock::now();
-    NTRU::ZpPolynomial d_msg = e.decrypt(e_msg);
-    end = std::chrono::steady_clock::now();
-    std::cout << "\nMessage was decrypted in "
-    << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
+    NTRU::ZpPolynomial d_msg = e.decrypt(e_msg, true);
 
     d_msg.toBytes(output);
     std::cout << "Decrypted message: " << output << '\n';
