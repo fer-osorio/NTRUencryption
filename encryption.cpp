@@ -22,7 +22,7 @@
 #include<cstring>
 #include"NTRUencryption.hpp"
 
-#define NAME_MAX_LEN 50
+#define NAME_MAX_LEN 256
 
 void copyStr(const char source[], char dest[]) {                                // Supposing source is a formatted string and dest has enough space
     for(int i = 0; source[i] != 0; i++) dest[i] = source[i];
@@ -57,7 +57,7 @@ struct TXT {
         } else {
             char errmsg[] = "\nIn TXT.cpp file, TXT::TXT(const char* fname): "
                             "Could not open file ";
-            std::cout << errmsg << fname << '\n';
+            std::cerr << errmsg << fname << '\n';
             throw errmsg;
         }
     }
@@ -109,71 +109,163 @@ struct TXT {
 };
 
 int main(int argc, char* argv[]) {
-    NTRU::Encryption e(_1499_,_8192_);
-    if(argc == 2) {
-        TXT text, prvKeytxt;
-        char enc_str[2437];
-
-        try { text = TXT(argv[1]); }
-        catch(const char* str) { std::cout << str; }
-        enc_str[2436] = 0;
-
-
-        NTRU::ZqPolynomial e_msg = e.encrypt(text.content, true);
-        e_msg.println("Encrypted message");
-
-        e_msg.toBytes(enc_str);
-        std::cout << "\n\nEncrypted message:\n";
-        for(int i = 0; i < 2250; i++) std::cout << enc_str[i];
-        std::cout << "\n\n";
-
-        text.overWrite(enc_str, 2436);
-
-        try{ text.save(); }
-        catch(const char* str) { std::cout << str; }
+    NTRU_N N = _1499_;
+    NTRU_q q = _8192_;
+    TXT   text;
+    char* enc_str = NULL;
+    char* consoleInput = NULL;
+    char* fileInput = NULL;
+    NTRU::ZqPolynomial e_msg;
+    char  fileName[NAME_MAX_LEN];
+    int   size = 0, option = 0;
+    std::ifstream file;
+    std::streampos fileSize;
+    if(argc == 3) {
+        NTRU::Encryption e(argv[1]);
+        file.open(argv[2], std::ios::binary | std::ios::ate);                   // Open the file in binary mode and move to the end
+        if (!file.is_open()) {
+            std::cerr << "Error opening file" << std::endl;
+            return -1;
+        }
+        fileSize = file.tellg();                                                // Get the file size
+        file.seekg(0, std::ios::beg);                                           // Move back to the beginning
+        fileInput = new char[fileSize];
+        file.read(fileInput, fileSize);
+        if (!file) {
+            std::cerr << "Error reading file" << std::endl;
+            delete[] fileInput;
+            file.close();
+            return -1;
+        }
+        file.close();
+        e_msg = e.encrypt(fileInput, fileSize);
+        try { e_msg.save(); }
+        catch(const char* str) { std::cerr << str; }
+        delete[] fileInput;
 
         return 0;
     }
 
-    char* input = NULL;
-    char  cipherText[2500];
-    char* aux   = NULL;
-    char  output[512];
-    unsigned size = 0, i = 0;
+    std::cout << "\nPress:\n"                                                   // -Getting input from console
+        "(1) to encrypt a binary file.\n"
+        "(2) to encrypt a text file.\n"
+        "(3) to encrypt text retrieved from console.\n"
+        "(4) to generate pairs of keys.\n"
+        "Important note: All the encryption options will require a public key file to work.\n";
+    std::cin >> option;
+    getchar();
 
-    input = new char[1025];
-    size = 0;
-    std::cout << "\nWrite the string you want to encrypt. To process the string sent the value 'EOF', which you can do by:\n\n"
-                 "- Pressing twice the keys CTRL+Z for Windows.\n"
-                 "- Pressing twice the keys CTRL+D for Unix and Linux.\n\n";
-    while(std::cin.get(input[size++])) {                                        // -Input from CLI.
-        if(i == 1024) {
-            aux = new char[size];
-            std::memcpy(aux, input, size);
-            delete[] input;
-            input = new char[size + 1025];
-            std::memcpy(input, aux, size);
-            delete[] aux;
-            i = 0;
-        } else { i++; }
+    while(option < 1 || option > 4) {
+        std::cout << "\nInvalid input. Try again.\n";
+        std::cout << "\nPress:\n"
+            "(1) to encrypt a binary file.\n"
+            "(2) to encrypt a text file.\n"
+            "(3) to encrypt text retrieved from console.\n"
+            "(4) to generate pairs of keys.\n";
+        std::cin >> option;
+        getchar();
     }
-    input[--size] = 0;
-    std::cout << "\n\nInput: " << input << '\n';
 
-    NTRU::ZqPolynomial e_msg = e.encrypt(input, true);
+    if(option != 4) {
+        std::cout << "Write the name/path of the public key we will use for encryption. The maximum amount of characters allowed for this is "<<NAME_MAX_LEN<<":\n";
+        std::cin.getline(fileName, NAME_MAX_LEN - 1, '\n');
+        NTRU::Encryption e(fileName);
+        std::cout << "NTRU public key parameters: N = " << e.get_N() << ", q = " << e.get_q() << ".\n";
+        const int cipherTextSize   = e.cipherTextSizeInBytes();
+        const int plainTextMaxSize = e.plainTextMaxSizeInBytes();
+        switch(option) {
+            case 1:
+                std::cout << "Write the name/path of the file. The maximum amount of characters allowed for this is  " << NAME_MAX_LEN << " :\n";
+                std::cin.getline(fileName, NAME_MAX_LEN - 1, '\n');
+                file.open(fileName, std::ios::binary | std::ios::ate);          // Open the file in binary mode and move to the end
+                if (!file.is_open()) {
+                    std::cerr << "Error opening file" << std::endl;
+                    return -1;
+                }
+                fileSize = file.tellg();                                        // Get the file size
+                file.seekg(0, std::ios::beg);                                   // Move back to the beginning
+                fileInput = new char[fileSize];
+                file.read(fileInput, fileSize);
+                if (!file) {
+                    std::cerr << "Error reading file" << std::endl;
+                    delete[] fileInput;
+                    file.close();
+                    return -1;
+                }
+                e_msg = e.encrypt(fileInput, fileSize);
+                try { e_msg.save(); }
+                catch(const char* str) { std::cerr << str; }
+                delete[] fileInput; fileInput = NULL;
+                break;
+            case 2:                                                             // Working on encrypting a text file.
+                std::cout << "Write the name/path of the text. The maximum amount of characters allowed for this is  " << NAME_MAX_LEN << " :\n";
+                std::cin.getline(fileName, NAME_MAX_LEN - 1, '\n');
+                try { text = TXT(fileName); }
+                catch(const char* str) { std::cerr << str; }
+                enc_str = new char[(unsigned)cipherTextSize];
+                e_msg = e.encrypt(text.content, (int)text.size);
+                e_msg.println("\nEncrypted message");
+                e_msg.toBytes(enc_str);
+                text.overWrite(enc_str, (unsigned)cipherTextSize);
+                try{ text.save(); }
+                catch(const char* str) { std::cerr << str; }
+                try { e_msg.save(); }
+                catch(const char* str) { std::cerr << str; }
+                delete[] enc_str; enc_str = NULL;
+                break;
+            case 3:
+                std::cout << "\nWrite the string you want to encrypt. To process the string sent the value 'EOF', which you can do by:\n\n"
+                "- Pressing twice the keys CTRL+Z for Windows.\n"
+                "- Pressing twice the keys CTRL+D for Unix and Linux.\n\n"
+                "Maximum size for the input: " << plainTextMaxSize << " characters.\n";
+                consoleInput = new char[(unsigned)plainTextMaxSize + 1];
+                for(size = 0; size < plainTextMaxSize && std::cin.get(consoleInput[size]); size++) {} // -Input from CLI.
+                consoleInput[size] = 0;
+                e_msg = e.encrypt(consoleInput, size);
+                e_msg.println("\nEncrypted message");
+                try { e_msg.save("encryptedMessage.ntru"); }
+                catch(const char* str) { std::cerr << str; }
+                delete[] consoleInput; consoleInput = NULL;
+                break;
+        }
+    } else {
+        std::cout << "\nSelect the parameters for the keys seeing them as Polynomials:\n"
+        "N = \n"
+        "    (1) 509,    (2) 677,    (3) 701,    (4) 821,    (5) 1087,    (6) 1171,    (7) 1499\n";
+        std::cin >> option;
+        getchar();
+        while(option < 1 || option > 7) {
+            std::cout << "\nInvalid input. Try again.\n"
+            "N = \n"
+            "    (1) 509,    (2) 677,    (3) 701,    (4) 821,    (5) 1087,    (6) 1171,    (7) 1499\n";
+            std::cin >> option;
+            getchar();
+        }
+        NTRU_N Noptions[] = {_509_,  _677_,  _701_,  _821_, _1087_, _1171_, _1499_};
+        N = Noptions[option - 1];
+        std::cout << "Selected N = " << N <<"\n\n"
+        "q = \n"
+        "    (1) 2048,    (2) 4096,    (3) 8192\n";
+        std::cin >> option;
+        getchar();
+        while(option < 1 || option > 3) {
+            std::cout << "\nInvalid input. Try again.\n"
+            "q = \n"
+            "    (1) 2048,    (2) 4096,    (3) 8192\n";
+            std::cin >> option;
+            getchar();
+        }
+        NTRU_q qoptions[] = {_2048_, _4096_, _8192_};
+        q = qoptions[option - 1];
+        std::cout << "Selected q = " << q <<"\n\n";
+        NTRU::Encryption keys(N, q);
+        std::cout << "Saving Public and private key. Parameters: N = " << N << ", q = " << q <<".\n";
+        keys.saveKeys();
+    }
 
-    e_msg.println("Encrypted message in polynomial form"); std::cout << '\n';
-    e_msg.toBytes(cipherText);
-    std::cout << "Encrypted message with ASCII codification\n\n";
-    for(i = 0; i < 2435; i++) std::cout << cipherText[i];
-    std::cout << "\n\n";
+    if(consoleInput != NULL) delete[] consoleInput;
+    if(fileInput    != NULL) delete[] fileInput;
+    if(enc_str      != NULL) delete[] enc_str;
 
-    NTRU::ZpPolynomial d_msg = e.decrypt(e_msg, true);
-
-    d_msg.toBytes(output);
-    std::cout << "Decrypted message: " << output << '\n';
-
-    if(input != NULL) delete[] input;
-    if(aux   != NULL) delete[] aux;
-    return 0;
+    return EXIT_SUCCESS;
 }
