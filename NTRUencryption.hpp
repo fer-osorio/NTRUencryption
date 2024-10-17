@@ -171,6 +171,7 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	ZqPolynomial(const ZpPolynomial& P);
 	ZqPolynomial(const ZqPolynomial& P);
 	ZqPolynomial(const Z2Polynomial& P);
+	ZqPolynomial(const char fileName[]);
 	ZqPolynomial(const char data[], int dataLength);							// -Initializing with string of bytes
 	~ZqPolynomial() {
 		if(this->coefficients != NULL) delete[] this->coefficients;
@@ -197,9 +198,11 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZqPolynomial&);
 
-	int degree() const;															// -Returns degree of polynomial
-	void mod_q() const;
+	int degree()  const;															// -Returns degree of polynomial
+	void mod_q()  const;
 	void mods_q() const;
+	int lengthInBytes() const;
+	static int log2(NTRU_q q);
 
 	ZqPolynomial getNTRUpublicKey();											// -Provided this object is the inverse in Z[x]/X^N-1 modulo q of the private key,
 																				//	this function returns the public key

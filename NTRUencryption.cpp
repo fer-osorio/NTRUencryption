@@ -829,7 +829,7 @@ ZqPolynomial::ZqPolynomial(const char data[], int dataLength) {
     for(i = 0, dataByteIndex = 0; dataByteIndex < dataLength && i < N ;) {
         aux.int64 = 0;
         for(j = 0; bitsOcupiedInBuff <= 56 && dataByteIndex < dataLength; bitsOcupiedInBuff += 8) {// -If we are using at most 56 bits of the buffer, we can
-            aux.chars[j++] = data[dataByteIndex++];                             //  still allocate one more byte
+            aux.chars[j++] = data[dataByteIndex++];                          //  still allocate one more byte
         }
         buff |= (uint64_t)aux.int64 << offset;
         for(; bitsOcupiedInBuff >= log2q; bitsOcupiedInBuff -= log2q, i++) {
@@ -1021,6 +1021,16 @@ void ZqPolynomial::mods_q() const{
     for(int i = 0; i < N; i++) this->coefficients[i] = zq.mods_q(this->coefficients[i]);
 }
 
+int ZqPolynomial::log2(NTRU_q q) {                                                            // -Returns logarithm base 2 of a NTRU_q value
+    int log2q = 0, qq = q;
+    for(; qq > 1; qq >>= 1, log2q++) {}
+    return log2q;
+}
+
+int ZqPolynomial::lengthInBytes() const{
+    return NTRUparameters.get_N()*log2(zq.get_q())/8 + 1;
+}
+
 ZqPolynomial ZqPolynomial::getNTRUpublicKey() {                                 // -Returns public key provided this ZqPolynomial object is the inverse mod q in
     const NTRU_N N = NTRUparameters.get_N();                                    //  Z[x]/X^N-1 of the private key
     ZqPolynomial publicKey;
@@ -1059,12 +1069,6 @@ ZqPolynomial ZqPolynomial::getNTRUpublicKey() {                                 
 	delete[] randTernary;
 	publicKey.mods_q();                                                         // -Applying mods q
 	return publicKey;
-}
-
-static int log2(NTRU_q q) {                                                     // -Returns logarithm base 2 of a NTRU_q value
-    int log2q = 0, qq = q;
-    for(; qq > 1; qq >>= 1, log2q++) {}
-    return log2q;
 }
 
 void ZqPolynomial::toBytes(char dest[]) const{                                  // -Supposing dest is pointing to a suitable memory location
@@ -1185,7 +1189,7 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
                 } catch(const char* str) {
                     delete[] coeffBytes; coeffBytes = NULL;
                     delete[] fileHeader; fileHeader = NULL;
-                    std::cerr << "\nIn file NTRUencryption.cpp, function void Encryption::Encryption(const char* privateKeyFile)\n";
+                    std::cerr << "\nIn file NTRUencryption.cpp, function void Encryption::Encryption(const char* NTRUKeyFile)\n";
                     throw;
                 }
             } else {
@@ -1209,9 +1213,9 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
 }
 
 int Encryption::plainTextMaxSizeInBytes() const{ return this->N/5 + 1; }        // -Notice the fact maximum size for plain text and the size of the private key
-int Encryption::cipherTextSizeInBytes()   const{ return this->N*log2(this->q)/8 + 1; }//  (both in measured in bytes) is the same, and that is because they are
+int Encryption::cipherTextSizeInBytes()   const{ return this->N*ZqPolynomial::log2(this->q)/8 + 1; }//  (in bytes) is the same, and that is because they are
 int Encryption::privateKeySizeInBytes()   const{ return this->N/5 + 1; }        //  both ZpPolynomials. The same is true for the cipher text and the public key
-int Encryption::publicKeySizeInBytes()    const{ return this->N*log2(this->q)/8 + 1; }
+int Encryption::publicKeySizeInBytes()    const{ return this->N*ZqPolynomial::log2(this->q)/8 + 1; }
 
 void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const{
     if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
@@ -1268,7 +1272,6 @@ void Encryption::setKeys(bool showKeyCreationTime) {
         setNTRUparameters(this->N, this->q);
     }
 	ZpPolynomial Zp_gcdXNmns1;
-    ZqPolynomial Zq_privateKey;
 	Z2Polynomial Z2_privateKeyInv;
 	Z2Polynomial Z2_gcdXNmns1;
 	Z2Polynomial Z2_privateKey(this->privateKey);
@@ -1341,15 +1344,13 @@ void Encryption::setKeys(bool showKeyCreationTime) {
     }
 }
 
-void Encryption::setKeysFromPrivKey() {                                 // -In this function we're supposing private key polynomial has inverse.
+void Encryption::setKeysFromPrivKey() {                                         // -In this function we're supposing private key polynomial has inverse.
     if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
         setNTRUparameters(this->N, this->q);
     }
     Z2Polynomial Z2_privateKey(this->privateKey);
     Z2Polynomial Z2_privateKeyInv;
     Z2Polynomial Z2_gcdXNmns1;
-    ZqPolynomial Zq_privateKeyInv;
-    ZqPolynomial Zq_privateKey;
     ZpPolynomial Zp_gcdXNmns1;
     int k = 2, l = 1;
 
@@ -1368,15 +1369,17 @@ void Encryption::setKeysFromPrivKey() {                                 // -In t
         std::cerr<<"\nIn file NTRUencryption.cpp, function void Encryption::setKeys()\n";
         throw;
     }
-    while(k < this->q) {
-        Zq_privateKeyInv = Zq_privateKeyInv*(2 - Zq_privateKey*Zq_privateKeyInv);
+    this->publicKey = convolutionZq(Z2_privateKeyInv, 2 - convolutionZq(Z2_privateKeyInv, this->privateKey));
+    k <<= l; l <<= 1;
+
+	while(k < this->q) {
+        this->publicKey = this->publicKey*(2 - this->publicKey*this->privateKey);
         k <<= l; l <<= 1;
-    }                                                                       // -At this line, we have just created the private key and its inverse
-    if(Zq_privateKeyInv*this->privateKey != 1) {
-        (Zq_privateKeyInv*this->privateKey).println("Zq_privateKeyInv*this->privateKey");
+    }                                                                           // -At this line, we have just created the private key and its inverse
+    if(this->privateKeyInv_p*this->privateKey != 1) {
+        (this->privateKeyInv_p*this->privateKey).println("Zq_privateKeyInv*this->privateKey");
         throw "\nIn file NTRUencryption.cpp, function void Encryption::setKeys(). Private key inverse in Zq[x]/(x^N-1) ring not found\n";
     }
-	this->publicKey = Zq_privateKeyInv.getNTRUpublicKey();
 }
 
 // ____________________________________________________________________ Encryption keys ___________________________________________________________________________
@@ -1395,14 +1398,6 @@ ZqPolynomial Encryption::encrypt(const ZpPolynomial& msg, bool showEncryptionTim
     ZqPolynomial encryptedMsg = msg.encrypt(publicKey, showEncryptionTime);
     return encryptedMsg;
 }
-
-/*ZqPolynomial Encryption::encrypt(const char fstring[], bool showEncryptionTime) const{
-    int fstringLen = lengthString(fstring);
-    if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) setNTRUparameters(this->N, this->q);
-    ZpPolynomial msg(fstring, fstringLen);
-    ZqPolynomial encryptedMsg = msg.encrypt(this->publicKey, showEncryptionTime);
-    return encryptedMsg;
-}*/
 
 ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg, bool showDecryptionTime) const{
     if(!this->validPrivateKey) {
