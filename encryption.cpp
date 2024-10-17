@@ -108,6 +108,11 @@ struct TXT {
     }
 };
 
+union ushort_to_char {                                                          // -Casting from short to an array of two chars
+    unsigned short short_;
+    char         chars[2];
+};
+
 int main(int argc, char* argv[]) {
     char* enc_str = NULL;
     char* consoleInput = NULL;
@@ -125,28 +130,33 @@ int main(int argc, char* argv[]) {
     if(argc == 3) {                                                             // -First argument for public key, second argument for the file to encrypt
         try{ e = NTRU::Encryption(argv[1]); }
         catch(const char* exp) { std::cerr << exp; }
-        file.open(argv[2], std::ios::binary | std::ios::ate);                   // Open the file in binary mode and move to the end
+        file.open(argv[2], std::ios::binary | std::ios::ate);                   // -Open the file in binary mode and move to the end
         if (!file.is_open()) {
-            std::cerr << "Error opening file" << std::endl;
-            return -1;
+            std::cerr << "Error opening file for encryption" << std::endl;
+            return EXIT_FAILURE;
         }
-        fileSize = file.tellg();                                                // Get the file size
-        file.seekg(0, std::ios::beg);                                           // Move back to the beginning
-        fileInput = new char[fileSize];
-        file.read(fileInput, fileSize);
-        if (!file) {
-            std::cerr << "Error reading file" << std::endl;
-            delete[] fileInput;
+        fileSize = file.tellg();                                                // -Get the file size
+        if(fileSize > e.get_N() - 2) {
+            std::cerr << "File size exceeds the limit size for this program (" << e.get_N() - 2 << " bytes). Terminating the program.";
             file.close();
-            return -1;
+            return EXIT_FAILURE;
         }
+        file.seekg(0, std::ios::beg);                                           // -Move back to the beginning
+        ushort_to_char fileSizePlus2;                                           // -Handling the size of the file as a short unsigned number and as a array of two
+        fileSizePlus2.short_ = (unsigned)fileSize + 2;                          //  chars, this will allow us two write the size in the input array for encryption.
+        fileInput = new char[fileSizePlus2.short_];                             //  The +2 is for the short number we need to put first to tell the size of the file
+        fileInput[0] = fileSizePlus2.chars[0];
+        fileInput[1] = fileSizePlus2.chars[1];
+        file.read((char*)&fileInput[2], fileSize);
         file.close();
-        enc_msg = e.encrypt(fileInput, fileSize);
+        enc_msg = e.encrypt(fileInput, fileSizePlus2.short_);                      // -Encrypting the bytes from the file and its size
         try { enc_msg.save(); }
-        catch(const char* str) { std::cerr << str; }
-        delete[] fileInput;
-
-        return 0;
+        catch(const char* str) {
+            std::cerr << str;
+            delete[] fileInput;
+            EXIT_FAILURE;
+        }
+        return EXIT_SUCCESS;
     }
 
     std::cout << "\nPress:\n"                                                   // -Getting input from console
@@ -183,29 +193,38 @@ int main(int argc, char* argv[]) {
                 std::cin.getline(fileName, NAME_MAX_LEN - 1, '\n');
                 file.open(fileName, std::ios::binary | std::ios::ate);          // Open the file in binary mode and move to the end
                 if (!file.is_open()) {
-                    std::cerr << "Error opening file" << std::endl;
-                    return -1;
+                    std::cerr << "Error opening file for encryption" << std::endl;
+                    return EXIT_FAILURE;
                 }
                 fileSize = file.tellg();                                        // Get the file size
-                file.seekg(0, std::ios::beg);                                   // Move back to the beginning
-                fileInput = new char[fileSize];
-                file.read(fileInput, fileSize);
-                if (!file) {
-                    std::cerr << "Error reading file" << std::endl;
-                    delete[] fileInput;
+                if(fileSize > e.get_N() - 2) {
+                    std::cerr << "File size exceeds the limit size for this program (" << e.get_N() - 2 << " bytes). Terminating the program.";
                     file.close();
-                    return -1;
+                    return EXIT_FAILURE;
                 }
-                enc_msg = e.encrypt(fileInput, fileSize);
+                file.seekg(0, std::ios::beg);                                   // Move back to the beginning
+                ushort_to_char fileSizePlus2;                                   // -Handling the size of the file as a short unsigned number and as a array of
+                fileSizePlus2.short_ = (unsigned)fileSize + 2;                  //  two chars, this will allow us two write the size in the input array for
+                fileInput = new char[fileSizePlus2.short_];                     //  encryption. The +2 is for the short number we need to put first to tell the
+                fileInput[0] = fileSizePlus2.chars[0];                          //  size of the file
+                fileInput[1] = fileSizePlus2.chars[1];
+                file.read((char*)&fileInput[2], fileSize);
+                enc_msg = e.encrypt(fileInput, fileSizePlus2.short_);
                 try { enc_msg.save(); }
-                catch(const char* str) { std::cerr << str; }
-                delete[] fileInput; fileInput = NULL;
+                catch(const char* str) {
+                    std::cerr << str;
+                    delete[] fileInput; fileInput = NULL;
+                    return EXIT_FAILURE;
+                }
                 break;
             case 2:                                                             // Working on encrypting a text file.
                 std::cout << "Write the name/path of the text. The maximum amount of characters allowed for this is  " << NAME_MAX_LEN << " :\n";
                 std::cin.getline(fileName, NAME_MAX_LEN - 1, '\n');
                 try { text = TXT(fileName); }
-                catch(const char* str) { std::cerr << str; }
+                catch(const char* str) {
+                    std::cerr << str;
+                    return EXIT_FAILURE;
+                }
                 enc_str = new char[(unsigned)cipherTextSize];
                 enc_msg = e.encrypt(text.content, (int)text.size);
                 enc_msg.println("\nEncrypted message");
@@ -214,7 +233,11 @@ int main(int argc, char* argv[]) {
                 try{ text.save(); }
                 catch(const char* str) { std::cerr << str; }
                 try { enc_msg.save(); }
-                catch(const char* str) { std::cerr << str; }
+                catch(const char* str) {
+                    std::cerr << str;
+                    delete[] enc_str;
+                    return EXIT_FAILURE;
+                }
                 delete[] enc_str; enc_str = NULL;
                 break;
             case 3:
@@ -228,7 +251,11 @@ int main(int argc, char* argv[]) {
                 enc_msg = e.encrypt(consoleInput, size);
                 enc_msg.println("\nEncrypted message");
                 try { enc_msg.save("encryptedMessage.ntru"); }
-                catch(const char* str) { std::cerr << str; }
+                catch(const char* str) {
+                    std::cerr << str;
+                    delete[] consoleInput;
+                    return EXIT_FAILURE;
+                }
                 delete[] consoleInput; consoleInput = NULL;
                 break;
         }
