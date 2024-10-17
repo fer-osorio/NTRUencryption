@@ -1,4 +1,4 @@
-all: NTRUencryption.exe
+all: NTRUencryption.exe NTRUdecryption.exe
 
 WARNINGS = -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors
 DEBUG = -ggdb -fno-omit-frame-pointer
@@ -8,8 +8,11 @@ STANDARD = -std=c++2a
 NTRUencryption.exe: Makefile encryption.cpp NTRUencryption.cpp NTRUencryption.hpp
 	$(CXX) -o $@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) encryption.cpp NTRUencryption.cpp
 
+NTRUdecryption.exe: Makefile decryption.cpp NTRUencryption.cpp NTRUencryption.hpp
+	$(CXX) -o $@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) decryption.cpp NTRUencryption.cpp
+
 clean:
-	rm -f NTRUencryption.exe
+	rm -f NTRUencryption.exe NTRUdecryption.exe
 
 # Builder will call this to install the application before running.
 install:
