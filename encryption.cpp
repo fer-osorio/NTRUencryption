@@ -109,19 +109,22 @@ struct TXT {
 };
 
 int main(int argc, char* argv[]) {
-    NTRU_N N = _1499_;
-    NTRU_q q = _8192_;
-    TXT   text;
     char* enc_str = NULL;
     char* consoleInput = NULL;
     char* fileInput = NULL;
-    NTRU::ZqPolynomial e_msg;
     char  fileName[NAME_MAX_LEN];
     int   size = 0, option = 0;
-    std::ifstream file;
+    TXT   text;
+    NTRU_N N = _1499_;
+    NTRU_q q = _8192_;
+    NTRU::ZqPolynomial enc_msg;
+    std::ifstream  file;
     std::streampos fileSize;
-    if(argc == 3) {
-        NTRU::Encryption e(argv[1]);
+    NTRU::Encryption e;                                                         // -Declaring encryption object. Should not be used jet
+
+    if(argc == 3) {                                                             // -First argument for public key, second argument for the file to encrypt
+        try{ e = NTRU::Encryption(argv[1]); }
+        catch(const char* exp) { std::cerr << exp; }
         file.open(argv[2], std::ios::binary | std::ios::ate);                   // Open the file in binary mode and move to the end
         if (!file.is_open()) {
             std::cerr << "Error opening file" << std::endl;
@@ -138,8 +141,8 @@ int main(int argc, char* argv[]) {
             return -1;
         }
         file.close();
-        e_msg = e.encrypt(fileInput, fileSize);
-        try { e_msg.save(); }
+        enc_msg = e.encrypt(fileInput, fileSize);
+        try { enc_msg.save(); }
         catch(const char* str) { std::cerr << str; }
         delete[] fileInput;
 
@@ -169,7 +172,8 @@ int main(int argc, char* argv[]) {
     if(option != 4) {
         std::cout << "Write the name/path of the public key we will use for encryption. The maximum amount of characters allowed for this is "<<NAME_MAX_LEN<<":\n";
         std::cin.getline(fileName, NAME_MAX_LEN - 1, '\n');
-        NTRU::Encryption e(fileName);
+        try { e = NTRU::Encryption(fileName); }
+        catch(const char* exp) { std::cerr << exp; }
         std::cout << "NTRU public key parameters: N = " << e.get_N() << ", q = " << e.get_q() << ".\n";
         const int cipherTextSize   = e.cipherTextSizeInBytes();
         const int plainTextMaxSize = e.plainTextMaxSizeInBytes();
@@ -192,8 +196,8 @@ int main(int argc, char* argv[]) {
                     file.close();
                     return -1;
                 }
-                e_msg = e.encrypt(fileInput, fileSize);
-                try { e_msg.save(); }
+                enc_msg = e.encrypt(fileInput, fileSize);
+                try { enc_msg.save(); }
                 catch(const char* str) { std::cerr << str; }
                 delete[] fileInput; fileInput = NULL;
                 break;
@@ -203,13 +207,13 @@ int main(int argc, char* argv[]) {
                 try { text = TXT(fileName); }
                 catch(const char* str) { std::cerr << str; }
                 enc_str = new char[(unsigned)cipherTextSize];
-                e_msg = e.encrypt(text.content, (int)text.size);
-                e_msg.println("\nEncrypted message");
-                e_msg.toBytes(enc_str);
+                enc_msg = e.encrypt(text.content, (int)text.size);
+                enc_msg.println("\nEncrypted message");
+                enc_msg.toBytes(enc_str);
                 text.overWrite(enc_str, (unsigned)cipherTextSize);
                 try{ text.save(); }
                 catch(const char* str) { std::cerr << str; }
-                try { e_msg.save(); }
+                try { enc_msg.save(); }
                 catch(const char* str) { std::cerr << str; }
                 delete[] enc_str; enc_str = NULL;
                 break;
@@ -221,9 +225,9 @@ int main(int argc, char* argv[]) {
                 consoleInput = new char[(unsigned)plainTextMaxSize + 1];
                 for(size = 0; size < plainTextMaxSize && std::cin.get(consoleInput[size]); size++) {} // -Input from CLI.
                 consoleInput[size] = 0;
-                e_msg = e.encrypt(consoleInput, size);
-                e_msg.println("\nEncrypted message");
-                try { e_msg.save("encryptedMessage.ntru"); }
+                enc_msg = e.encrypt(consoleInput, size);
+                enc_msg.println("\nEncrypted message");
+                try { enc_msg.save("encryptedMessage.ntru"); }
                 catch(const char* str) { std::cerr << str; }
                 delete[] consoleInput; consoleInput = NULL;
                 break;
@@ -258,9 +262,10 @@ int main(int argc, char* argv[]) {
         NTRU_q qoptions[] = {_2048_, _4096_, _8192_};
         q = qoptions[option - 1];
         std::cout << "Selected q = " << q <<"\n\n";
-        NTRU::Encryption keys(N, q);
+        try { e = NTRU::Encryption(N, q); }
+        catch(const char* exp) { std::cerr << exp; }
         std::cout << "Saving Public and private key. Parameters: N = " << N << ", q = " << q <<".\n";
-        keys.saveKeys();
+        e.saveKeys();
     }
 
     if(consoleInput != NULL) delete[] consoleInput;
