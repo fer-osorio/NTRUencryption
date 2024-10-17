@@ -570,13 +570,16 @@ void ZpPolynomial::save(const char* name) const{
         byteArr = new char[byteArrSize];                                        // -The following bytes are for the polynomials coefficients
         this->toBytes(byteArr);
         file.write(byteArr, byteArrSize);
+    } else {
+        throw "In NTRUencryption.cpp, function void ZpPolynomial::save(const char* name) const:\n"
+              "Could not create file for ZpPolynomial.\n";
     }
     if(byteArr != NULL) delete[] byteArr;
 }
 
-//_______________________________________________________________________ ZpPolynomial ___________________________________________________________________________
+//_______________________________________________________________________ ZpPolynomial ____________________________________________________________________________
 
-//|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Z2Polynomial ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+//||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Z2Polynomial ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 Z2Polynomial::Z2Polynomial() {
     const NTRU_N N = NTRUparameters.get_N();
@@ -1129,6 +1132,9 @@ void ZqPolynomial::save(const char* name) const{
         byteArr = new char[byteArrSize];
         this->toBytes(byteArr);
         file.write(byteArr, byteArrSize);
+    } else {
+        throw "In NTRUencryption.cpp, function void ZqPolynomial::save(const char* name) const:\n"
+              "Could not create file for ZqPolynomial.\n";
     }
     if(byteArr != NULL) delete[] byteArr;
 }
@@ -1137,15 +1143,15 @@ void ZqPolynomial::save(const char* name) const{
 
 // ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Encryption |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-/*Encryption::Encryption() {
-	try {
+Encryption::Encryption(): N(_509_), q(_2048_) {                                                      // -Does nothing, just for type declaration. Should not be used just like this
+	/*try {
 	    this->setKeys(true);
 	}catch(const char* exp) {
 	    std::cerr << "\nIn file NTRUencryption.cpp, function Encryption::Encryption(NTRU_N _N_,NTRU_q _q_,int _d_,NTRU_p _p_): N(_N_),q(_q_), p(_p_), d(_d_), "
         "privateKey(_N_, _p_), privateKeyInv_p(_N_, _p_), publicKey(_N_, _q_)\n";
         std::cerr << exp;
-	}
-}*/
+	}*/
+}
 
 Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
     setNTRUparameters(this->N, this->q);
@@ -1153,10 +1159,9 @@ Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
 	try {
 	    this->setKeys(true);
 	}catch(const char* exp) {
-	    std::cerr << "\nIn file NTRUencryption.cpp, function Encryption::Encryption(NTRU_N _N_,NTRU_q _q_,int _d_,NTRU_p _p_): N(_N_),q(_q_), p(_p_), d(_d_), "
-        "privateKey(_N_, _p_), privateKeyInv_p(_N_, _p_), publicKey(_N_, _q_)\n";
-        std::cerr << exp;
-        this->validPrivateKey = false;
+	    this->validPrivateKey = false;
+	    std::cerr << "\nIn file NTRUencryption.cpp, function Encryption::Encryption(NTRU_N n, NTRU_q Q)\n";
+	    throw;
 	}
 }
 
@@ -1205,7 +1210,8 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
             throw "Not a valid ntruPrivateKey file.";
         }
     } else {
-        throw "File could not be opened/created.";
+        throw "In NTRUencryption.cpp, function Encryption::Encryption(const char* NTRUkeyFile):.\n"
+              "Could not open file for the creation of the keys.";
     }
     if(coeffBytes != NULL) delete[] coeffBytes;
     if(fileHeader != NULL) delete[] fileHeader;
@@ -1241,6 +1247,9 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
         file.write(publicKeyBytes, publicKeySize);
         delete[] publicKeyBytes;
         publicKeyBytes = NULL;
+    } else {
+        throw "In NTRUencryption.cpp, function Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const:\n "
+        "Could not create file for public key.\n";
     }
     file.close();
     if(this->validPrivateKey) {                                                 // -If the object is in only encryption mode, private key will not be saved,
@@ -1255,6 +1264,9 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
             file.write(privateKeyBytes, privateKeySize);
             delete[] privateKeyBytes;
             privateKeyBytes = NULL;
+        } else {
+            throw "In NTRUencryption.cpp, function Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const:\n "
+            "Could not create file for private key.\n";
         }
     }
     if(publicKeyBytes  != NULL) delete[] publicKeyBytes;

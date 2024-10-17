@@ -225,6 +225,7 @@ class Encryption {
 	NTRU_q q;
 
 	public:
+	Encryption();
 	Encryption(NTRU_N, NTRU_q);
 	Encryption(const char* NTRUkeyFile);										// -Building from a NTRU key file
 
