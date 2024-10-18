@@ -111,11 +111,6 @@ struct TXT {
     }
 };
 
-union ushort_to_char {                                                          // -Casting from short to an array of two chars
-    unsigned short ushort;
-    char         chars[2];
-};
-
 static const char* fileType[] = {"bin", "txt"};                                 // -We will use this to register the type of file we are encrypting
 
 int main(int argc, char* argv[]) {
@@ -125,7 +120,7 @@ int main(int argc, char* argv[]) {
     char  fileName[NAME_MAX_LEN];
     int   size = 0, option = 0;
     int   encrypHeaderSize = BYTES_FOR_FILE_SIZE + FILE_TYPE_ID_SIZE;
-    ushort_to_char fileSizePlusHeaderSize;                                      // -Handling size of the file as a short unsigned and as a array of two char
+    unsigned short fileSizePlusHeaderSize;
     TXT   text;
     NTRU_N N = _1499_;
     NTRU_q q = _8192_;
@@ -149,13 +144,13 @@ int main(int argc, char* argv[]) {
             return EXIT_FAILURE;
         }
         file.seekg(0, std::ios::beg);                                           // -Move back to the beginning
-        fileSizePlusHeaderSize.ushort = (unsigned)fileSize + (unsigned)encrypHeaderSize;// -This will allow us two write the size in the input array for encryption.
-        fileInput = new char[fileSizePlusHeaderSize.ushort];
+        fileSizePlusHeaderSize = (unsigned)fileSize+(unsigned)encrypHeaderSize; // -This will allow us two write the size in the input array for encryption.
+        fileInput = new char[fileSizePlusHeaderSize];
         memcpy(fileInput, fileType[0], FILE_TYPE_ID_SIZE);                      // -Writing file type, in this case binary
         memcpy((char*)&fileInput[FILE_TYPE_ID_SIZE], (char*)&fileSize, BYTES_FOR_FILE_SIZE);
         file.read((char*)&fileInput[encrypHeaderSize], fileSize);
         file.close();
-        enc_msg = e.encrypt(fileInput, fileSizePlusHeaderSize.ushort);          // -Encrypting the bytes from the file and its size
+        enc_msg = e.encrypt(fileInput, fileSizePlusHeaderSize);                 // -Encrypting the bytes from the file and its size
         try { enc_msg.save(); }
         catch(const char* str) {
             std::cerr << str;
@@ -216,13 +211,13 @@ int main(int argc, char* argv[]) {
                     return EXIT_FAILURE;
                 }
                 file.seekg(0, std::ios::beg);                                   // -Move back to the beginning
-                fileSizePlusHeaderSize.ushort = (unsigned)fileSize + (unsigned)encrypHeaderSize;// -This will allow us two write the size in the input array for
-                fileInput = new char[fileSizePlusHeaderSize.ushort];            //  encryption.
+                fileSizePlusHeaderSize = (unsigned)fileSize + (unsigned)encrypHeaderSize;   // -This will allow us two write the size in the input array for
+                fileInput = new char[fileSizePlusHeaderSize];                   //  encryption.
                 memcpy(fileInput, fileType[0], FILE_TYPE_ID_SIZE);              // -Assigning bin file type
                 memcpy((char*)&fileInput[FILE_TYPE_ID_SIZE], (char*)&fileSize, BYTES_FOR_FILE_SIZE); // -Writing file size
                 file.read((char*)&fileInput[encrypHeaderSize], fileSize);
                 file.close();
-                enc_msg = e.encrypt(fileInput, fileSizePlusHeaderSize.ushort);  // -Encrypting the bytes from the file and its size
+                enc_msg = e.encrypt(fileInput, fileSizePlusHeaderSize);         // -Encrypting the bytes from the file and its size
                 try { enc_msg.save(); }
                 catch(const char* str) {
                     std::cerr << str;
@@ -230,7 +225,7 @@ int main(int argc, char* argv[]) {
                     return EXIT_FAILURE;
                 }
                 break;
-            case 2:                                                             // Working on encrypting a text file.
+            case 2:                                                             // -Working on encrypting a text file.
                 notValid = true;
                 while(notValid) {
                     std::cout << "Write the name/path of the text. The maximum amount of characters allowed for this is  " << NAME_MAX_LEN << " :\n";
@@ -247,12 +242,12 @@ int main(int argc, char* argv[]) {
                     file.close();
                     return EXIT_FAILURE;
                 }
-                fileSizePlusHeaderSize.ushort = text.size + (unsigned)encrypHeaderSize;// -This will allow us two write the size in the input array for encryption.
-                fileInput = new char[fileSizePlusHeaderSize.ushort];
+                fileSizePlusHeaderSize = text.size + (unsigned)encrypHeaderSize;// -This will allow us two write the size in the input array for encryption.
+                fileInput = new char[fileSizePlusHeaderSize];
                 memcpy(fileInput, fileType[1], FILE_TYPE_ID_SIZE);              // -Assigning txt file type
                 memcpy((char*)&fileInput[FILE_TYPE_ID_SIZE], (char*)&text.size, BYTES_FOR_FILE_SIZE);
                 memcpy((char*)&fileInput[encrypHeaderSize], text.content, text.size);
-                enc_msg = e.encrypt(fileInput, fileSizePlusHeaderSize.ushort, true);
+                enc_msg = e.encrypt(fileInput, fileSizePlusHeaderSize, true);
                 enc_msg.println("\nEncrypted message");
                 enc_text = new char[(unsigned)cipherTextSize];
                 enc_msg.toBytes(enc_text);
