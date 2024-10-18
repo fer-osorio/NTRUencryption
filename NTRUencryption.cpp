@@ -411,7 +411,8 @@ bool ZpPolynomial::operator != (const ZpPolynomial& P) const{
 ZpPolynomial& ZpPolynomial::operator = (const ZpPolynomial& P) {
     const NTRU_N N = NTRUparameters.get_N();
     if(this != &P) {													        // Guarding against self assignment
-        if(this->coefficients == NULL) this->coefficients = new Z3[N];
+        if(this->coefficients != NULL) delete[] this->coefficients;
+        this->coefficients = new Z3[N];
 	    for(int i = 0; i < N; i++) this->coefficients[i] = P.coefficients[i];
 	}
 	return *this;
@@ -419,7 +420,8 @@ ZpPolynomial& ZpPolynomial::operator = (const ZpPolynomial& P) {
 
 ZpPolynomial& ZpPolynomial::operator = (int t) {
     const NTRU_N N = NTRUparameters.get_N();
-    if(this->coefficients == NULL) this->coefficients = new Z3[N];              // Dealing with already initialized object, so this->N is well defined
+    if(this->coefficients != NULL) delete[] this->coefficients;                 // Dealing with already initialized object, so this->N is well defined
+    this->coefficients = new Z3[N];
 	if(t < 0) t = -t;
 	if(t >= 3) t %= 3;
 	this->coefficients[0] = (Z3)t;
@@ -561,8 +563,8 @@ void ZpPolynomial::save(const char* name) const{
     char* byteArr = NULL;
     const char ntrup[] = "NTRUp";                                               // -This will indicate the binary file is saving a NTRU (NTRU) polynomial with
     std::ofstream file;                                                         //  coefficients in Zp (p)
-    if(name == NULL) file.open("ZpPolynomial.ntrup");
-    else             file.open(name);
+    if(name == NULL) file.open("ZpPolynomial.ntrup", std::ios::binary);
+    else             file.open(name, std::ios::binary);
     if(file.is_open()) {
         file.write(ntrup, 5);                                                   // -The first five bytes are for the letters 'N' 'T' 'R' 'U' 'p'
         file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial
@@ -605,7 +607,8 @@ Z2Polynomial::Z2Polynomial(const ZpPolynomial& P) {
 Z2Polynomial& Z2Polynomial::operator = (const Z2Polynomial& P)  {
 	if(this != &P) {													        // Guarding against self assignment
 	    const NTRU_N N = NTRUparameters.get_N();
-		if(this->coefficients == NULL) this->coefficients = new Z2[N];
+		if(this->coefficients != NULL) delete[] this->coefficients;
+		this->coefficients = new Z2[N];
 		for(int i = 0; i < N; i++) this->coefficients[i] = P.coefficients[i];
 	}
 	return *this;
@@ -613,7 +616,8 @@ Z2Polynomial& Z2Polynomial::operator = (const Z2Polynomial& P)  {
 
 Z2Polynomial& Z2Polynomial::operator = (const ZpPolynomial& P) {
     const NTRU_N N = NTRUparameters.get_N();
-	if(this->coefficients == NULL) this->coefficients = new Z2[N];              // In case of having an object created with the default (private) constructor
+	if(this->coefficients != NULL) delete[] this->coefficients;                 // In case of having an object created with the default (private) constructor
+	this->coefficients = new Z2[N];
 	for(int i = 0; i < N; i++) {                                                // Fitting the ZpPolynomial in a Z2Polynomial
 	    if(P[i] != 0) this->coefficients[i] = _1_;
 	    else this->coefficients[i] = _0_;
@@ -623,7 +627,8 @@ Z2Polynomial& Z2Polynomial::operator = (const ZpPolynomial& P) {
 
 Z2Polynomial& Z2Polynomial::operator = (Z2 t)  {
     const NTRU_N N = NTRUparameters.get_N();
-	if(this->coefficients == NULL) this->coefficients = new Z2[N];              // In case of have been generated from the (private) default constructor
+	if(this->coefficients != NULL) delete[] this->coefficients;                 // In case of have been generated from the (private) default constructor
+	this->coefficients = new Z2[N];
 	this->coefficients[0] = t;
 	for(int i = 1; i < N; i++) this->coefficients[i] = _0_;
 	return *this;
@@ -665,8 +670,7 @@ Z2Polynomial Z2Polynomial::operator * (const Z2Polynomial& P) const{ // Classica
 
 void Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial result[2]) const{
     if(P == _0_) {
-        throw "\nvoid ZpPolynomial::ZpPolynomial::division(const Zp"
-        "Polynomial& P,ZpPolynomial result[2]) const. Division by zero...\n";
+        throw "\nvoid ZpPolynomial::ZpPolynomial::division(const ZpPolynomial& P,ZpPolynomial result[2]) const. Division by zero...\n";
     }
     if(*this == _0_) {                                                          // Case zero divided by anything
         result[0] = _0_;                                                        // Zero polynomial
@@ -856,7 +860,8 @@ ZqPolynomial::ZqPolynomial(const char data[], int dataLength) {
 ZqPolynomial& ZqPolynomial::operator = (const ZqPolynomial& P) {
 	if(this != &P) {														    // Guarding against self assignment
 	    const NTRU_N N = NTRUparameters.get_N();
-		if(this->coefficients == NULL) this->coefficients = new int64_t[N];
+		if(this->coefficients != NULL) delete[] this->coefficients;
+		this->coefficients = new int64_t[N];
 		for(int i = 0; i < N; i++) this->coefficients[i] = P.coefficients[i];
 	}
 	return *this;
@@ -864,7 +869,8 @@ ZqPolynomial& ZqPolynomial::operator = (const ZqPolynomial& P) {
 
 ZqPolynomial& ZqPolynomial::operator = (const ZpPolynomial& P) {
     const NTRU_N N = NTRUparameters.get_N();
-	if(this->coefficients == NULL) this->coefficients = new int64_t[N];         // In case of having an object created with the default (private) constructor
+    if(this->coefficients != NULL) delete[] this->coefficients;
+    this->coefficients = new int64_t[N];                                        // In case of having an object created with the default (private) constructor
 	for(int i = 0; i < N; i++) {
 	    if(P[i] == 2) this->coefficients[i] = -1;                               // Since (1+2) mod 3 == 0, 2 must be sent to the additive inverse of 1 in Zq;
 	    else          this->coefficients[i] = (int64_t)P[i];
@@ -1123,8 +1129,8 @@ void ZqPolynomial::save(const char* name) const{
     const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a Zq NTRU (NTRU) polynomial
 
     std::ofstream file;                                                         //  coefficients in Zp (p)
-    if(name == NULL) file.open("ZqPolynomial.ntrup");
-    else             file.open(name);
+    if(name == NULL) file.open("ZqPolynomial.ntrup", std::ios::binary);
+    else             file.open(name, std::ios::binary);
     if(file.is_open()) {
         file.write(ntruq, 5);
         file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial
