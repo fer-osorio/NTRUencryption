@@ -36,5 +36,7 @@
 Tests.cpp
 tests.cpp
 *.ntru
+*.ntrup
+*.ntruq
 *.ntruPublicKey
 *.ntruPrivateKey
