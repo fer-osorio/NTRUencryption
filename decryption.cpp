@@ -63,8 +63,8 @@ int main(int argc, char* argv[]) {
                 msg.toBytes(buff);
                 memcpy(ftype, buff, FILE_TYPE_ID_SIZE); ftype[FILE_TYPE_ID_SIZE] = 0;
                 memcpy(fileSize.chars, (char*)&buff[FILE_TYPE_ID_SIZE], BYTES_FOR_FILE_SIZE);
-                std::cout << "DecryptedMessage: " << (char*)&buff[encrypHeaderSize] << '\n';
                 if(compareStrings(ftype, fileType[0])) {                        // -Writing binary file
+                    std::cout << "DecryptedMessage:\n" << (char*)&buff[encrypHeaderSize] << '\n';
                     ofile.open("DecryptedMessage.bin", std::ios::binary);
                     if(ofile.is_open()) {
                         ofile.write((char*)&buff[encrypHeaderSize], fileSize.ushort);

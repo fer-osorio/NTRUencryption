@@ -6,7 +6,7 @@
 
 #define DECIMAL_BASE 10
 
-union int64_to_char {                                                        // Allows to cast from an int64_t to an array of four bytes (char)
+union int64_to_char {                                                           // Allows to cast from an int64_t to an array of four bytes (char)
     int64_t int64;
     char    chars[8];
 };
