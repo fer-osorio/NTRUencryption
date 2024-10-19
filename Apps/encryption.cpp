@@ -20,7 +20,7 @@
 
 #include<fstream>
 #include<cstring>
-#include"NTRUencryption.hpp"
+#include"../Source/NTRUencryption.hpp"
 
 #define NAME_MAX_LEN 256
 #define BYTES_FOR_FILE_SIZE 2                                                   // -Size of the information we will append to the data we intend to encrypt. Now

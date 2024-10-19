@@ -1,4 +1,4 @@
-#include"NTRUencryption.hpp"
+#include"../Source/NTRUencryption.hpp"
 #include<fstream>
 #include<cstring>
 
