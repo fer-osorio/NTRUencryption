@@ -87,6 +87,11 @@ invoke the member function
 ```
 ZqPolynomial encrypt(const char bytes[] ,int size, bool showEncryptionTime = false) const;
 ```
+Similarly with decryption process,
+
+```
+ZpPolynomial decrypt(const char bytes[] ,int size, bool showEncryptionTime = false) const;
+```
 
 Encryption and decryption process will succeed if and only if the Encryption objects used in each end have the
 identical public and private keys.
