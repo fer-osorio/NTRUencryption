@@ -30,7 +30,6 @@ int main(int argc, char* argv[]) {
     if(argc == 3) {                                                             // -Takes a private key (argv[1]) and a encrypted message (argv[2]) and proceeds
         try{ e = NTRU::Encryption(argv[1]); }                                   //  with decryption. The decrypted message is saved in a binary file.
         catch(const char* exp) { std::cerr << exp; }
-        NTRU::ZqPolynomial enc_msg;
         std::ifstream ifile;
         std::ofstream ofile;
         const char ntruq[] = "NTRUq";
@@ -54,10 +53,9 @@ int main(int argc, char* argv[]) {
                 delete[] buff;
                 buff = new char[lenInBytes];
                 ifile.read(buff, lenInBytes);
-                enc_msg = NTRU::ZqPolynomial(buff, lenInBytes);
-                delete[] buff;
                 ifile.close();
-                NTRU::ZpPolynomial msg = e.decrypt(enc_msg);
+                NTRU::ZpPolynomial msg = e.decrypt(buff, lenInBytes);
+                delete[] buff;
                 lenInBytes = e.plainTextMaxSizeInBytes();
                 buff = new char[lenInBytes];
                 msg.toBytes(buff);
