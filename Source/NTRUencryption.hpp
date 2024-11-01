@@ -171,7 +171,6 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	ZqPolynomial(const ZpPolynomial& P);
 	ZqPolynomial(const ZqPolynomial& P);
 	ZqPolynomial(const Z2Polynomial& P);
-	ZqPolynomial(const char fileName[]);
 	ZqPolynomial(const char data[], int dataLength);							// -Initializing with string of bytes
 	~ZqPolynomial() {
 		if(this->coefficients != NULL) delete[] this->coefficients;
@@ -229,9 +228,10 @@ class Encryption {
 	Encryption(NTRU_N, NTRU_q);
 	Encryption(const char* NTRUkeyFile);										// -Building from a NTRU key file
 
-	ZqPolynomial encrypt(const char bytes[] ,int size, bool showEncryptionTime = false) const;// -Encryption of formatted string
+	ZqPolynomial encrypt(const char bytes[] ,int size, bool showEncryptionTime = false) const;// -Encryption of char array
 	ZqPolynomial encrypt(const ZpPolynomial&,		   bool showEncryptionTime = false) const;// -Encrypts ZpPolynomial
 	ZpPolynomial decrypt(const ZqPolynomial&,		   bool showDecryptionTime = false) const;// -Decryption of ZqPolynomial
+	ZpPolynomial decrypt(const char bytes[] ,int size, bool showEncryptionTime = false) const;// -Decryption of char array
 
 	NTRU_N get_N() const { return this->N; }
 	NTRU_q get_q() const { return this->q; }

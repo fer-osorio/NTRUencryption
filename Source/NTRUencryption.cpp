@@ -1439,4 +1439,8 @@ ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg, bool showDecryptionT
     return msg;
 }
 
+ZpPolynomial Encryption::decrypt(const char bytes[], int size, bool showEncryptionTime) const{
+    return this->decrypt(ZqPolynomial(bytes, size), showEncryptionTime);
+}
+
 //________________________________________________________________________ Encryption _____________________________________________________________________________
