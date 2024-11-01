@@ -46,11 +46,11 @@ To create one instance of NTRU::Encryption, two options are available:
    1. If ``NTRUkeyFile`` represents a public key, the object will be created just with encryption capabilities.
    2. If ``NTRUkeyFile`` represents a private key, the object will have encryption and decryption capabilities.
 
-## Binary files for ntru keys
+### Binary files for ntru keys
 
 As you can notice, constructor ``Encryption(const char* NTRUkeyFile)`` accept a string representing the name of a file.
-This file, reeding it in binary mode, must have a particular format in order to have the oportunity to succeed in the
-creation of ``Encryption`` object. This format is the one used in the member function
+This file, when reeding in binary mode, must have a particular format in order to obtain the oportunity to succeed in
+the creation of the ``Encryption`` object. This format is the same used in the ``Encryption`` member function
 ``void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;`` to save the
 criptographic keys. Formats for the key files are:
 
@@ -67,3 +67,26 @@ criptographic keys. Formats for the key files are:
   3. Next two bytes (byte 16 to byte 17) represents the parameter q.
   4. Denoting the size in bytes of private key as privateKeySizeInBytes, then the following privateKeySizeInBytes bytes
      represent the coefficients of the polynomial in its respective ring Zp[x]/(x^N-1).
+
+The idea under this format and ``saveKeys`` function is to ensure the key reatrived from any of this files fulfils all
+the necessary requirements for a NTRU key.
+
+### In a nutshell, to create a Encryption object
+
+1. First option: Passing parameters you desire to implement to the constructor ``Encryption(NTRU_N, NTRU_q)``.
+2. Second option: (Having a NTRUkeyFile) passing the name of the file to ``Encryption(const char* NTRUkeyFile)``.
+
+**Important note:** The default constructor for Encryption class, ``Encryption()``, sets each coefficient of the keys
+as zero, so is mandatory to not use this constructor for nothing more than type declaration.
+
+## Encryption and decryption
+
+Once we have a Encryption object, for encryption of an array named ``data`` with ``size`` bytes it is only necessary to
+invoke the member function 
+
+```
+ZqPolynomial encrypt(const char bytes[] ,int size, bool showEncryptionTime = false) const;
+```
+
+Encryption and decryption process will succeed if and only if the Encryption objects used in each end have the
+identical public and private keys.
