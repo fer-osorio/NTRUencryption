@@ -5,7 +5,7 @@
 #define _NTRUENCRYPTION_HPP_
 
 enum NTRU_N {_509_  = 509,  _677_  = 677,  _701_  = 701,  _821_ = 821, _1087_ = 1087, _1171_ = 1171, _1499_ = 1499 };	// All the possible values for the N
-enum NTRU_q {_2048_ = 2048, _4096_ = 4096, _8192_ = 8192 };						// All the possible values for the q
+enum NTRU_q {_2048_ = 2048, _4096_ = 4096, _8192_ = 8192 };			// All the possible values for the q
 enum NTRU_p {_3_	= 3 };
 
 namespace NTRU {
@@ -18,14 +18,14 @@ class  Encryption;
 ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
 ZqPolynomial convolutionZq(const Z2Polynomial&, const ZqPolynomial&);
 ZpPolynomial mods_p(ZqPolynomial);
-																				//	applies convolution process
-struct ZpPolynomial {															// -Representation of the polynomials in Zp[x]/(x^N-1)
-	enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};											// -ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
+
+struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N-1)
+	enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};					// -ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
 	private:
-	static const Z3 Z3add [3][3];												// -Addition in Z3
-	static const Z3 Z3subt[3][3];												// -Subtraction in Z3
-	static const Z3 Z3prod[3][3];												// -Product in Z3
-	static const Z3 Z3neg [3];													// -Negative in Z3
+	static const Z3 Z3add [3][3];						// -Addition in Z3
+	static const Z3 Z3subt[3][3];						// -Subtraction in Z3
+	static const Z3 Z3prod[3][3];						// -Product in Z3
+	static const Z3 Z3neg [3];						// -Negative in Z3
 	friend Z3 operator + (Z3 a, Z3 b) {
     	return Z3add[a][b];
 	}
@@ -46,13 +46,13 @@ struct ZpPolynomial {															// -Representation of the polynomials in Zp[
 	}
 	private:
 	Z3*  coefficients = NULL;
-	Z3*  coeffCopy 	  = NULL;													// Copy of the coefficients. Useful at the moment of permute the coefficients
-	int* permutation  = NULL;													// This could be enhanced by making this attributes static
+	Z3*  coeffCopy 	  = NULL;						// Copy of the coefficients. Useful at the moment of permute the coefficients
+	int* permutation  = NULL;						// This could be enhanced by making this attributes static
 
 	public:
-	ZpPolynomial();																// -Default constructor; initializes the polynomial with zeros
+	ZpPolynomial();								// -Default constructor; initializes the polynomial with zeros
 	ZpPolynomial(const ZpPolynomial& P);
-	ZpPolynomial(const char data[], int dataLength);							// -Initializing with string of bytes
+	ZpPolynomial(const char data[], int dataLength);			// -Initializing with string of bytes
 	~ZpPolynomial() {
 		if(this->coefficients != NULL) delete [] this->coefficients;
 		if(this->permutation  != NULL) delete [] this->permutation;
@@ -61,32 +61,32 @@ struct ZpPolynomial {															// -Representation of the polynomials in Zp[
 	static ZpPolynomial randomTernary();
 	void changeAzeroForAone();
 	void changeAzeroForAtwo();
-	static ZpPolynomial getPosiblePrivateKey();									// -Setting d = N/3, returns a polynomial with d -1's and d+1 1's
-	//******************************* Arithmetic *******************************
-	ZpPolynomial  operator + (const ZpPolynomial&) const;						// Addition element by element
-	ZpPolynomial  operator - (const ZpPolynomial&) const;						// Subtraction element by element
+	static ZpPolynomial getPosiblePrivateKey();				// -Setting d = N/3, returns a polynomial with d -1's and d+1 1's
+
+	ZpPolynomial  operator + (const ZpPolynomial&) const;			// Addition element by element
+	ZpPolynomial  operator - (const ZpPolynomial&) const;			// Subtraction element by element
 	ZpPolynomial  operator - () const;
-	ZpPolynomial  operator * (const ZpPolynomial&) const;						// Multiplication will coincide with convolution (compare with classical)
+	ZpPolynomial  operator * (const ZpPolynomial&) const;			// Multiplication will coincide with convolution (compare with classical)
 	ZpPolynomial& operator-= (const ZpPolynomial&);
 
-	void division(const ZpPolynomial& P,ZpPolynomial rslt[2]) const;			// The quotient and the remainder are saved in rslt
+	void division(const ZpPolynomial& P,ZpPolynomial rslt[2]) const;	// The quotient and the remainder are saved in rslt
 	ZpPolynomial gcdXNmns1(ZpPolynomial& thisBezout) const;
 
-	bool operator == (int t) const {											// Comparison with a single integer
+	bool operator == (int t) const {					// Comparison with a single integer
 		return this->degree() == 0 && this->coefficients[0] == t;
 	}
-	bool operator != (int t) const {											// Comparison with a single integer
+	bool operator != (int t) const {					// Comparison with a single integer
 		return this->degree() != 0 || this->coefficients[0] != t;
 	}
 	bool operator == (const ZpPolynomial& P) const;
 	bool operator != (const ZpPolynomial& P) const;
-	ZpPolynomial& operator = (const ZpPolynomial& P);							// Assignment
-	ZpPolynomial& operator = (int t);											// Assignment with single integer
+	ZpPolynomial& operator = (const ZpPolynomial& P);			// Assignment
+	ZpPolynomial& operator = (int t);					// Assignment with single integer
 	int operator[](int i) const;
 
 	void setPermutation();
 	void permute();
-	int degree() const;															// Returns degree of polynomial
+	int degree() const;							// Returns degree of polynomial
 
 	ZqPolynomial encrypt(ZqPolynomial publicKey, bool showEncryptionTime = false) const;// -Encrypts the polynomial represented by this and return a ZqPolynomial
 
@@ -97,20 +97,20 @@ struct ZpPolynomial {															// -Representation of the polynomials in Zp[
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
 
-	void save(const char* name = NULL) const;									// -Saving ZpPolynomial in a Binary file.
+	void save(const char* name = NULL) const;				// -Saving ZpPolynomial in a Binary file.
 };
 
-struct Z2Polynomial {															// Representation of the polynomials in Z2[x]/(x^N-1)
-	enum Z2 {_0_ = 0, _1_ = 1};													// Integers modulo 2 (binary numbers)
-	friend Z2 operator + (Z2 a,Z2 b) {											// Addition modulus 2
+struct Z2Polynomial {								// Representation of the polynomials in Z2[x]/(x^N-1)
+	enum Z2 {_0_ = 0, _1_ = 1};						// Integers modulo 2 (binary numbers)
+	friend Z2 operator + (Z2 a,Z2 b) {					// Addition modulus 2
 		if(a!=b) return _1_;
 		return _0_;
 	}
-	friend Z2 operator - (Z2 a,Z2 b) {											// Addition and subtraction coincide in Z2. This is just for evade problems
-		if(a!=b) return _1_;													// with notation
+	friend Z2 operator - (Z2 a,Z2 b) {					// Addition and subtraction coincide in Z2. This is just for evade problems
+		if(a!=b) return _1_;						// with notation
 		return _0_;
 	}
-	friend Z2 operator * (Z2 a, Z2 b) {											// Multiplication modulus 2
+	friend Z2 operator * (Z2 a, Z2 b) {					// Multiplication modulus 2
 		if(a==0) return _0_;
 		return  b ;
 	}
@@ -137,12 +137,12 @@ struct Z2Polynomial {															// Representation of the polynomials in Z2[x
 	Z2Polynomial& operator = (const Z2Polynomial& P);
 	Z2Polynomial& operator = (const ZpPolynomial& P);
 	Z2Polynomial& operator = (Z2 t);
-	Z2Polynomial  operator + (const Z2Polynomial&) const;						// In Z2, addition (+) coincide with subtraction (-)
-	Z2Polynomial  operator - (const Z2Polynomial&) const;						// In Z2, addition (+) coincide with subtraction (-)
+	Z2Polynomial  operator + (const Z2Polynomial&) const;			// In Z2, addition (+) coincide with subtraction (-)
+	Z2Polynomial  operator - (const Z2Polynomial&) const;			// In Z2, addition (+) coincide with subtraction (-)
 	Z2Polynomial  operator *	(const Z2Polynomial&) const;
-	void division(const Z2Polynomial& P,Z2Polynomial res[2]) const;				// Division between this and P, result[2] will save the res[2]
-	Z2Polynomial gcdXNmns1(Z2Polynomial& thisBezout) const;						// Greatest common between this and x^N-1 polynomial. Writing
-																				// gcd = u·(x^N - 1) + v·this, thisBezout == v
+	void division(const Z2Polynomial& P,Z2Polynomial res[2]) const;		// Division between this and P, result[2] will save the res[2]
+	Z2Polynomial gcdXNmns1(Z2Polynomial& thisBezout) const;			// Greatest common between this and x^N-1 polynomial. Writing
+										// gcd = u·(x^N - 1) + v·this, thisBezout == v
 	bool operator == (int t) const {
 		return this->degree() == 0 && this->coefficients[0] == t;
 	}
@@ -160,9 +160,9 @@ struct Z2Polynomial {															// Representation of the polynomials in Z2[x
 	void println(const char* name = "") const;
 };
 
-ZqPolynomial operator - (int64_t, const ZqPolynomial&);							// The intention is to make this function a friend of ZqPolynomial
+ZqPolynomial operator - (int64_t, const ZqPolynomial&);				// The intention is to make this function a friend of ZqPolynomial
 
-struct ZqPolynomial {															// Representation of the polynomials in Zq[x]/(x^N-1)
+struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-1)
 	private:
 	int64_t* coefficients = NULL;
 
@@ -171,7 +171,7 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	ZqPolynomial(const ZpPolynomial& P);
 	ZqPolynomial(const ZqPolynomial& P);
 	ZqPolynomial(const Z2Polynomial& P);
-	ZqPolynomial(const char data[], int dataLength);							// -Initializing with string of bytes
+	ZqPolynomial(const char data[], int dataLength);			// -Initializing with string of bytes
 	~ZqPolynomial() {
 		if(this->coefficients != NULL) delete[] this->coefficients;
 	}
@@ -183,13 +183,13 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	ZqPolynomial operator + (const ZqPolynomial& P) const;
 	ZqPolynomial operator - (const ZqPolynomial& P) const;
 	ZqPolynomial operator * (const ZqPolynomial& P) const;
-	ZqPolynomial operator * (const ZpPolynomial& P) const;						// This function sees the ZpPolynomial as a ZqPolynomial
+	ZqPolynomial operator * (const ZpPolynomial& P) const;			// This function sees the ZpPolynomial as a ZqPolynomial
 	friend ZqPolynomial operator - (int64_t, const ZqPolynomial&);
 	bool operator == (const Z2Polynomial& P) const;
 	bool operator == (int64_t t) const {
 		return this->degree() == 0 && this->coefficients[0] == t;
 	}
-	bool operator != (int t) const {											// Comparison with a single integer
+	bool operator != (int t) const {					// Comparison with a single integer
 		return this->degree() != 0 || this->coefficients[0] != t;
 	}
 
@@ -197,40 +197,40 @@ struct ZqPolynomial {															// Representation of the polynomials in Zq[x
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZqPolynomial&);
 
-	int degree()  const;															// -Returns degree of polynomial
+	int degree()  const;							// -Returns degree of polynomial
 	void mod_q()  const;
 	void mods_q() const;
 	int lengthInBytes() const;
 	static int log2(NTRU_q q);
 
-	ZqPolynomial getNTRUpublicKey();											// -Provided this object is the inverse in Z[x]/X^N-1 modulo q of the private key,
-																				//	this function returns the public key
-	void toBytes(char dest[]) const;												// -Writes the coefficients into an array of bytes. If a certain coefficient is
-																				//  negative, +=q is applied in order to write a positive number
+	ZqPolynomial getNTRUpublicKey();					// -Provided this object is the inverse in Z[x]/X^N-1 modulo q of the private key,
+										//  this function returns the public key
+	void toBytes(char dest[]) const;					// -Writes the coefficients into an array of bytes. If a certain coefficient is
+										//  negative, +=q is applied in order to write a positive number
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
 
-	void save(const char* name = NULL) const;									// -Saving ZqPolynomial in a Binary file.
+	void save(const char* name = NULL) const;				// -Saving ZqPolynomial in a Binary file.
 };
 
 class Encryption {
-	private:																	// -Attributes
-	ZqPolynomial publicKey		 = ZqPolynomial();								// -Initializing each argument as the zero polynomial
+	private:								// -Attributes
+	ZqPolynomial publicKey		 = ZqPolynomial();			// -Initializing each argument as the zero polynomial
 	ZpPolynomial privateKey		 = ZpPolynomial::getPosiblePrivateKey();
-	ZpPolynomial privateKeyInv_p = ZpPolynomial();								// -Private key inverse modulo p
-	bool validPrivateKey	 	 = false;										// -Flag; tells us if current object can only encrypt (only have a valid publickKey)
-																				// -or also is capable of decryption (has a valid private key).
+	ZpPolynomial privateKeyInv_p = ZpPolynomial();				// -Private key inverse modulo p
+	bool validPrivateKey	 	 = false;				// -Flag; tells us if current object can only encrypt (only have a valid publickKey)
+										// -or also is capable of decryption (has a valid private key).
 	NTRU_N N;
 	NTRU_q q;
 
 	public:
 	Encryption();
 	Encryption(NTRU_N, NTRU_q);
-	Encryption(const char* NTRUkeyFile);										// -Building from a NTRU key file
+	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file
 
 	ZqPolynomial encrypt(const char bytes[] ,int size, bool showEncryptionTime = false) const;// -Encryption of char array
-	ZqPolynomial encrypt(const ZpPolynomial&,		   bool showEncryptionTime = false) const;// -Encrypts ZpPolynomial
-	ZpPolynomial decrypt(const ZqPolynomial&,		   bool showDecryptionTime = false) const;// -Decryption of ZqPolynomial
+	ZqPolynomial encrypt(const ZpPolynomial&,bool showEncryptionTime = false) const;// -Encrypts ZpPolynomial
+	ZpPolynomial decrypt(const ZqPolynomial&,bool showDecryptionTime = false) const;// -Decryption of ZqPolynomial
 	ZpPolynomial decrypt(const char bytes[] ,int size, bool showEncryptionTime = false) const;// -Decryption of char array
 
 	NTRU_N get_N() const { return this->N; }
@@ -244,8 +244,8 @@ class Encryption {
 	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
 
 	private:
-	void setKeys(bool showKeyCreationTime = false);								// -Creation of the keys
-	void setKeysFromPrivKey();													// -Creates private key inverse and public key from private key. Intended for the
-};																				//	creation of Encryption object from file
+	void setKeys(bool showKeyCreationTime = false);				// -Creation of the keys
+	void setKeysFromPrivKey();						// -Creates private key inverse and public key from private key. Intended for the
+};										//  creation of Encryption object from file
 }
 #endif
