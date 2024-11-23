@@ -1323,7 +1323,7 @@ void Encryption::setKeys(bool showKeyCreationTime) {
         Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv);
     }catch(const std::runtime_error&) {
         cerrMessageBeforeReThrow(thisFunc);
-        throw;)
+        throw;
     }
 
 	counter = 1;
