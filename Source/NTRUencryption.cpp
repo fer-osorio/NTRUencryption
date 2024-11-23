@@ -2,9 +2,18 @@
 #include<random>
 #include<chrono>
 #include<ctime>
+#include<exception>
 #include"NTRUencryption.hpp"
 
 #define DECIMAL_BASE 10
+
+static void cerrMessageBeforeThrow(const char callerFunction[], const char message[]) {
+    std::cerr << "In file Source/NTRUencryption.cpp, function " << callerFunction << ": " << message << '\n';
+}
+
+static void cerrMessageBeforeReThrow(const char callerFunction[], const char message[] = "") {
+    std::cerr << "Called from: File Source/NTRUencryption.cpp, function " << callerFunction << " ..."<< message << '\n';
+}
 
 union int64_to_char {                                                           // Allows to cast from an int64_t to an array of four bytes (char)
     int64_t int64;
@@ -322,7 +331,11 @@ ZpPolynomial& ZpPolynomial::operator -= (const ZpPolynomial& P) {
 }
 
 void ZpPolynomial::division(const ZpPolynomial& P, ZpPolynomial result[2]) const{
-    if(P == _0_) throw "\nvoid ZpPolynomial::ZpPolynomial::division(const ZpPolynomial& P,ZpPolynomial result[2]) const. Division by zero...\n";
+    const char thisFunc[] = "void ZpPolynomial::division(const ZpPolynomial& P, ZpPolynomial result[2]) const";
+    if(P == _0_) {
+        cerrMessageBeforeThrow(thisFunc, "Trying divide by zero.");
+        throw std::runtime_error("Division by Zero");
+    }
     if(*this == 0) {                                                            // -Case zero divided by anything
         result[0] = _0_;                                                        // -Zero polynomial
         result[1] = _0_;                                                        // -Zero polynomial
@@ -337,18 +350,19 @@ void ZpPolynomial::division(const ZpPolynomial& P, ZpPolynomial result[2]) const
     if(dividendDegree < divisorDegree) {                                        // Case dividend has smaller degree than divisor
         result[0] = 0; result[1] = *this;
         return;
-    }                                                                           // At this point we know leading coefficient has an inverse in Zq
+    }
     degreeDiff = dividendDegree - divisorDegree;                                // At this point we know degreeDiff >= 0
     remDeg = dividendDegree;
     result[1] = *this;                                                          // Initializing remainder with dividend (this)
     result[0] = ZpPolynomial();
     for(;degreeDiff >= 0; degreeDiff = remDeg - divisorDegree) {
-        result[0].coefficients[degreeDiff] = leadCoeffDivsrInv*result[1].coefficients[remDeg];  // Putting new coefficient in the quotient
+        result[0].coefficients[degreeDiff] = leadCoeffDivsrInv*result[1].coefficients[remDeg]; // Putting new coefficient in the quotient
         for(i = remDeg; i >= degreeDiff; i--) {                                 // Updating remainder
             result[1].coefficients[i] -= result[0].coefficients[degreeDiff]*P.coefficients[i-degreeDiff];
         }
         if(result[1].coefficients[remDeg] != _0_) {                             // No congruence with 0 mod p, throwing exception
-            throw "\nvoid ZpPolynomial::ZpPolynomial::division(const ZpPolynomial& P,ZpPolynomial result[2]) const. result[1]. coefficients[remDeg] != 0\n";
+            cerrMessageBeforeThrow(thisFunc, "result[1]. coefficients[remDeg] != 0.");
+            throw std::runtime_error("Exception in division process.");
         }                                                                       // At this point we know result[1].coefficients[remDeg] = 0
         while(remDeg >= 0 && result[1].coefficients[remDeg] == _0_) remDeg--;   // Updating value of the degree of the remainder
     }
@@ -383,8 +397,8 @@ ZpPolynomial ZpPolynomial::gcdXNmns1(ZpPolynomial& thisBezout) const{           
 
 	while(remainders != _0_) {                                                  // EEA implementation (continuation)
         try{ gcd.division(remainders, quoRem); }
-        catch(const char* exp) {
-            std::cerr << "\nIn NTRUencryption.cpp; function ZpPolynomial ZpPolynomial::PolyModXNmns1::gcdXNmns1(PolyModXNmns1& thisBezout)\n";
+        catch(const std::runtime_error&) {
+            cerrMessageBeforeReThrow("ZpPolynomial ZpPolynomial::gcdXNmns1(ZpPolynomial& thisBezout) const");
             throw;
         }
         tmp[1] = thisBezout - quoRem[0]*tmp[0];                                 // u[k+2] = u[k] - q[k+2]*u[k+1]
@@ -573,8 +587,8 @@ void ZpPolynomial::save(const char* name) const{
         this->toBytes(byteArr);
         file.write(byteArr, byteArrSize);
     } else {
-        throw "In NTRUencryption.cpp, function void ZpPolynomial::save(const char* name) const:\n"
-              "Could not create file for ZpPolynomial.\n";
+        cerrMessageBeforeThrow("void ZpPolynomial::save(const char* name) const", "Could not create file for ZpPolynomial.");
+        throw std::runtime_error("File writing failed.");
     }
     if(byteArr != NULL) delete[] byteArr;
 }
@@ -669,8 +683,10 @@ Z2Polynomial Z2Polynomial::operator * (const Z2Polynomial& P) const{ // Classica
 }
 
 void Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial result[2]) const{
+    const char thisFunc[] = "void Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial result[2]) const";
     if(P == _0_) {
-        throw "\nvoid ZpPolynomial::ZpPolynomial::division(const ZpPolynomial& P,ZpPolynomial result[2]) const. Division by zero...\n";
+        cerrMessageBeforeThrow(thisFunc, "Trying divide by zero.");
+        throw std::runtime_error("Division by Zero");
     }
     if(*this == _0_) {                                                          // Case zero divided by anything
         result[0] = _0_;                                                        // Zero polynomial
@@ -704,9 +720,8 @@ void Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial result[2]) const
         }
 
         if(result[1].coefficients[remDeg] != _0_) {                             // No congruence with 0 mod q, throwing exception
-            throw "\nvoid ZpPolynomial::ZpPolynomial::division(const Zp"
-            "Polynomial& P,ZpPolynomial result[2]) const. result[1]."
-            "coefficients[remDeg] != 0\n";
+            cerrMessageBeforeThrow(thisFunc, "result[1]. coefficients[remDeg] != 0.");
+            throw std::runtime_error("Exception in division process.");
         }                                                                       // At this point we know result[1].coefficients[remDeg] = 0
         while(remDeg >= 0 && result[1].coefficients[remDeg] == _0_) remDeg--;   // Updating value of the degree of the remainder
     }
@@ -743,8 +758,8 @@ Z2Polynomial Z2Polynomial::gcdXNmns1(Z2Polynomial& thisBezout) const{
 
 	while(remainders != _0_) {                                                  // EEA implementation (continuation)
         try{ gcd.division(remainders, quoRem); }
-        catch(const char* exp) {
-            std::cerr << "\nNTRU_Z2Polynomial ZqPolynomial::Z2Polynomial::gcdXNmns1(Z2Polynomial& thisBezout) const\n";
+        catch(const std::runtime_error&) {
+            cerrMessageBeforeReThrow("ZpPolynomial ZpPolynomial::gcdXNmns1(ZpPolynomial& thisBezout) const");
             throw;
         }
         tmp[1] = thisBezout - quoRem[0]*tmp[0];                                 // u[k+2] = u[k] - q[k+2]*u[k+1]
@@ -1139,8 +1154,8 @@ void ZqPolynomial::save(const char* name) const{
         this->toBytes(byteArr);
         file.write(byteArr, byteArrSize);
     } else {
-        throw "In NTRUencryption.cpp, function void ZqPolynomial::save(const char* name) const:\n"
-              "Could not create file for ZqPolynomial.\n";
+        cerrMessageBeforeThrow("void ZpPolynomial::save(const char* name) const", "Could not create file for ZqPolynomial.");
+        throw std::runtime_error("File writing failed.");
     }
     if(byteArr != NULL) delete[] byteArr;
 }
@@ -1164,14 +1179,15 @@ Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
     this->validPrivateKey = true;
 	try {
 	    this->setKeys(true);
-	}catch(const char* exp) {
+	}catch(const std::runtime_error&) {
 	    this->validPrivateKey = false;
-	    std::cerr << "\nIn file NTRUencryption.cpp, function Encryption::Encryption(NTRU_N n, NTRU_q Q)\n";
+	    cerrMessageBeforeReThrow("Encryption::Encryption(NTRU_N n, NTRU_q Q)");
 	    throw;
 	}
 }
 
 Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
+    const char thisFunc[] = "Encryption::Encryption(const char* NTRUkeyFile)";
     const char NTRUpublicKey[] = "NTRUpublicKey";                               // -This will indicate the binary file is saving a NTRU public key
     const char NTRUprivatKey[] = "NTRUprivatKey";                               // -This will indicate the binary file is saving a NTRU private key
     char* coeffBytes = NULL;
@@ -1197,10 +1213,10 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
                 this->privateKey = ZpPolynomial(coeffBytes, sz);
                 try {
                     this->setKeysFromPrivKey();
-                } catch(const char* str) {
+                } catch(const std::runtime_error&) {
                     delete[] coeffBytes; coeffBytes = NULL;
                     delete[] fileHeader; fileHeader = NULL;
-                    std::cerr << "\nIn file NTRUencryption.cpp, function void Encryption::Encryption(const char* NTRUKeyFile)\n";
+                    cerrMessageBeforeReThrow(thisFunc);
                     throw;
                 }
             } else {
@@ -1208,16 +1224,16 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
                 sz = this->publicKeySizeInBytes();
                 coeffBytes = new char[sz];
                 file.read(coeffBytes, sz);                                      // -Reading the coefficients of the polynomial
-                //std::cout << "publicKeySizeInBytes = " << sz << '\n';         // -Debugging purposes
                 this->publicKey = ZqPolynomial(coeffBytes, sz);
             }
         } else {
             delete[] fileHeader; fileHeader = NULL;
-            throw "Not a valid ntruPrivateKey file.";
+            cerrMessageBeforeThrow(thisFunc, "Not a valid ntruPrivateKey file.");
+            throw std::runtime_error("Not valid input file.");
         }
     } else {
-        throw "In NTRUencryption.cpp, function Encryption::Encryption(const char* NTRUkeyFile):.\n"
-              "Could not open file for the creation of the keys.";
+        cerrMessageBeforeThrow(thisFunc, "Could not open file for the creation of the keys.");
+        throw std::runtime_error("File opening failed.");
     }
     if(coeffBytes != NULL) delete[] coeffBytes;
     if(fileHeader != NULL) delete[] fileHeader;
@@ -1230,6 +1246,7 @@ int Encryption::privateKeySizeInBytes()   const{ return this->N/5 + 1; }        
 int Encryption::publicKeySizeInBytes()    const{ return this->N*ZqPolynomial::log2(this->q)/8 + 1; }
 
 void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const{
+    const char thisFunc[] = "void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const";
     if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
         setNTRUparameters(this->N, this->q);
     }
@@ -1254,8 +1271,8 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
         delete[] publicKeyBytes;
         publicKeyBytes = NULL;
     } else {
-        throw "In NTRUencryption.cpp, function Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const:\n "
-        "Could not create file for public key.\n";
+        cerrMessageBeforeThrow(thisFunc, "Could not create file for public key.");
+        throw std::runtime_error("File writing failed.");
     }
     file.close();
     if(this->validPrivateKey) {                                                 // -If the object is in only encryption mode, private key will not be saved,
@@ -1271,8 +1288,8 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
             delete[] privateKeyBytes;
             privateKeyBytes = NULL;
         } else {
-            throw "In NTRUencryption.cpp, function Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const:\n "
-            "Could not create file for private key.\n";
+            cerrMessageBeforeThrow(thisFunc, "Could not create file for private key.");
+            throw std::runtime_error("File writing failed.");
         }
     }
     if(publicKeyBytes  != NULL) delete[] publicKeyBytes;
@@ -1282,6 +1299,7 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Encryption keys |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 void Encryption::setKeys(bool showKeyCreationTime) {
+    const char thisFunc[] = "void Encryption::setKeys(bool showKeyCreationTime)";
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
     if(showKeyCreationTime) begin = std::chrono::steady_clock::now();
@@ -1297,15 +1315,15 @@ void Encryption::setKeys(bool showKeyCreationTime) {
 
 	try{
         Zp_gcdXNmns1 = this->privateKey.gcdXNmns1(this->privateKeyInv_p);
-    }catch(const char* exp) {
-        std::cerr << "\nIn file NTRUencryption.cpp, function void Encryption::setKeys()\n";
+    }catch(const std::runtime_error&) {
+        cerrMessageBeforeReThrow(thisFunc);
         throw;
     }
     try{
         Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv);
-    }catch(const char* exp) {
-        std::cerr << "\nIn file NTRUencryption.cpp, function void Encryption::setKeys()\n";
-        throw;
+    }catch(const std::runtime_error&) {
+        cerrMessageBeforeReThrow(thisFunc);
+        throw;)
     }
 
 	counter = 1;
@@ -1319,13 +1337,13 @@ void Encryption::setKeys(bool showKeyCreationTime) {
             Z2_privateKey = this->privateKey;                                   // ...
         }
         try{ Zp_gcdXNmns1 = this->privateKey.gcdXNmns1(this->privateKeyInv_p); }
-        catch(const char* exp) {
-            std::cerr << "\nIn file NTRUencryption.cpp, function void NTRUencryption::setKeys()\n";
+        catch(const std::runtime_error&) {
+            cerrMessageBeforeReThrow(thisFunc);
             throw;
         }
         try{ Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv); }
-        catch(const char* exp) {
-            std::cerr << "\nIn file NTRUencryption.cpp, function void NTRUencryption::setKeys()\n";
+        catch(const std::runtime_error&) {
+            cerrMessageBeforeReThrow(thisFunc);
             throw;
     	}
         counter++;
@@ -1339,7 +1357,8 @@ void Encryption::setKeys(bool showKeyCreationTime) {
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
 
-    /*if(this->publicKey*Zp_privateKey == 1) {
+    /*
+    if(this->publicKey*Zp_privateKey == 1) {
     if(Zp_privateKey*this->privateKeyInv_p == 1) {
         if(counter > 1)
             std::cout << "Private key was found after " <<counter<< " attempts.\n";
@@ -1347,12 +1366,15 @@ void Encryption::setKeys(bool showKeyCreationTime) {
                 std::cout << "Private key was found after "<< counter << " attempt.\n";
         } else {
             (Zp_privateKey*this->privateKeyInv_p).println("this->privateKey*this->privateKeyInv_p");
-            throw "\nIn file NTRUencryption.cpp, function void Encryption::setKeys(). Private key inverse in Zp[x]/(x^N-1) ring not found.\n";
+            cerrMessageBeforeThrow(thisFunc,"Private key inverse in Zp[x]/(x^N-1) ring not found.");
+            throw std::runtime_error("Private key inverse in Zp[x]/x^N-1 finding failed");
         }
     } else {
-        (Zp_privateKey*this->privateKeyInv_p).println("this->publicKey*this->privateKey");
-        throw "\nIn file NTRUencryption.cpp, function void Encryption::setKeys(). Private key inverse in Zq[x]/(x^N-1) ring not found\n";
-    }*/
+        (this->publicKey*this->privateKey).println("this->publicKey*this->privateKey");
+        cerrMessageBeforeThrow(thisFunc,"Private key inverse in Zq[x]/x^N-1 finding failed");
+        throw std::runtime_error("Exception in private key inverse creation");
+    }
+    */
 
 	if(showKeyCreationTime) {
 	    end = std::chrono::steady_clock::now();
@@ -1363,6 +1385,7 @@ void Encryption::setKeys(bool showKeyCreationTime) {
 }
 
 void Encryption::setKeysFromPrivKey() {                                         // -In this function we're supposing private key polynomial has inverse.
+    const char thisFunc[] = "void Encryption::setKeysFromPrivKey()";
     if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
         setNTRUparameters(this->N, this->q);
     }
@@ -1374,17 +1397,19 @@ void Encryption::setKeysFromPrivKey() {                                         
 
     try{
         Zp_gcdXNmns1 = this->privateKey.gcdXNmns1(this->privateKeyInv_p);
-    }catch(const char* exp) {
-        std::cerr<<"\nIn file NTRUencryption.cpp, function void Encryption::setKeys()\n";
+    }catch(const std::runtime_error&) {
+        cerrMessageBeforeReThrow(thisFunc);
         throw;
 	}
     if(this->privateKey*this->privateKeyInv_p != 1) {
-        throw "\nIn file NTRUencryption.cpp, function void Encryption::setKeysFromPrivKey(). Private key has no inverse in Zp[x]/(x^N-1).\n";
+        (this->privateKey*this->privateKeyInv_p).println("this->privateKey*this->privateKeyInv_p");
+        cerrMessageBeforeThrow(thisFunc,"Private key inverse in Zp[x]/(x^N-1) ring not found.");
+        throw std::runtime_error("Private key inverse in Zp[x]/x^N-1 finding failed");
     }
     try{
         Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv);
-    }catch(const char* exp) {
-        std::cerr<<"\nIn file NTRUencryption.cpp, function void Encryption::setKeys()\n";
+    }catch(const std::runtime_error&) {
+        cerrMessageBeforeReThrow(thisFunc);
         throw;
     }
     this->publicKey = convolutionZq(Z2_privateKeyInv, 2 - convolutionZq(Z2_privateKeyInv, this->privateKey));
@@ -1394,9 +1419,10 @@ void Encryption::setKeysFromPrivKey() {                                         
         this->publicKey = this->publicKey*(2 - this->publicKey*this->privateKey);
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
-    if(this->privateKeyInv_p*this->privateKey != 1) {
-        (this->privateKeyInv_p*this->privateKey).println("Zq_privateKeyInv*this->privateKey");
-        throw "\nIn file NTRUencryption.cpp, function void Encryption::setKeys(). Private key inverse in Zq[x]/(x^N-1) ring not found\n";
+    if(this->publicKey*this->privateKey != 1) {
+        (this->publicKey*this->privateKey).println("this->publicKey*this->privateKey");
+        cerrMessageBeforeThrow(thisFunc,"Public key inverse in Zq[x]/x^N-1 finding failed");
+        throw std::runtime_error("Exception in public key inverse creation");
     }
 }
 
