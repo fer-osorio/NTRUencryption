@@ -236,10 +236,10 @@ class Encryption {
 	NTRU_N get_N() const { return this->N; }
 	NTRU_q get_q() const { return this->q; }
 
-	int  plainTextMaxSizeInBytes() const;
-	int  cipherTextSizeInBytes()   const;
-	int	 privateKeySizeInBytes()   const;
-	int  publicKeySizeInBytes()    const;
+	size_t plainTextMaxSizeInBytes() const;
+	size_t cipherTextSizeInBytes()   const;
+	size_t privateKeySizeInBytes()   const;
+	size_t publicKeySizeInBytes()    const;
 
 	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
 

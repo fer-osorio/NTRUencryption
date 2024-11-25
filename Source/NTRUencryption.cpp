@@ -1240,10 +1240,10 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
     this->validPrivateKey = isPrivateKey;                                       // -Only encryption if we got just the public key
 }
 
-int Encryption::plainTextMaxSizeInBytes() const{ return this->N/5 + 1; }        // -Notice the fact maximum size for plain text and the size of the private key
-int Encryption::cipherTextSizeInBytes()   const{ return this->N*ZqPolynomial::log2(this->q)/8 + 1; }//  (in bytes) is the same, and that is because they are
-int Encryption::privateKeySizeInBytes()   const{ return this->N/5 + 1; }        //  both ZpPolynomials. The same is true for the cipher text and the public key
-int Encryption::publicKeySizeInBytes()    const{ return this->N*ZqPolynomial::log2(this->q)/8 + 1; }
+size_t Encryption::plainTextMaxSizeInBytes() const{ return size_t(this->N/5 + 1); }     // -Notice the fact maximum size for plain text and the size of the private key
+size_t Encryption::cipherTextSizeInBytes()   const{ return size_t(this->N*ZqPolynomial::log2(this->q)/8 + 1); }//  (in bytes) is the same, and that is because they are
+size_t Encryption::privateKeySizeInBytes()   const{ return size_t(this->N/5 + 1); }     //  both ZpPolynomials. The same is true for the cipher text and the public key
+size_t Encryption::publicKeySizeInBytes()    const{ return size_t(this->N*ZqPolynomial::log2(this->q)/8 + 1); }
 
 void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const{
     const char thisFunc[] = "void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const";
