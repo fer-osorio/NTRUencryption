@@ -1259,7 +1259,7 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
     const char NTRUpublicKey[]  = "NTRUpublicKey";                              // -This will indicate the binary file is saving a NTRU public key
     const char NTRUprivateKey[] = "NTRUprivatKey";                              // -This will indicate the binary file is saving a NTRU private key
     std::ofstream file;
-    if(publicKeyName == NULL) file.open("Encryption.ntruPublicKey", std::ios::binary);
+    if(publicKeyName == NULL) file.open("Key.ntruPub", std::ios::binary);
     else                      file.open(publicKeyName, std::ios::binary);
     if(file.is_open()) {
         file.write((char*)NTRUpublicKey, lengthString(NTRUpublicKey));          // -Initiating the file with the string "NTRUpublicKey"
@@ -1276,7 +1276,7 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
     }
     file.close();
     if(this->validPrivateKey) {                                                 // -If the object is in only encryption mode, private key will not be saved,
-        if(privateKeyName == NULL) file.open("Encryption.ntruPrivateKey", std::ios::binary);      //  because there is no valid private key
+        if(privateKeyName == NULL) file.open("Key.ntruprv", std::ios::binary);      //  because there is no valid private key
         else                       file.open(privateKeyName, std::ios::binary);
         if(file.is_open()) {
             file.write((char*)NTRUprivateKey, lengthString(NTRUprivateKey));    // -Initiating the file with the string "NTRUprivateKey"
