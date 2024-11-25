@@ -2,6 +2,9 @@
 #include<cstring>
 #include<exception>
 #include"Settings.hpp"
+
+#define BYTES_FOR_FILE_SIZE 2                                                   // -Size of the information we will append to the data we intend to encrypt. Now
+#define FILE_TYPE_ID_SIZE   3                                                   //  it correspond to 3 bytes for the type of file, and tow bytes for the file size
 #define BUFFER_SIZE 1025
 #define UPPER_BOUND 4097                                                        // -Intended for indices that run through strings. This selection has a reason; it
                                                                                 //  is the upper limit for strings representing directories path
@@ -76,7 +79,7 @@ FN  ->  FN/·Sld·FN   |   ../FN	|	/·Sld·FN                                   
 Note: SPACES can be represented by single spaces, or a concatenation of spaces
 */
 
-enum CharType {letter, digit, dot, underscore, hyphen, slash, space, singleQuote ,doubleQuote, notAllowed, zero};
+enum CharType {zero, letter, digit, dot, underscore, hyphen, slash, space, singleQuote ,doubleQuote, notAllowed};
 
 CharType characterType(const char c) {                                          // -Just checks if the character may be used in a File Name
     if((c > 64 && c < 91) || (c > 96 && c < 123)) return letter;                // -Letters
@@ -111,19 +114,19 @@ static bool isLetterOrDigit(const char c) {
 }
 
 struct StringFileNameAnalize {
-    private: // Attributes
+    private:                                                                    // -Attributes
     const char* str = NULL;
     size_t      size = 0;
     unsigned    currentIndex = 0;
-    bool        allowSpaces  = false;
+    /*bool        allowSpaces  = false;
     bool        beginsSingleQuote = false;
-    bool        beginsDoubleQuote = false;
-    private: // Functions for syntax analysis
+    bool        beginsDoubleQuote = false;*/
+    private:                                                                    // -Functions for syntax analysis
     void cerrSyntaxErrMsg(const char[]);
     bool Sld();                                                                 // -The returned bool flags the founding of zero byte or the characters '\'' or '"')
     bool FN ();
 
-    StringFileNameAnalize(const char str[], const bool allowSpaces_ = false);
+    StringFileNameAnalize(const char str_[]);
 
     public:
     static bool isValidFileName(const char str[]);
@@ -134,56 +137,72 @@ void StringFileNameAnalize::cerrSyntaxErrMsg(const char msg[]) {
     size_t sz = strlen(SinErr) + this->currentIndex;
     unsigned i;
     std::cerr << SinErr;
-    for(i = 0; i <= this->currentIndex; i++) std::cerr << this->str[i];
-    std::cerr << '\n';
-    for(i = 1; i < sz; i++) std::cerr << ' ';
+    std::cerr << this->str << std::endl;
+    for(i = 0; i < sz; i++) std::cerr << ' ';
     std::cerr << "^~~~ " << msg << std::endl;
+    if(isDigit(this->str[this->currentIndex]) || this->str[this->currentIndex] == ' ') {
+        if(isDigit(this->str[this->currentIndex]))
+            while(isDigit(this->str[this->currentIndex])) this->currentIndex++;
+        else
+            while(this->str[this->currentIndex] == ' ') this->currentIndex++;
+    } else
+        this->currentIndex++;
+    if(this->str[this->currentIndex] != 0 && this->currentIndex < this->size) {
+        this->FN();
+    }
 }
 
 bool StringFileNameAnalize::Sld() {
     if(!isLetter(this->str[this->currentIndex])) {                              // -This ensures we have a letter at the beginning of the string
         if(isDigit(this->str[this->currentIndex])) {
-            StringFileNameAnalize::cerrSyntaxErrMsg("File name can not start with a digit.");
+            this->cerrSyntaxErrMsg("File name can not start with a digit.");
             return false;
         }
-        StringFileNameAnalize::cerrSyntaxErrMsg("Expected a character from English alphabet.");
+        this->cerrSyntaxErrMsg("Expected a character from English alphabet.");
         return false;
     }
-    int i = 0;
-    if(this->allowSpaces){                                                      // -If file name starts with single/double quote or the constructor sets as so
+    unsigned i = 0;
+    //if(this->allowSpaces){                                                      // -If file name starts with single/double quote or the constructor sets as so
         for(i = ++this->currentIndex; isLetterOrDigit(this->str[i]) || this->str[i] == ' '; i++) {} // -Running trough letters, digits and spaces
-    } else
-        for(i = ++this->currentIndex; isLetterOrDigit(this->str[i]); i++) {}    // -Running trough letters and digits
-
+    //} else {
+        //for(i = ++this->currentIndex; isLetterOrDigit(this->str[i]); i++) {}    // -Running trough letters and digits
+    //}
     this->currentIndex = i;
 
     if(this->str[this->currentIndex] == 0) {
-        if(this->beginsSingleQuote) {
-            StringFileNameAnalize::cerrSyntaxErrMsg("String started with single quote, then it should finish with single quotes.");
+        /*if(this->beginsSingleQuote) {
+            this->cerrSyntaxErrMsg("String started with single quote, then it should finish with single quotes.");
             return false;
         }
         if(this->beginsDoubleQuote) {
-            StringFileNameAnalize::cerrSyntaxErrMsg("String started with double quote, then it should finish with double quotes.");
+            this->cerrSyntaxErrMsg("String started with double quote, then it should finish with double quotes.");
             return false;
-        }
-        return true;
-    }
-    if(this->beginsSingleQuote && this->str[this->currentIndex] == '\'') {      // -Starting with single quote, finishing with single quote
+        }*/
         if(this->str[this->currentIndex-1] == ' ') {
-            StringFileNameAnalize::cerrSyntaxErrMsg("File Name/Path can not finish with spaces.");
+            this->cerrSyntaxErrMsg("File Name/Path can not finish with spaces.");
             return false;
         }
         return true;
     }
-    if(this->beginsDoubleQuote && this->str[this->currentIndex] == '"' ) {      // -Starting with double quote, finishing with double quote
+    /*if(this->beginsSingleQuote && this->str[this->currentIndex] == '\'') {      // -Starting with single quote, finishing with single quote
         if(this->str[this->currentIndex-1] == ' ') {
-            StringFileNameAnalize::cerrSyntaxErrMsg("File Name/Path can not finish with spaces.");
+            this->cerrSyntaxErrMsg("File Name/Path can not finish with spaces.");
             return false;
         }
         return true;
-    }
-    if(this->str[this->currentIndex] == ' ') return true;                       // -At this point, a space is a proper ending for the input string
-    return false;
+    }*/
+    /*if(this->beginsDoubleQuote && this->str[this->currentIndex] == '"' ) {      // -Starting with double quote, finishing with double quote
+        if(this->str[this->currentIndex-1] == ' ') {
+            this->cerrSyntaxErrMsg("File Name/Path can not finish with spaces.");
+            return false;
+        }
+        return true;
+    }*/
+    /*if(this->str[this->currentIndex] == ' ') {                                  // -At this point, a space is a proper ending for the input string
+        this->cerrSyntaxErrMsg("To allow spaces, put the string inside single or double quotes");
+        return false;
+    }*/
+    return this->FN();
 }
 
 bool StringFileNameAnalize::FN() {
@@ -191,50 +210,48 @@ bool StringFileNameAnalize::FN() {
     switch(ct) {
         case slash:                                                             // -Allowing slash for file paths
             this->currentIndex++;
-            return StringFileNameAnalize::Sld();
+            return this->Sld();
         case letter:
         case underscore:
         case hyphen:
-            return StringFileNameAnalize::Sld();                                // -Read (always starting with a letter) letters, digits and (if allowed) spaces;
+            return this->Sld();                                // -Read (always starting with a letter) letters, digits and (if allowed) spaces;
             break;                                                              //  when a proper ending character is found (0,'\'','"',' ') then return
         case dot:                                                               // -Cases for dot
             if(this->str[++this->currentIndex] == '.') {                        // -The string "../" is allowed as a sub-string so we can use relative paths
                 if(this->str[++this->currentIndex] == '/') {
                     this->currentIndex++;
-                    return StringFileNameAnalize::FN();
+                    return this->FN();
                 } else {
-                    StringFileNameAnalize::cerrSyntaxErrMsg("Syntax Error: Expected '/' character.");
+                    this->cerrSyntaxErrMsg("Syntax Error: Expected '/' character.");
                     return false;
                 }
             } else {
-                return StringFileNameAnalize::Sld();                            // -This lines can be interpreted as: Read (always starting with a letter) letters,
+                return this->Sld();                            // -This lines can be interpreted as: Read (always starting with a letter) letters,
             }                                                                   //  digits and (if allowed) spaces; when a proper ending character is found
-        break;
         case digit:
-            StringFileNameAnalize::cerrSyntaxErrMsg("File name can not start with a digit.");
+            this->cerrSyntaxErrMsg("File name can not start with a digit.");
             return false;
         case space:
-            StringFileNameAnalize::cerrSyntaxErrMsg("Not Expecting a space here.");
+            this->cerrSyntaxErrMsg("File name can not start with a space.");
             return false;
         case singleQuote:
-            StringFileNameAnalize::cerrSyntaxErrMsg("Not Expecting a single quote here.");
+            this->cerrSyntaxErrMsg("Not Expecting a single quote here.");
             return false;
         case doubleQuote:
-            StringFileNameAnalize::cerrSyntaxErrMsg("Not expecting a double quote here.");
+            this->cerrSyntaxErrMsg("Not expecting a double quote here.");
             return false;
         case notAllowed:
-            StringFileNameAnalize::cerrSyntaxErrMsg("Unexpected character/symbol.");
+            this->cerrSyntaxErrMsg("Unexpected character/symbol.");
             return false;
         case zero:
-            StringFileNameAnalize::cerrSyntaxErrMsg("Unexpected end of string.");
+            this->cerrSyntaxErrMsg("Unexpected end of string.");
             return false;
     }
+    return false;
 }
 
-StringFileNameAnalize::StringFileNameAnalize(const char str[], const bool allowSpaces_): allowSpaces(allowSpaces_) {
-    if(str != NULL) while(str[this->size] != 0) this->size++;
-    if((this->beginsSingleQuote = (str[0] == '\''))) this->allowSpaces = true;  // -If starting with single quote, allow spaces is overwritten
-    if((this->beginsDoubleQuote = (str[0] == '"' ))) this->allowSpaces = true;  // -If starting with double quote, allow spaces is overwritten
+StringFileNameAnalize::StringFileNameAnalize(const char _str_[]): str(_str_) {
+    if(this->str != NULL) while(this->str[this->size] != 0) this->size++;
 }
 
 bool StringFileNameAnalize::isValidFileName(const char str[]) {                 // -Validating string as a file name
@@ -256,7 +273,7 @@ TXT::TXT(const char fname[]) {                                                  
     if(file.is_open()) {
         file.seekg(0, std::ios::end);                                           // -Look for the end of the file
         std::streampos fileSize = file.tellg();
-        this->size = fileSize;
+        this->size = (size_t)fileSize;
         file.seekg(0, std::ios::beg);                                           // -Go to the beginning
         this->content = new char[fileSize];                                     // -Allocate memory and copy file content
         file.read(this->content, fileSize);                                     // ...
@@ -306,7 +323,7 @@ void TXT::save(const char fname[]) const{                                       
         file.open(fname);
     }
     if(file.is_open()) {
-        file.write(this->content, this->size);
+        file.write(this->content, (std::streamsize)this->size);
         file.close();
     } else {
         cerrMessageBeforeThrow("void TXT::save(const char fname[]) const)", "Could not save file");
@@ -343,10 +360,10 @@ namespace Options {                                                             
 	}
 };
 
-/*union ushort_to_char {                                                          // -Casting from short to an array of two chars
+union ushort_to_char {                                                          // -Casting from short to an array of two chars
     unsigned short ushort;
     char         chars[2];
-};*/
+};
 
 namespace CLI {                                                                 // -Functions that interact with user through CIL
     static void getLine(const char* message, char* const destination);		    // -Get input string from console. Finish with a line ending '\n'
@@ -359,6 +376,9 @@ namespace CLI {                                                                 
 
 static int  subStringDelimitedBySpacesOrQuotation(const char* source, const int start, char* destination);
 static void setEncryptionObject(NTRU_N _N_, NTRU_q _q_);
+static void encryptFileBinMode(const char fname[]);                             // -Opens file in binary mode and encrypt
+static void encryptTextFile(const char fname[]);                                // -Opens file as text and encrypt
+static void decryptFileBinMode(const char fname[]);
 static void cipherObjectOverFile(const Options::Cipher_object, const char fname[]);// -Encrypts or decrypts file of second argument accordingly to the first argument
 
 
@@ -374,8 +394,8 @@ void CLI::getLine(const char* message, char* const destination) {
     std::cin.getline(destination, NAME_MAX_LEN - 1, '\n');
 }
 
-int subStringDelimitedBySpacesOrQuotation(const char* source, const int startAt, char* destination) {
-    const char thisFunc[] = "int subStringDelimitedBySpacesOrQuotation(const char* source, const int startAt, char* destination)";
+int subStringDelimitedBySpacesOrQuotation(const char* source, const int startAt, char* destination) { // -Writes on destination the fist sub-string delimited by
+    const char thisFunc[] = "int subStringDelimitedBySpacesOrQuotation(const char* source, const int startAt, char* destination)"; //    spaces or quotations
     if(source == NULL) {
         cerrMessageBeforeThrow(thisFunc, "Source pointer is a NULL pointer ~~> source == NULL.");
         throw std::invalid_argument("Source pointer is a NULL pointer ~~> source == NULL.\n");
@@ -397,8 +417,8 @@ int subStringDelimitedBySpacesOrQuotation(const char* source, const int startAt,
         }
     }
     endingMark = source[i];
-    if(endingMark == '\'' || endingMark == '"') {
-        for(i++; source[i] != endingMark; i++) {
+    if(endingMark == '\'' || endingMark == '"') {                               // -If quotation is found (single or double), then the writing on destination will
+        for(i++; source[i] != endingMark; i++) {                                //  stop when the same quotation is found
             if(i >= UPPER_BOUND) {
                 cerrMessageBeforeThrow(thisFunc, "The upper bound for the index looking for the starting token was overreached ~~> i >= UPPER_BOUND.");
                 throw std::runtime_error("Upper bound for reached.");
@@ -410,8 +430,8 @@ int subStringDelimitedBySpacesOrQuotation(const char* source, const int startAt,
             destination[j] = source[i];
         }
     } else {
-        for(; source[i] != ' ' || source[i] != '\t'; i++) {
-            if(i >= UPPER_BOUND) {
+        for(; source[i] != ' ' || source[i] != '\t'; i++) {                     // -After ignoring tabs and spaces, the first character found is not a quotation,
+            if(i >= UPPER_BOUND) {                                              //  then the writing on destination will stop when a space is found
                 cerrMessageBeforeThrow(thisFunc, "The upper bound for the index looking for the starting token was overreached ~~> i >= UPPER_BOUND.");
                 throw std::runtime_error("Upper bound for reached.");
             }
@@ -442,20 +462,174 @@ void setEncryptionObjectFromFile(const char fname[]) {
     }
 }
 
-void cipherObjectOverFile(const Options::Cipher_object act,  const char fname[]) {
+static const int encrypFileHeaderSize = BYTES_FOR_FILE_SIZE + FILE_TYPE_ID_SIZE;
+
+void encryptFileBinMode(const char fname[]) {
+    const char thisFunc[] = "static void cipherbinFile(const char fname[])";
+    std::ifstream   file;
+    std::streampos  fileSize;
+    const size_t    cipherTextSize   = NTRUencryption.cipherTextSizeInBytes();
+    const size_t    plainTextMaxSize = NTRUencryption.plainTextMaxSizeInBytes();
+    unsigned short  fileSizePlusHeaderSize;
+    char*           fileInput = NULL;
+    NTRU::ZqPolynomial enc_msg;
+    file.open(fname, std::ios::binary | std::ios::ate);                 // -Open the ifile in binary mode and move to the end
+    if (!file.is_open()) {
+        cerrMessageBeforeThrow(thisFunc, "Error opening file for encryption");
+        throw std::runtime_error("File opening failed");
+    }
+    fileSize = file.tellg();                                            // -Get the file size
+    if(fileSize > plainTextMaxSize - encrypFileHeaderSize) {
+        file.close();
+        cerrMessageBeforeThrow(thisFunc, "");
+        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - encrypFileHeaderSize << " bytes)";
+        throw std::runtime_error("Upper bound for file size exceeded");
+    }
+    file.seekg(0, std::ios::beg);                                   // -Move back to the beginning
+    fileSizePlusHeaderSize = (unsigned)fileSize + (unsigned)encrypFileHeaderSize;   // -This will allow us two write the size in the input array for
+    fileInput = new char[fileSizePlusHeaderSize];                   //  encryption.
+    memcpy(fileInput, supportedExt[bin], FILE_TYPE_ID_SIZE);              // -Assigning bin file type
+    memcpy((char*)&fileInput[FILE_TYPE_ID_SIZE], (char*)&fileSize, BYTES_FOR_FILE_SIZE); // -Writing file size
+    file.read((char*)&fileInput[encrypFileHeaderSize], fileSize);
+    file.close();
+    enc_msg = NTRUencryption.encrypt(fileInput, fileSizePlusHeaderSize);         // -Encrypting the bytes from the file and its size
+    delete[] fileInput;
+    try {
+        enc_msg.save();
+    }
+    catch(const char* str) {
+        cerrMessageBeforeReThrow(thisFunc);
+        throw;
+    }
+}
+
+void encryptTextFile(const char fname[]) {
+    const char      thisFunc[] = "void encryptTextFile(const char fname[])";
+    char*           fileInput = NULL;
+    char*           enc_text  = NULL;
+    TXT             text;
+    const size_t    cipherTextSize   = NTRUencryption.cipherTextSizeInBytes();
+    const size_t    plainTextMaxSize = NTRUencryption.plainTextMaxSizeInBytes();
+    unsigned short  fileSizePlusHeaderSize = text.size + (unsigned)encrypFileHeaderSize;
+    NTRU::ZqPolynomial enc_msg;
+    try { text = TXT(fname); }
+    catch(const char* str) {
+        cerrMessageBeforeReThrow(thisFunc);
+        throw;
+    }
+    if((int)text.size > plainTextMaxSize - encrypFileHeaderSize) {
+        cerrMessageBeforeThrow(thisFunc, "");
+        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - encrypFileHeaderSize << " bytes)";
+        throw std::runtime_error("Upper bound for file size exceeded");
+    }
+    fileSizePlusHeaderSize = text.size + (unsigned)encrypFileHeaderSize;// -This will allow us two write the size in the input array for encryption.
+    fileInput = new char[fileSizePlusHeaderSize];
+    memcpy(fileInput, supportedExt[txt], FILE_TYPE_ID_SIZE);              // -Assigning txt file type
+    memcpy((char*)&fileInput[FILE_TYPE_ID_SIZE], (char*)&text.size, BYTES_FOR_FILE_SIZE);
+    memcpy((char*)&fileInput[encrypFileHeaderSize], text.content, text.size);
+    enc_msg = NTRUencryption.encrypt(fileInput, fileSizePlusHeaderSize, true);
+    delete[] fileInput;
+    enc_msg.println("\nEncrypted message");
+    enc_text = new char[(unsigned)cipherTextSize];
+    enc_msg.toBytes(enc_text);
+    text.overwrite(enc_text, (unsigned)cipherTextSize);
+    try{ text.save(); }
+    catch(const char* str) { std::cerr << str; }
+    try { enc_msg.save("encryptedMessage.ntruq"); }
+    catch(const char* str) {
+        cerrMessageBeforeReThrow(thisFunc);
+        throw;
+    }
+    if(enc_text != NULL) { delete[] enc_text; enc_text = NULL; }
+}
+
+void decryptFileBinMode(const char fname[]) {
+    const char thisFunc[] = "void decryptFileBinMode(const char fname[])";
+    char*           buff     = NULL;
+    const char      ntruq[]  = "NTRUq";
+    char            ftype[FILE_TYPE_ID_SIZE + 1];
+    const size_t    ntruqlen = strlen(ntruq);
+    size_t          lenInBytes = 0;
+    ushort_to_char  fileSize_u= {0};                                              // -So we can convert two chars into a short
+    NTRU_N N = _509_;
+    NTRU_q q = _2048_;
+    FileExtensions  ext;
+    std::ifstream   ifile;
+    std::ofstream   ofile;
+
+    buff = new char[ntruqlen + 1];
+    ifile.open(fname, std::ios::binary | std::ios::ate);                 // -Open the ifile in binary mode and move to the end
+    if (!ifile.is_open()) {
+        cerrMessageBeforeThrow(thisFunc, "Error opening file for encryption");
+        throw std::runtime_error("File opening failed");
+    }
+    ifile.read(buff, ntruqlen);
+    buff[ntruqlen] = 0;
+    if(strcmp(buff, ntruq) == 0) {
+        ifile.read((char*)&N, 2);                                       // -A short int for the degree of the polynomial
+        ifile.read((char*)&q, 2);                                       // -A short int for the q value
+        lenInBytes = size_t(N*NTRU::ZqPolynomial::log2(q)/8 + 1);
+        delete[] buff;
+        buff = new char[lenInBytes];
+        ifile.read(buff, (std::streamsize)lenInBytes);
+        ifile.close();
+        NTRU::ZpPolynomial msg = NTRUencryption.decrypt(buff, lenInBytes);
+        delete[] buff;
+        lenInBytes = NTRUencryption.plainTextMaxSizeInBytes();
+        buff = new char[lenInBytes];
+        msg.toBytes(buff);
+        memcpy(ftype, buff, FILE_TYPE_ID_SIZE);
+        ftype[FILE_TYPE_ID_SIZE] = 0;
+        memcpy(fileSize_u.chars, (char*)&buff[FILE_TYPE_ID_SIZE], BYTES_FOR_FILE_SIZE);
+        ext = strToFileExtension(ftype);
+        switch(ext) {
+            case bin:
+                std::cout << "DecryptedMessage:\n" << (char*)&buff[encrypFileHeaderSize] << '\n';
+                ofile.open("DecryptedMessage.bin", std::ios::binary);
+                if(ofile.is_open()) {
+                    ofile.write((char*)&buff[encrypFileHeaderSize], fileSize_u.ushort);
+                } else {
+                    if(buff != NULL) delete[] buff;
+                    cerrMessageBeforeThrow(thisFunc, "Could not write decrypted file");
+                    throw std::runtime_error("File writing failed");
+                }
+                break;
+            case txt:
+                ofile.open("DecryptedMessage.txt");
+                if(ofile.is_open()) {
+                    ofile.write((char*)&buff[encrypFileHeaderSize], fileSize_u.ushort);
+                } else {
+                    if(buff != NULL) delete[] buff;
+                    cerrMessageBeforeThrow(thisFunc, "Could not write decrypted file");
+                    throw std::runtime_error("File writing failed");
+                }
+                break;
+            case none:
+                break;
+            case unrecognized:
+                break;
+        }
+    } else {
+        if(buff != NULL) delete[] buff;
+        cerrMessageBeforeThrow(thisFunc, "Not a ntruq file");
+        throw std::runtime_error("Not valid input file");
+    }
+}
+
+void cipherObjectOverFile(const Options::Cipher_object act, const char fname[]) {
     const char      thisFunc[] = "void cipherObjectOverFile(const Options::Cipher_object act,  const char fname[])";
     const char      ntruq[]    = "NTRUq";
     char            ftype[FILE_TYPE_ID_SIZE + 1];
     size_t          lenInBytes = 0;
     const size_t    ntruqlen = strlen(ntruq);
-    const int       encrypHeaderSize = BYTES_FOR_FILE_SIZE + FILE_TYPE_ID_SIZE;
+    const int       encrypFileHeaderSize = BYTES_FOR_FILE_SIZE + FILE_TYPE_ID_SIZE;
     const int       cipherTextSize   = NTRUencryption.cipherTextSizeInBytes();
     const int       plainTextMaxSize = NTRUencryption.plainTextMaxSizeInBytes();
     unsigned short  fileSizePlusHeaderSize;
     char*           fileInput = NULL;
     char*           enc_text  = NULL;
     char*           buff      = NULL;
-    //ushort_to_char  fileSize  = {0};                                              // -So we can convert two chars into a short
+    ushort_to_char  fileSize_u= {0};                                              // -So we can convert two chars into a short
     TXT             text;
     std::ifstream   ifile;
     std::ofstream   ofile;
@@ -475,18 +649,18 @@ void cipherObjectOverFile(const Options::Cipher_object act,  const char fname[])
             switch(act) {
                 case Options::Cipher_object::Ciphering:
                     fileSize = ifile.tellg();                                            // -Get the file size
-                    if(fileSize > plainTextMaxSize - encrypHeaderSize) {
+                    if(fileSize > plainTextMaxSize - encrypFileHeaderSize) {
                         ifile.close();
                         cerrMessageBeforeThrow(thisFunc, "");
-                        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - encrypHeaderSize << " bytes)";
+                        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - encrypFileHeaderSize << " bytes)";
                         throw std::runtime_error("Upper bound for file size exceeded");
                     }
                     ifile.seekg(0, std::ios::beg);                                   // -Move back to the beginning
-                    fileSizePlusHeaderSize = (unsigned)fileSize + (unsigned)encrypHeaderSize;   // -This will allow us two write the size in the input array for
+                    fileSizePlusHeaderSize = (unsigned)fileSize + (unsigned)encrypFileHeaderSize;   // -This will allow us two write the size in the input array for
                     fileInput = new char[fileSizePlusHeaderSize];                   //  encryption.
                     memcpy(fileInput, supportedExt[bin], FILE_TYPE_ID_SIZE);              // -Assigning bin file type
                     memcpy((char*)&fileInput[FILE_TYPE_ID_SIZE], (char*)&fileSize, BYTES_FOR_FILE_SIZE); // -Writing file size
-                    ifile.read((char*)&fileInput[encrypHeaderSize], fileSize);
+                    ifile.read((char*)&fileInput[encrypFileHeaderSize], fileSize);
                     ifile.close();
                     enc_msg = NTRUencryption.encrypt(fileInput, fileSizePlusHeaderSize);         // -Encrypting the bytes from the file and its size
                     try { enc_msg.save(); }
@@ -502,10 +676,10 @@ void cipherObjectOverFile(const Options::Cipher_object act,  const char fname[])
                     if(strcmp(buff, ntruq) == 0) {
                         ifile.read((char*)&N, 2);                                       // -A short int for the degree of the polynomial
                         ifile.read((char*)&q, 2);                                       // -A short int for the q value
-                        lenInBytes = N*NTRU::ZqPolynomial::log2(q)/8 + 1;
+                        lenInBytes = size_t(N*NTRU::ZqPolynomial::log2(q)/8 + 1);
                         delete[] buff;
                         buff = new char[lenInBytes];
-                        ifile.read(buff, lenInBytes);
+                        ifile.read(buff, (std::streamsize)lenInBytes);
                         ifile.close();
                         NTRU::ZpPolynomial msg = NTRUencryption.decrypt(buff, lenInBytes);
                         delete[] buff;
@@ -514,28 +688,30 @@ void cipherObjectOverFile(const Options::Cipher_object act,  const char fname[])
                         msg.toBytes(buff);
                         memcpy(ftype, buff, FILE_TYPE_ID_SIZE);
                         ftype[FILE_TYPE_ID_SIZE] = 0;
-                        memcpy(&fileSize, (char*)&buff[FILE_TYPE_ID_SIZE], BYTES_FOR_FILE_SIZE);
+                        memcpy(fileSize_u.chars, (char*)&buff[FILE_TYPE_ID_SIZE], BYTES_FOR_FILE_SIZE);
                         ext = strToFileExtension(ftype);
                         switch(ext) {
                             case bin:
-                                std::cout << "DecryptedMessage:\n" << (char*)&buff[encrypHeaderSize] << '\n';
+                                std::cout << "DecryptedMessage:\n" << (char*)&buff[encrypFileHeaderSize] << '\n';
                                 ofile.open("DecryptedMessage.bin", std::ios::binary);
                                 if(ofile.is_open()) {
-                                ofile.write((char*)&buff[encrypHeaderSize], fileSize);
+                                    ofile.write((char*)&buff[encrypFileHeaderSize], fileSize_u.ushort);
                                 } else {
                                     if(buff != NULL) delete[] buff;
                                     cerrMessageBeforeThrow(thisFunc, "Could not write decrypted file");
                                     throw std::runtime_error("File writing failed");
                                 }
+                                break;
                             case txt:
                                 ofile.open("DecryptedMessage.txt");
                                 if(ofile.is_open()) {
-                                    ofile.write((char*)&buff[encrypHeaderSize], fileSize);
+                                    ofile.write((char*)&buff[encrypFileHeaderSize], fileSize_u.ushort);
                                 } else {
                                     if(buff != NULL) delete[] buff;
                                     cerrMessageBeforeThrow(thisFunc, "Could not write decrypted file");
                                     throw std::runtime_error("File writing failed");
                                 }
+                                break;
                             case none:
                                 break;
                             case unrecognized:
@@ -549,34 +725,41 @@ void cipherObjectOverFile(const Options::Cipher_object act,  const char fname[])
                 }
                 break;
         case txt:                                                               // -Notice how a text file just can be encrypted
-            try { text = TXT(fname); }
-            catch(const char* str) {
-                cerrMessageBeforeReThrow(thisFunc);
-                throw;
+            switch(act) {
+                case Options::Cipher_object::Ciphering:
+                    try { text = TXT(fname); }
+                catch(const char* str) {
+                    cerrMessageBeforeReThrow(thisFunc);
+                    throw;
+                }
+                if((int)text.size > plainTextMaxSize - encrypFileHeaderSize) {
+                    cerrMessageBeforeThrow(thisFunc, "");
+                    std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - encrypFileHeaderSize << " bytes)";
+                    throw std::runtime_error("Upper bound for file size exceeded");
+                }
+                fileSizePlusHeaderSize = text.size + (unsigned)encrypFileHeaderSize;// -This will allow us two write the size in the input array for encryption.
+                fileInput = new char[fileSizePlusHeaderSize];
+                memcpy(fileInput, supportedExt[txt], FILE_TYPE_ID_SIZE);              // -Assigning txt file type
+                memcpy((char*)&fileInput[FILE_TYPE_ID_SIZE], (char*)&text.size, BYTES_FOR_FILE_SIZE);
+                memcpy((char*)&fileInput[encrypFileHeaderSize], text.content, text.size);
+                enc_msg = NTRUencryption.encrypt(fileInput, fileSizePlusHeaderSize, true);
+                enc_msg.println("\nEncrypted message");
+                enc_text = new char[(unsigned)cipherTextSize];
+                enc_msg.toBytes(enc_text);
+                text.overwrite(enc_text, (unsigned)cipherTextSize);
+                try{ text.save(); }
+                catch(const char* str) { std::cerr << str; }
+                try { enc_msg.save("encryptedMessage.ntruq"); }
+                catch(const char* str) {
+                    cerrMessageBeforeReThrow(thisFunc);
+                    throw;
+                }
+                if(enc_text != NULL) { delete[] enc_text; enc_text = NULL; }
+                        break;
+                case Options::Cipher_object::Deciphering:
+                    std::cerr << "Decryption of text files not currently supported.\n";
+                    break;
             }
-            if((int)text.size > plainTextMaxSize - encrypHeaderSize) {
-                cerrMessageBeforeThrow(thisFunc, "");
-                std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - encrypHeaderSize << " bytes)";
-                throw std::runtime_error("Upper bound for file size exceeded");
-            }
-            fileSizePlusHeaderSize = text.size + (unsigned)encrypHeaderSize;// -This will allow us two write the size in the input array for encryption.
-            fileInput = new char[fileSizePlusHeaderSize];
-            memcpy(fileInput, supportedExt[txt], FILE_TYPE_ID_SIZE);              // -Assigning txt file type
-            memcpy((char*)&fileInput[FILE_TYPE_ID_SIZE], (char*)&text.size, BYTES_FOR_FILE_SIZE);
-            memcpy((char*)&fileInput[encrypHeaderSize], text.content, text.size);
-            enc_msg = NTRUencryption.encrypt(fileInput, fileSizePlusHeaderSize, true);
-            enc_msg.println("\nEncrypted message");
-            enc_text = new char[(unsigned)cipherTextSize];
-            enc_msg.toBytes(enc_text);
-            text.overwrite(enc_text, (unsigned)cipherTextSize);
-            try{ text.save(); }
-            catch(const char* str) { std::cerr << str; }
-            try { enc_msg.save("encryptedMessage.ntruq"); }
-            catch(const char* str) {
-                cerrMessageBeforeReThrow(thisFunc);
-                throw;
-            }
-            if(enc_text != NULL) { delete[] enc_text; enc_text = NULL; }
             break;
         case none:
             break;
@@ -704,12 +887,10 @@ void CLI::retreaveTexAndEncrypt() {
     if(aux != NULL)          delete[] aux;
 }
 
-static bool NTRU_N_validOpt(int opt) { return opt >= 0 && opt < NTRU_N_amount;}
-static bool NTRU_q_validOpt(int opt) { return opt >= 0 && opt < NTRU_q_amount;}
+static bool NTRU_N_validOpt(int opt) { return opt >= 0 && opt < (int)NTRU_N_amount;}
+static bool NTRU_q_validOpt(int opt) { return opt >= 0 && opt < (int)NTRU_q_amount;}
 
 void CLI::retreaveKey(Options::Key_retreaving Kr) {                             // -Retrieving key accordingly to the user's input
-    NTRU_N N;
-    NTRU_q q;
     int opt_N, opt_q;
     switch(Kr) {
         case Options::RetrieveFromFile:
@@ -724,7 +905,8 @@ void CLI::retreaveKey(Options::Key_retreaving Kr) {                             
 }
 
 void runProgram(const Options::Cipher_object op) {
-    char keyNameStr[NAME_MAX_LEN];
+    char publicKeyName[NAME_MAX_LEN];
+    char privatKeyName[NAME_MAX_LEN];
     bool validName = false;                                                     // -Flags is the given name for the encryption key given by the user is valid
     Options::Encryption_main_menu encMainMen;
     Options::Key_retreaving  Kr;
@@ -745,12 +927,19 @@ void runProgram(const Options::Cipher_object op) {
                 case Options::Encryption_main_menu::saveKey:
                     break;
             }
-            CLI::getLine("Assign a name to the key file.", keyNameStr);
+            CLI::getLine("Assign a name to the public key file.", publicKeyName);
+            validName = StringFileNameAnalize::isValidFileName(publicKeyName);
             while(!validName) {                                                 // -Validating the name for the key files
-                StringFileNameAnalize::isValidFileName(keyNameStr);
-                CLI::getLine("Try again. Assign a name to the key file.", keyNameStr);
+                CLI::getLine("Try again. Assign a name to public key file.", publicKeyName);
+                validName = StringFileNameAnalize::isValidFileName(publicKeyName);
             }
-            NTRUencryption.saveKeys(keyNameStr);
+            CLI::getLine("Assign a name to the private key file.", privatKeyName);
+            validName = StringFileNameAnalize::isValidFileName(publicKeyName);
+            while(!validName) {                                                 // -Validating the name for the key files
+                CLI::getLine("Try again. Assign a name to the private key file.", privatKeyName);
+                validName = StringFileNameAnalize::isValidFileName(publicKeyName);
+            }
+            NTRUencryption.saveKeys(publicKeyName, privatKeyName);
             break;
         case::Options::Cipher_object::Deciphering:
             CLI::getFilesAndCipherAct(Options::Cipher_object::Deciphering);
