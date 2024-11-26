@@ -235,6 +235,7 @@ class Encryption {
 
 	NTRU_N get_N() const { return this->N; }
 	NTRU_q get_q() const { return this->q; }
+	bool validPrivateKeyAvailable() const{ return this->validPrivateKey; }
 
 	size_t plainTextMaxSizeInBytes() const;
 	size_t cipherTextSizeInBytes()   const;
