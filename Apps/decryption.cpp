@@ -11,6 +11,10 @@ int main(int argc, char *argv[]) {
         for(int i = 2; i < argc; i++) decryptFile(argv[i]);
         return EXIT_SUCCESS;
     }
-    runDecryptionProgram();
+    try{
+        runDecryptionProgram();
+    } catch(std::runtime_error& exp) {
+        std::cout << exp.what() << std::endl;
+    }
     return EXIT_SUCCESS;
 }
