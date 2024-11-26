@@ -352,11 +352,16 @@ namespace Options {                                                             
 	    encryptTextFromCLI,
 	    saveKey
 	};
-	static bool isEncryptionMainMenu(int t) {
+	static bool isEncryptionMainMenuValue(int t) {
 		return
 		t == encryptFiles ||
 		t == encryptTextFromCLI ||
 		t == saveKey;
+	}
+	static bool isEncryptionMainMenuValueNoSaveKey(int t) {
+		return
+		t == encryptFiles ||
+		t == encryptTextFromCLI;
 	}
 };
 
@@ -652,9 +657,9 @@ void cipherObjectOverFile(const Options::Cipher_object act, const char fname[]) 
             break;
         case none:
         case unrecognized:
-            std::cout << "Not a .txt or .bin extension found. Proceeding to treat the file as a binary file.\n";
             switch(act) {
                 case Options::Cipher_object::Ciphering:
+                    std::cout << "Not a .txt or .bin extension found. Proceeding to treat the file as a binary file.\n";
                     try{
                         encryptFileBinMode(fname);
                     }catch(const std::runtime_error&) {
@@ -663,6 +668,7 @@ void cipherObjectOverFile(const Options::Cipher_object act, const char fname[]) 
                     }
                     break;
                 case Options::Cipher_object::Deciphering:
+                    std::cout << "Not a .bin extension found; however, I am proceeding to treat the file as a binary file.\n";
                     try{
                         decryptFileBinMode(fname);
                     }catch(const std::runtime_error&){
@@ -682,6 +688,11 @@ static const char encryptionMainMenu[] =
 "(0) to encrypt files.\n"
 "(1) to encrypt text retrieved from console.\n"
 "(2) to save encryption keys.\n";
+
+static const char encryptionMainMenuNoSaveKey[] =
+"\nPress:\n"
+"(0) to encrypt files.\n"
+"(1) to encrypt text retrieved from console.\n";
 
 static const char keyRetreavingOptions[] =
 "Would you like to:\n"
@@ -732,7 +743,6 @@ void CLI::getFilesAndCipherAct(Options::Cipher_object op) {
     size_t bufferSize = UPPER_BOUND - 1;
     size_t inputStrSize = 0;
     int i, j;
-
     const char enc[] = "encrypt", dec[] = "decrypt";
     const char* opStr;
     if(op == Options::Cipher_object::Ciphering)   opStr = enc;
@@ -820,18 +830,20 @@ void runProgram(const Options::Cipher_object op) {
     char publicKeyName[NAME_MAX_LEN];
     char privatKeyName[NAME_MAX_LEN];
     bool validName = false;                                                     // -Flags is the given name for the encryption key given by the user is valid
-    Options::Encryption_main_menu encMainMen;
-    Options::Key_retreaving  Kr;
-
-    Kr = (Options::Key_retreaving)CLI::retreaveValidOption(keyRetreavingOptions, Options::isKeyRetreavingValue);    // -Before encryption, the key must obtain
-    if(op == Options::Cipher_object::Deciphering)                                                                   //  the encryption key
+    Options::Encryption_main_menu encMainMen = Options::Encryption_main_menu::saveKey;
+    Options::Key_retreaving Kr = Options::Key_retreaving::RetrieveFromFile;            // -First action, setting the encryption key
+    if(op == Options::Cipher_object::Deciphering) {                             // -If we want to decrypt, I am assuming we already have a private key
         CLI::retreaveKey(Kr, "private key.");
-    else
+    } else {
+        Kr = (Options::Key_retreaving)CLI::retreaveValidOption(keyRetreavingOptions, Options::isKeyRetreavingValue);
         CLI::retreaveKey(Kr, "public key.");
-
+    }
     switch(op) {
         case Options::Cipher_object::Ciphering:
-            encMainMen = (Options::Encryption_main_menu)CLI::retreaveValidOption(encryptionMainMenu, Options::isEncryptionMainMenu);// -Asking what we will encrypt
+            if(Kr == Options::Key_retreaving::CreateNew)                        // -If the program generates the key, we need to save it
+                encMainMen = (Options::Encryption_main_menu)CLI::retreaveValidOption(encryptionMainMenu, Options::isEncryptionMainMenuValue);
+            if(Kr == Options::Key_retreaving::RetrieveFromFile)                 // -If the key is retrieved from file, there is no need to save it
+                encMainMen = (Options::Encryption_main_menu)CLI::retreaveValidOption(encryptionMainMenuNoSaveKey, Options::isEncryptionMainMenuValueNoSaveKey);
             switch(encMainMen) {
                 case Options::Encryption_main_menu::encryptFiles:
                     try {
@@ -864,6 +876,10 @@ void runProgram(const Options::Cipher_object op) {
             }
             break;
         case Options::Cipher_object::Deciphering:
+            if(!NTRUencryption.validPrivateKeyAvailable()) {
+                cerrMessageBeforeThrow("void runProgram(const Options::Cipher_object op)", "Not valid private key found.");
+                throw std::runtime_error("Private key not found.");
+            }
             CLI::getFilesAndCipherAct(Options::Cipher_object::Deciphering);
             break;
     }
@@ -892,9 +908,10 @@ void runEncryptionProgram() {
 }
 
 void runDecryptionProgram() {
-    if(!NTRUencryption.validPrivateKeyAvailable()) {
-        cerrMessageBeforeThrow("void runDecryptionProgram()", "Not valid private key found.");
-        throw std::runtime_error("Private key not found.");
+    try{
+        runProgram(Options::Cipher_object::Deciphering);
+    } catch(const std::runtime_error& exp){
+        cerrMessageBeforeReThrow("void runDecryptionProgram()");
+        throw;
     }
-    runProgram(Options::Cipher_object::Deciphering);
 }
