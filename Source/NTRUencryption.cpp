@@ -1220,6 +1220,7 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
                     throw;
                 }
             } else {
+                std::cout << "Setting NTRU::Encryption object in 'encryption only' mode" << std::endl;
                 isPrivateKey = false;
                 sz = this->publicKeySizeInBytes();
                 coeffBytes = new char[sz];

@@ -215,10 +215,10 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 
 class Encryption {
 	private:								// -Attributes
-	ZqPolynomial publicKey		 = ZqPolynomial();			// -Initializing each argument as the zero polynomial
-	ZpPolynomial privateKey		 = ZpPolynomial::getPosiblePrivateKey();
-	ZpPolynomial privateKeyInv_p = ZpPolynomial();				// -Private key inverse modulo p
-	bool validPrivateKey	 	 = false;				// -Flag; tells us if current object can only encrypt (only have a valid publickKey)
+	ZqPolynomial publicKey		= ZqPolynomial();			// -Initializing each argument as the zero polynomial
+	ZpPolynomial privateKey		= ZpPolynomial::getPosiblePrivateKey();
+	ZpPolynomial privateKeyInv_p 	= ZpPolynomial();				// -Private key inverse modulo p
+	bool validPrivateKey		= false;				// -Flag; tells us if current object can only encrypt (only have a valid publickKey)
 										// -or also is capable of decryption (has a valid private key).
 	NTRU_N N;
 	NTRU_q q;
