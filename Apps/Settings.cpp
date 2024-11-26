@@ -729,8 +729,9 @@ void CLI::getFilesAndCipherAct(Options::Cipher_object op) {
     char buffer[UPPER_BOUND];
     char fileName[NAME_MAX_LEN];
     bool subStringExp = false;
-    int  inputSize = UPPER_BOUND - 1;
-    int  i, j;
+    size_t bufferSize = UPPER_BOUND - 1;
+    size_t inputStrSize = 0;
+    int i, j;
 
     const char enc[] = "encrypt", dec[] = "decrypt";
     const char* opStr;
@@ -738,10 +739,11 @@ void CLI::getFilesAndCipherAct(Options::Cipher_object op) {
     if(op == Options::Cipher_object::Deciphering) opStr = dec;
     std::cout <<
     "Write the names/paths of the files you desire to " << opStr << "separated with spaces. Once done, press enter (input must not have spaces and should be\n"
-    "at most " << inputSize << " characters long. File names/paths must have at most "<< NAME_MAX_LEN << " characters):\n\n";
-    std::cin.getline(buffer, inputSize, '\n');
+    "at most " << bufferSize << " characters long. File names/paths must have at most "<< NAME_MAX_LEN << " characters):\n\n";
+    std::cin.getline(buffer, (std::streamsize)bufferSize, '\n');
+    inputStrSize = strlen(buffer);
     if(buffer[0] == 0) return;
-    for(i = 0, j = 0; i < inputSize && j < inputSize; i += j) {     // -'for' ends with the break statement on its end (equivalent to a do-while)
+    for(i = 0, j = 0; i < (int)inputStrSize && j < (int)inputStrSize; i += j) {           // -'for' ends with the break statement on its end (equivalent to a do-while)
         try{
             j = subStringDelimitedBySpacesOrQuotation(&buffer[i], i, fileName);
         } catch(std::runtime_error& exp) {
@@ -832,7 +834,12 @@ void runProgram(const Options::Cipher_object op) {
             encMainMen = (Options::Encryption_main_menu)CLI::retreaveValidOption(encryptionMainMenu, Options::isEncryptionMainMenu);// -Asking what we will encrypt
             switch(encMainMen) {
                 case Options::Encryption_main_menu::encryptFiles:
-                    CLI::getFilesAndCipherAct(Options::Cipher_object::Ciphering);// -Encrypting files passed in a line from CLI
+                    try {
+                        CLI::getFilesAndCipherAct(Options::Cipher_object::Ciphering);// -Encrypting files passed in a line from CLI
+                    } catch(std::runtime_error& exp) {
+                        cerrMessageBeforeReThrow("void runProgram(const Options::Cipher_object op)");
+                        std::cerr << exp.what();
+                    }
                     break;
                 case Options::Encryption_main_menu::encryptTextFromCLI:
                     CLI::retreaveTexAndEncrypt();                               // -Retrieve text from CLI, encrypts and saves the result in a text file
