@@ -43,15 +43,15 @@ Optionally, you can run the following commands on your terminal (command prompt 
 
 For NTRUencryption.exe:
 ```
-# This is, literally, the command that "make AESencryption.exe" calls.
-g++ -o AESencryption.exe -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors -ggdb -fno-omit-frame-pointer -O2 -std=c++2a
+# This is, literally, the command that "make NTRUencryption.exe" calls.
+g++ -o NTRUencryption.exe -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors -ggdb -fno-omit-frame-pointer -O2 -std=c++2a
 ../encryption.cpp ../Settings.cpp ../../Source/*.cpp
 ```
 
-For AESdecryption.exe:
+For NTRUdecryption.exe:
 ```
-# This is, literally, the command that "make AESdecryption.exe" calls.
-g++ -o AESdecryption.exe -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors -ggdb -fno-omit-frame-pointer -O2 -std=c++2a
+# This is, literally, the command that "make NTRUdecryption.exe" calls.
+g++ -o NTRUdecryption.exe -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors -ggdb -fno-omit-frame-pointer -O2 -std=c++2a
 ../decryption.cpp ../Settings.cpp ../../Source/*.cpp
 ```
 
@@ -59,5 +59,5 @@ These last two commands are convenient if you do not have ``make`` installed.
 
 ## Passing arguments to the executables.
 We can pass arguments to the executables to encrypt/decrypt a single file. Set as first argument the name/path of the encryption
-key we want to use followed by the files (currently supported) that are meant to be encrypted as the following arguments, this
-will encrypt/decrypt the files using the key referenced in the first argument.
+key we want to use followed by the files that are meant to be encrypted as the following arguments, this will encrypt/decrypt
+the files using the key referenced in the first argument.
