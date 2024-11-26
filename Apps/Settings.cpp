@@ -466,7 +466,8 @@ void setEncryptionObjectFromFile(const char fname[]) {
 static const int encrypFileHeaderSize = BYTES_FOR_FILE_SIZE + FILE_TYPE_ID_SIZE;
 
 void encryptFileBinMode(const char fname[]) {
-    const char thisFunc[] = "static void cipherbinFile(const char fname[])";
+    const char      thisFunc[] = "static void cipherbinFile(const char fname[])";
+    char            new_fname[UPPER_BOUND];
     std::ifstream   file;
     std::streampos  fileSize;
     const size_t    plainTextMaxSize = NTRUencryption.plainTextMaxSizeInBytes();
@@ -494,8 +495,10 @@ void encryptFileBinMode(const char fname[]) {
     file.close();
     enc_msg = NTRUencryption.encrypt(fileInput, fileSizePlusHeaderSize);         // -Encrypting the bytes from the file and its size
     delete[] fileInput;
+    strcpy(new_fname, fname);
+    strcat(new_fname, "_enc.ntruq");
     try {
-        enc_msg.save();
+        enc_msg.save(new_fname);
     }
     catch(const char* str) {
         cerrMessageBeforeReThrow(thisFunc);
@@ -505,6 +508,7 @@ void encryptFileBinMode(const char fname[]) {
 
 void encryptTextFile(const char fname[]) {
     const char      thisFunc[] = "void encryptTextFile(const char fname[])";
+    char            new_fname[UPPER_BOUND];
     char*           fileInput = NULL;
     char*           enc_text  = NULL;
     TXT             text;
@@ -530,12 +534,15 @@ void encryptTextFile(const char fname[]) {
     enc_msg = NTRUencryption.encrypt(fileInput, fileSizePlusHeaderSize, true);
     delete[] fileInput;
     enc_msg.println("\nEncrypted message");
-    enc_text = new char[(unsigned)cipherTextSize];
+    enc_text = new char[cipherTextSize];
     enc_msg.toBytes(enc_text);
-    text.overwrite(enc_text, (unsigned)cipherTextSize);
+    text.overwrite(enc_text, cipherTextSize);
+    delete[] enc_text; enc_text = NULL;
     try{ text.save(); }
     catch(const char* str) { std::cerr << str; }
-    try { enc_msg.save("encryptedMessage.ntruq"); }
+    strcpy(new_fname, fname);
+    strcat(new_fname, "_enc.ntruq");
+    try { enc_msg.save(new_fname); }
     catch(const char* str) {
         cerrMessageBeforeReThrow(thisFunc);
         throw;
@@ -545,6 +552,7 @@ void encryptTextFile(const char fname[]) {
 
 void decryptFileBinMode(const char fname[]) {
     const char thisFunc[] = "void decryptFileBinMode(const char fname[])";
+    char            new_fname[UPPER_BOUND];
     char*           buff     = NULL;
     const char      ntruq[]  = "NTRUq";
     char            ftype[FILE_TYPE_ID_SIZE + 1];
@@ -582,10 +590,11 @@ void decryptFileBinMode(const char fname[]) {
         ftype[FILE_TYPE_ID_SIZE] = 0;
         memcpy(fileSize_u.chars, (char*)&buff[FILE_TYPE_ID_SIZE], BYTES_FOR_FILE_SIZE);
         ext = strToFileExtension(ftype);
+        strcpy(new_fname, fname);
         switch(ext) {
             case bin:
-                std::cout << "DecryptedMessage:\n" << (char*)&buff[encrypFileHeaderSize] << '\n';
-                ofile.open("DecryptedMessage.bin", std::ios::binary);
+                strcat(new_fname, "_dec.bin");
+                ofile.open(new_fname, std::ios::binary);
                 if(ofile.is_open()) {
                     ofile.write((char*)&buff[encrypFileHeaderSize], fileSize_u.ushort);
                 } else {
@@ -595,7 +604,8 @@ void decryptFileBinMode(const char fname[]) {
                 }
                 break;
             case txt:
-                ofile.open("DecryptedMessage.txt");
+                strcat(new_fname, "_dec.txt");
+                ofile.open(new_fname);
                 if(ofile.is_open()) {
                     ofile.write((char*)&buff[encrypFileHeaderSize], fileSize_u.ushort);
                 } else {
