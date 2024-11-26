@@ -840,19 +840,21 @@ void runProgram(const Options::Cipher_object op) {
                 case Options::Encryption_main_menu::saveKey:
                     break;
             }
-            CLI::getLine("Assign a name to the public key file.", publicKeyName);
-            validName = StringFileNameAnalize::isValidFileName(publicKeyName);
-            while(!validName) {                                                 // -Validating the name for the key files
-                CLI::getLine("Try again. Assign a name to public key file.", publicKeyName);
+            if(Kr == Options::Key_retreaving::CreateNew) {
+                CLI::getLine("Assign a name to the public key file.", publicKeyName);
                 validName = StringFileNameAnalize::isValidFileName(publicKeyName);
-            }
-            CLI::getLine("Assign a name to the private key file.", privatKeyName);
-            validName = StringFileNameAnalize::isValidFileName(publicKeyName);
-            while(!validName) {                                                 // -Validating the name for the key files
-                CLI::getLine("Try again. Assign a name to the private key file.", privatKeyName);
+                while(!validName) {                                                 // -Validating the name for the key files
+                    CLI::getLine("Try again. Assign a name to public key file.", publicKeyName);
+                    validName = StringFileNameAnalize::isValidFileName(publicKeyName);
+                }
+                CLI::getLine("Assign a name to the private key file.", privatKeyName);
                 validName = StringFileNameAnalize::isValidFileName(publicKeyName);
+                while(!validName) {                                                 // -Validating the name for the key files
+                    CLI::getLine("Try again. Assign a name to the private key file.", privatKeyName);
+                    validName = StringFileNameAnalize::isValidFileName(publicKeyName);
+                }
+                NTRUencryption.saveKeys(publicKeyName, privatKeyName);
             }
-            NTRUencryption.saveKeys(publicKeyName, privatKeyName);
             break;
         case Options::Cipher_object::Deciphering:
             CLI::getFilesAndCipherAct(Options::Cipher_object::Deciphering);
