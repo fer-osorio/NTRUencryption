@@ -118,9 +118,6 @@ struct StringFileNameAnalize {
     const char* str = NULL;
     size_t      size = 0;
     unsigned    currentIndex = 0;
-    /*bool        allowSpaces  = false;
-    bool        beginsSingleQuote = false;
-    bool        beginsDoubleQuote = false;*/
     private:                                                                    // -Functions for syntax analysis
     void cerrSyntaxErrMsg(const char[]);
     bool Sld();                                                                 // -The returned bool flags the founding of zero byte or the characters '\'' or '"')
