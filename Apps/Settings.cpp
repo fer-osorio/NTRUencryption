@@ -162,46 +162,16 @@ bool StringFileNameAnalize::Sld() {
         return false;
     }
     unsigned i = 0;
-    //if(this->allowSpaces){                                                      // -If file name starts with single/double quote or the constructor sets as so
-        for(i = ++this->currentIndex; isLetterOrDigit(this->str[i]) || this->str[i] == ' '; i++) {} // -Running trough letters, digits and spaces
-    //} else {
-        //for(i = ++this->currentIndex; isLetterOrDigit(this->str[i]); i++) {}    // -Running trough letters and digits
-    //}
+    for(i = ++this->currentIndex; isLetterOrDigit(this->str[i]) || this->str[i] == ' '; i++) {} // -Running trough letters, digits and spaces
     this->currentIndex = i;
 
     if(this->str[this->currentIndex] == 0) {
-        /*if(this->beginsSingleQuote) {
-            this->cerrSyntaxErrMsg("String started with single quote, then it should finish with single quotes.");
-            return false;
-        }
-        if(this->beginsDoubleQuote) {
-            this->cerrSyntaxErrMsg("String started with double quote, then it should finish with double quotes.");
-            return false;
-        }*/
         if(this->str[this->currentIndex-1] == ' ') {
             this->cerrSyntaxErrMsg("File Name/Path can not finish with spaces.");
             return false;
         }
         return true;
     }
-    /*if(this->beginsSingleQuote && this->str[this->currentIndex] == '\'') {      // -Starting with single quote, finishing with single quote
-        if(this->str[this->currentIndex-1] == ' ') {
-            this->cerrSyntaxErrMsg("File Name/Path can not finish with spaces.");
-            return false;
-        }
-        return true;
-    }*/
-    /*if(this->beginsDoubleQuote && this->str[this->currentIndex] == '"' ) {      // -Starting with double quote, finishing with double quote
-        if(this->str[this->currentIndex-1] == ' ') {
-            this->cerrSyntaxErrMsg("File Name/Path can not finish with spaces.");
-            return false;
-        }
-        return true;
-    }*/
-    /*if(this->str[this->currentIndex] == ' ') {                                  // -At this point, a space is a proper ending for the input string
-        this->cerrSyntaxErrMsg("To allow spaces, put the string inside single or double quotes");
-        return false;
-    }*/
     return this->FN();
 }
 
