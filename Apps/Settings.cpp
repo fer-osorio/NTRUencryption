@@ -730,13 +730,14 @@ void CLI::getFilesAndCipherAct(Options::Cipher_object op) {
     std::cin.getline(buffer, (std::streamsize)bufferSize, '\n');
     inputStrSize = strlen(buffer);
     if(buffer[0] == 0) return;
-    for(i = 0, j = 0; i < (int)inputStrSize && j < (int)inputStrSize; i += j) {           // -'for' ends with the break statement on its end (equivalent to a do-while)
+    for(i = 0, j = 0; i < (int)inputStrSize && j < (int)inputStrSize; ) {           // -'for' ends with the break statement on its end (equivalent to a do-while)
         try{
-            j = subStringDelimitedBySpacesOrQuotation(&buffer[i], i, fileName);
+            j = subStringDelimitedBySpacesOrQuotation(buffer, i, fileName);
         } catch(std::runtime_error& exp) {
             std::cout << exp.what();
             subStringExp = true;
         }
+        i += j;
         if(!subStringExp) {
             try {
                 cipherObjectOverFile(op, fileName);
