@@ -61,3 +61,17 @@ These last two commands are convenient if you do not have ``make`` installed.
 We can pass arguments to the executables to encrypt/decrypt a single file. Set as first argument the name/path of the encryption
 key we want to use followed by the files that are meant to be encrypted as the following arguments, this will encrypt/decrypt
 the files using the key referenced in the first argument.
+
+**Examples:**
+
+Note: Videos were edited to decrease the size of these gifts.
+
+1. Encrypting two ``.txt`` files by passing the relative paths of these files to the executable. In concrete, executing:
+``./NTRUencryption.exe key.ntrupub FilesForTesting/Text00.txt FilesForTesting/Text01.txt``.
+
+![Encryption](../../Pictures/NTRUencryption.gif)
+
+2. Decrypting two text files by passing the relative paths of these files to the executable. In concrete, executing:
+``./NTRUdecryption.exe key.ntruprv FilesForTesting/Text00.txt_encrypted.ntruq FilesForTesting/Text01.txt_encrypted.ntruq``.
+
+![Decryption](../../Pictures/NTRUdecryption.gif)
