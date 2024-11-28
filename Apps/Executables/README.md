@@ -59,13 +59,14 @@ g++ -o NTRUdecryption.exe -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-err
 
 These last two commands are convenient if you do not have ``make`` installed. 
 
-## Passing arguments to the executables.
-**Important**: Rigth now I am assuming you have a pair of public and private key availabe; if you do not, please run the encryption
-executable with no arguments:
+# Passing arguments to the executables.
+**Important**: Right now I am assuming you have a pair of public and private key available; if you do not, please run the
+encryption executable with no arguments:
 ```
 ./NTRUencryption.exe
 ```
-Then, the program will give you instructions for the creation of public-private key pairs (and other encryption options, if desired). The following image shows the process of public-private key creation:
+Then, the program will give you instructions for the creation of public-private key pairs (and other encryption options, if
+desired). The following image shows the process of public-private key creation:
 
 ![Key Creation](../../Pictures/KeyCreation.gif)
 
