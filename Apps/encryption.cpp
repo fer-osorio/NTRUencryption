@@ -35,6 +35,9 @@ int main(int argc, char* argv[]) {
         for(int i = 2; i < argc; i++) encryptFile(argv[i]);
         return EXIT_SUCCESS;
     }
+    std::cout <<
+    "Hi! I am a program which is particularly good at encrypting binary and text files (as long as they are not too big!!). Feel free to use me to encrypt any\n"
+    ".txt or .bin file you desire. At any moment you can stop me by pressing the keys 'CTRL+C'. Before anything...\n\n";
     runEncryptionProgram();
     return EXIT_SUCCESS;
 }

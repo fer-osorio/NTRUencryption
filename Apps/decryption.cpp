@@ -11,6 +11,9 @@ int main(int argc, char *argv[]) {
         for(int i = 2; i < argc; i++) decryptFile(argv[i]);
         return EXIT_SUCCESS;
     }
+    std::cout <<
+    "Hello! Thanks for executing me! I am really good at undoing the mess that evil encrypter sis can do. Feel free to use me to decrypt any\n"
+    ".txt or .bin file you desire. At any moment you can stop me by pressing the keys 'CTRL+C'. Before anything...\n\n";
     try{
         runDecryptionProgram();
     } catch(std::runtime_error& exp) {
