@@ -98,4 +98,5 @@ identical public and private keys.
 
 # Executable Files
 
-There are two executables in directory [Executables](Apps/Executables). Instructions for the building of this files can be found [here](Apps/Executables/README.md)
+Two executables can be created in [Executables](Apps/Executables) directory. Instructions for the building of this files can be found 
+[here](Apps/Executables/README.md)
