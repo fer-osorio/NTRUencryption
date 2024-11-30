@@ -36,8 +36,9 @@ int main(int argc, char* argv[]) {
         return EXIT_SUCCESS;
     }
     std::cout <<
-    "Hi! I am a program which is particularly good at encrypting binary and text files (as long as they are not too big!!). Feel free to use me to encrypt any\n"
-    ".txt or .bin file you desire. At any moment you can stop me by pressing the keys 'CTRL+C'. Before anything...\n\n";
+    "Hi! I am a program which is particularly good at encrypting binary and text files (as long as they are not too big!!). Feel\n"
+    "free to use me to encrypt any .txt or .bin file you desire. At any moment you can stop me by pressing the keys 'CTRL+C'.\n"
+    "Before anything...\n\n";
     runEncryptionProgram();
     return EXIT_SUCCESS;
 }
