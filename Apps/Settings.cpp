@@ -364,6 +364,7 @@ static NTRU::Encryption NTRUencryption;                                         
 void CLI::getLine(const std::string message, char destination[]) {
     std::cout << message << " The maximum amount of characters allowed is " << NAME_MAX_LEN << ":\n";
     std::cin.getline(destination, NAME_MAX_LEN - 1, '\n');
+
 }
 
 int subStringDelimitedBySpacesOrQuotation(const char* source, const int startAt, char* destination) { // -Writes on destination the fist sub-string delimited by
