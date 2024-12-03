@@ -1329,13 +1329,13 @@ void Encryption::setKeys(bool showKeyCreationTime) {
 
 	counter = 1;
     while(Zp_gcdXNmns1 != 1 || Z2_gcdXNmns1 != 1) {
-        if((counter & 31) != 0) {                                               // If we have not tried to much times, just permute the coefficients
-            this->privateKey.permute();                                         // counter & 3 == counter % 4
-            Z2_privateKey = this->privateKey;                                   // ...
+        if((counter & 3) != 0) {                                                // If we have not tried to much times, just permute the coefficients
+            this->privateKey.permute();
+            Z2_privateKey = this->privateKey;
         } else {
-            this->privateKey.changeAzeroForAone();                              // To much tries, increasing the numbers of non-zero coefficients
-            std::cout << "Increasing number of non zero coefficients in posible private key. Counter = " << counter << "\n";
-            Z2_privateKey = this->privateKey;                                   // ...
+            std::cout << "Taking another possible private key. Counter = " << counter << "\n";
+            this->privateKey = ZpPolynomial::getPosiblePrivateKey();
+            Z2_privateKey = this->privateKey;
         }
         try{ Zp_gcdXNmns1 = this->privateKey.gcdXNmns1(this->privateKeyInv_p); }
         catch(const std::runtime_error&) {
