@@ -453,7 +453,7 @@ void encryptFileBinMode(const char fname[]) {
     if((size_t)fileSize > plainTextMaxSize - encrypFileHeaderSize) {
         file.close();
         cerrMessageBeforeThrow(thisFunc, "");
-        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - encrypFileHeaderSize << " bytes)";
+        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - encrypFileHeaderSize << " bytes)\n";
         throw std::runtime_error("Upper bound for file size exceeded");
     }
     file.seekg(0, std::ios::beg);                                   // -Move back to the beginning
@@ -493,7 +493,7 @@ void encryptTextFile(const char fname[]) {
     }
     if(text.size > plainTextMaxSize - encrypFileHeaderSize) {
         cerrMessageBeforeThrow(thisFunc, "");
-        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - encrypFileHeaderSize << " bytes)";
+        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - encrypFileHeaderSize << " bytes)\n";
         throw std::runtime_error("Upper bound for file size exceeded");
     }
     fileSizePlusHeaderSize = text.size + (unsigned)encrypFileHeaderSize;// -This will allow us two write the size in the input array for encryption.
@@ -853,13 +853,13 @@ void runProgram(const Options::Cipher_object op) {
             if(Kr == Options::Key_retreaving::CreateNew) {
                 CLI::getLine("Assign a name to the public key file.", publicKeyName);
                 validName = StringFileNameAnalize::isValidFileName(publicKeyName);
-                while(!validName) {                                                 // -Validating the name for the key files
+                while(!validName) {                                             // -Validating the name for the key files
                     CLI::getLine("Try again. Assign a name to public key file.", publicKeyName);
                     validName = StringFileNameAnalize::isValidFileName(publicKeyName);
                 }
                 CLI::getLine("Assign a name to the private key file.", privatKeyName);
                 validName = StringFileNameAnalize::isValidFileName(publicKeyName);
-                while(!validName) {                                                 // -Validating the name for the key files
+                while(!validName) {                                             // -Validating the name for the key files
                     CLI::getLine("Try again. Assign a name to the private key file.", privatKeyName);
                     validName = StringFileNameAnalize::isValidFileName(publicKeyName);
                 }
