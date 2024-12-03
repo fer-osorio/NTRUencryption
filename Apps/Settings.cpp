@@ -1,6 +1,7 @@
 #include<fstream>
 #include<cstring>
 #include<exception>
+#include<limits>
 #include"Settings.hpp"
 
 #define BYTES_FOR_FILE_SIZE 2                                                   // -Size of the information we will append to the data we intend to encrypt. Now
@@ -338,6 +339,7 @@ union ushort_to_char {                                                          
 };
 
 namespace CLI {                                                                 // -Functions that interact with user through CIL
+    static int  validInput_int();                                               // -Checks valid integer input from CLI. If valid, returns the input
     static void getLine(const std::string message, char destination[]);         // -Get input string from console. Finish with a line ending '\n'
     static int  retreaveValidOption(std::string optionsString, bool (validOptionCriteria)(int)); // -Force the user to select a valid option
     static void getLineAndRetreaveKeyFromFile(const char appendMsg[] = "key");  // -Retrieve line, interprets it as a file and tries to build key from that file
@@ -682,15 +684,25 @@ std::string("Select NTRU_N parameter:\n") + NTRU_N_valuesList + "\n";
 static std::string selectNTRU_q =
 std::string("Select NTRU_q parameter:\n") + NTRU_q_valuesList + "\n";
 
+int CLI::validInput_int(){
+    int input;
+    while(!(std::cin >> input)) {
+        std::cin.clear();                                                       // -Clear bad input flag
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');     // -Discard input
+        std::cout << "Invalid input; please re-enter.\n";
+    }
+    return input;
+}
+
 int CLI::retreaveValidOption(std::string optionsString, bool (validOptionCriteria)(int)) { // -Will ask the user for input from a set of options
     int option;
     std::cout << optionsString;
-    std::cin >> option;
+    option = CLI::validInput_int();
     getchar();                                                                  // -Will take the "\n" left behind at the moment of press enter
     while(!validOptionCriteria(option)) {                                       // -Validating the option using the criteria specified by 'validOptionCriteria'
         std::cout << invalidInputMsg;                                           //  function. If not valid, it will reaped the process
         std::cout << optionsString;
-        std::cin >> option;
+        option = CLI::validInput_int();
         getchar();                                                              // -Will take the "\n" left behind at the moment of press enter
     }
     return option;
