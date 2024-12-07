@@ -9,8 +9,77 @@
 #define BUFFER_SIZE 1025
 #define UPPER_BOUND 4097                                                        // -Intended for indices that run through strings. This selection has a reason; it
                                                                                 //  is the upper limit for strings representing directories path
+
+static void cerrMessageBeforeThrow(const char callerFunction[], const char message[]) {
+    std::cerr << "In file Source/NTRUencryption.cpp, function " << callerFunction << ": " << message << '\n';
+}
+
+static void cerrMessageBeforeReThrow(const char callerFunction[], const char message[] = "") {
+    std::cerr << "Called from: File Source/NTRUencryption.cpp, function " << callerFunction << " ..."<< message << '\n';
+}
+
+namespace Extension{
+    enum InputFile{ none, bin, txt, unrecognized};
+    static InputFile strToInputFileExt(const char str[]) {
+        if(str == NULL) {
+            std::cerr << "In file Source/NTRUencryption.cpp, function static InputFile strToFileExtension(const char str[])";
+            return unrecognized;
+        }
+        if(strcmp(str, "bin") == 0) return bin;
+        if(strcmp(str, "txt") == 0) return txt;
+        if(str[0] == 0)             return none;
+        return unrecognized;
+    }
+    static InputFile getExtension(const char fileName[]) {
+        if(fileName == NULL) {
+            std::cerr << "In file Source/NTRUencryption.cpp, function static FileExtensions getExtension(const char fileName[]). filename == NULL...\n";
+            return unrecognized;
+        }
+        InputFile buff = none;
+        int i = -1;
+        while(fileName[++i] != 0) {}                                            // -Looking for end of string
+        while(fileName[i] != '.' && i > 0) {i--;}                               // -Looking for last point
+
+        if(i >= 0)  return strToInputFileExt(&fileName[++i]);
+        return none;
+    }
+    enum CipherFile{enc_bin,                                                    // -Encryption binary
+                    enc_txt,                                                    // -Encryption text
+                    dec_bin,                                                    // -Decryption binary
+                    dec_txt};                                                   // -Decryption text
+
+    void appendCipherExtension(CipherFile cf, char destination[]) {
+        switch(cf) {
+            case enc_bin:
+                strcat(destination, "_enc.bin");
+                break;
+            case enc_txt:
+                strcat(destination, "_enc.txt");
+                break;
+            case dec_bin:
+                strcat(destination, "_dec.bin");
+                break;
+            case dec_txt:
+                strcat(destination, "_dec.txt");
+                break;
+        }
+    }
+};
+
 enum    FileExtensions              { bin,   txt, none, unrecognized };
 static const char* supportedExt[] = {"bin", "txt"};                             // -We will use this to register the type of file we are encrypting
+
+struct cipherFileExtension{                                                     // -Extensions for files produced by encryption/decryption process
+    enum CipherExt{ enc_bin,                                                    // -Encryption binary
+                    enc_txt,                                                    // -Encryption text
+                    dec_bin,                                                    // -Decryption binary
+                    dec_txt};                                                   // -Decryption text
+    private:
+    const char* extensions[4] = {"_enc.bin", "_enc.txt","_dec.bin", "_dec.txt"};
+    public:
+    //char* returnExtension()
+};
+
 static FileExtensions getExtension(const char fileName[]) {
     if(fileName == NULL) {
         std::cerr << "In file Source/NTRUencryption.cpp, function static FileExtensions getExtension(const char fileName[]). filename == NULL...\n";
@@ -44,14 +113,6 @@ const char NTRU_q_valuesList[]  = "(0) _2048_, (1) _4096_ , (2) _8192_";        
 const size_t NTRU_q_amount      = sizeof(NTRU_q_values)/sizeof(NTRU_q_values[0]);
 
 const NTRU_p NTRU_p_values[]    = {_3_};
-
-static void cerrMessageBeforeThrow(const char callerFunction[], const char message[]) {
-    std::cerr << "In file Source/NTRUencryption.cpp, function " << callerFunction << ": " << message << '\n';
-}
-
-static void cerrMessageBeforeReThrow(const char callerFunction[], const char message[] = "") {
-    std::cerr << "Called from: File Source/NTRUencryption.cpp, function " << callerFunction << " ..."<< message << '\n';
-}
 
 /*
 Valid file name or path grammar
