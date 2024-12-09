@@ -544,6 +544,10 @@ ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey, bool showEncryptionTi
 	return encryption;
 }
 
+size_t ZpPolynomial::sizeInBytes() const{
+    return size_t(NTRUparameters.get_N()/5 + 1);
+}
+
 void ZpPolynomial::toBytes(char dest[]) const{
     NTRU_N N = NTRUparameters.get_N();
     int i,j,k;

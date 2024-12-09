@@ -93,6 +93,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	friend ZpPolynomial mods_p(ZqPolynomial P);
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
 
+	size_t sizeInBytes() const;
 	void toBytes(char dest[]) const;
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
