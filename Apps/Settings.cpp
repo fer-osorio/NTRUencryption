@@ -5,7 +5,6 @@
 #include"Settings.hpp"
 
 #define BYTES_FOR_FILE_SIZE 2                                                   // -Size of the information we will append to the data we intend to encrypt. Now
-#define FILE_TYPE_ID_SIZE   3                                                   //  it correspond to 3 bytes for the type of file, and tow bytes for the file size
 #define BUFFER_SIZE 1025
 #define UPPER_BOUND 4097                                                        // -Intended for indices that run through strings. This selection has a reason; it
                                                                                 //  is the upper limit for strings representing directories path
@@ -18,68 +17,13 @@ static void cerrMessageBeforeReThrow(const char callerFunction[], const char mes
     std::cerr << "Called from: File Source/NTRUencryption.cpp, function " << callerFunction << " ..."<< message << '\n';
 }
 
-namespace Extension{
-    enum InputFile{ none, bin, txt, unrecognized};
-    static InputFile strToInputFileExt(const char str[]) {
-        if(str == NULL) {
-            std::cerr << "In file Source/NTRUencryption.cpp, function static InputFile strToFileExtension(const char str[])";
-            return unrecognized;
-        }
-        if(strcmp(str, "bin") == 0) return bin;
-        if(strcmp(str, "txt") == 0) return txt;
-        if(str[0] == 0)             return none;
-        return unrecognized;
-    }
-    static InputFile getExtension(const char fileName[]) {
-        if(fileName == NULL) {
-            std::cerr << "In file Source/NTRUencryption.cpp, function static FileExtensions getExtension(const char fileName[]). filename == NULL...\n";
-            return unrecognized;
-        }
-        InputFile buff = none;
-        int i = -1;
-        while(fileName[++i] != 0) {}                                            // -Looking for end of string
-        while(fileName[i] != '.' && i > 0) {i--;}                               // -Looking for last point
-
-        if(i >= 0)  return strToInputFileExt(&fileName[++i]);
-        return none;
-    }
-    enum CipherFile{enc_bin,                                                    // -Encryption binary
-                    enc_txt,                                                    // -Encryption text
-                    dec_bin,                                                    // -Decryption binary
-                    dec_txt};                                                   // -Decryption text
-
-    void appendCipherExtension(CipherFile cf, char destination[]) {
-        switch(cf) {
-            case enc_bin:
-                strcat(destination, "_enc.bin");
-                break;
-            case enc_txt:
-                strcat(destination, "_enc.txt");
-                break;
-            case dec_bin:
-                strcat(destination, "_dec.bin");
-                break;
-            case dec_txt:
-                strcat(destination, "_dec.txt");
-                break;
-        }
-    }
+union ushort_to_char {                                                          // -Casting from short to an array of two chars
+    unsigned short ushort;
+    char         chars[2];
 };
 
-enum    FileExtensions              { bin,   txt, none, unrecognized };
+/*enum    FileExtensions              { bin,   txt, none, unrecognized };
 static const char* supportedExt[] = {"bin", "txt"};                             // -We will use this to register the type of file we are encrypting
-
-struct cipherFileExtension{                                                     // -Extensions for files produced by encryption/decryption process
-    enum CipherExt{ enc_bin,                                                    // -Encryption binary
-                    enc_txt,                                                    // -Encryption text
-                    dec_bin,                                                    // -Decryption binary
-                    dec_txt};                                                   // -Decryption text
-    private:
-    const char* extensions[4] = {"_enc.bin", "_enc.txt","_dec.bin", "_dec.txt"};
-    public:
-    //char* returnExtension()
-};
-
 static FileExtensions getExtension(const char fileName[]) {
     if(fileName == NULL) {
         std::cerr << "In file Source/NTRUencryption.cpp, function static FileExtensions getExtension(const char fileName[]). filename == NULL...\n";
@@ -102,7 +46,7 @@ static FileExtensions strToFileExtension(const char str[]) {
     if(strcmp(str, "bin") == 0) return bin;
     if(strcmp(str, "txt") == 0) return txt;
     return unrecognized;
-}
+}*/
 
 const NTRU_N NTRU_N_values[]    = {    _509_,     _677_ ,    _701_,     _821_,     _1087_,     _1171_,     _1499_};// -All the possible values for the N
 const char NTRU_N_valuesList[]  = "(0) _509_, (1) _677_, (2) _701_, (3) _821_, (4) _1087_, (5) _1171_, (6) _1499_";// -Useful for CLI
@@ -288,6 +232,146 @@ bool StringFileNameAnalize::isValidFileName(const char str[]) {                 
     return s.FN();
 }
 
+namespace Extension{
+    enum IOfile{ none, bin, txt, unrecognized};
+    enum EncryptedFile{ enc_bin,                                                // -Encryption binary
+                        enc_txt };                                              // -Encryption text
+    enum DecryptedFile{ dec_bin,                                                // -Decryption binary
+                        dec_txt};                                               // -Decryption text
+
+    static IOfile strToIOfileExt(const char str[]);
+    static IOfile getExtension(const char fileName[]);
+    static void   appendEncryptedFileExtension(EncryptedFile cf, char destination[]);
+    static void   appendDecryptedFileExtension(DecryptedFile df, char destination[]);
+    static void   NTRUsaveWith_enc_ext(const NTRU::ZqPolynomial& p, const char* name, EncryptedFile enc_ext);
+    static void   NTRUsaveWith_dec_ext(const NTRU::ZpPolynomial& p, const char* name, DecryptedFile dec_ext);
+};
+
+namespace FileHandling{
+    namespace NTRUPolynomials{
+        static void formatedSaving(const NTRU::ZpPolynomial&, const char[], Extension::IOfile);
+    };
+};
+
+void FileHandling::NTRUPolynomials::formatedSaving(const NTRU::ZpPolynomial& p, const char fname[], Extension::IOfile io_ext){
+    const char thisFunc[] = "void FileHandling::NTRUPolynomials::formatedSaving(const NTRU::ZpPolynomial&, const char[])";
+    if(!StringFileNameAnalize::isValidFileName(fname)){
+        cerrMessageBeforeThrow(thisFunc, "Trying to create a file with a in-valid file name. I refuse to proceed...");
+        std::cout << "File name rejected: " << fname << '\n';
+        throw std::runtime_error("Not a valid file name");
+    }
+    char* bytes = new char[p.sizeInBytes()];
+    ushort_to_char fsize;
+    std::ofstream ofile;
+    p.toBytes(bytes);
+    memcpy(fsize.chars, bytes, BYTES_FOR_FILE_SIZE);                            // -The format it refers is: the first two bytes will be interpreted as the file
+    if(io_ext == Extension::txt){                                               //  size, and the rest of the bytes will contain the information of the file.
+        ofile.open(fname);
+    } else {
+        ofile.open(fname, std::ios::binary);
+    }std::cout << "decrypted file size: " << fsize.ushort << std::endl;
+    if(ofile.is_open()){
+        ofile.write(&bytes[BYTES_FOR_FILE_SIZE], fsize.ushort);
+    } else{
+        cerrMessageBeforeThrow(thisFunc, "I could not create output file...");
+        throw std::runtime_error("Unable to write file");
+    }
+}
+
+Extension::IOfile Extension::strToIOfileExt(const char str[]) {
+    if(str == NULL) {
+        std::cerr << "In file Source/NTRUencryption.cpp, function static Extension::IOfile strToFileExtension(const char str[])";
+        return Extension::unrecognized;
+    }
+    if(strcmp(str, "bin") == 0) return Extension::bin;
+    if(strcmp(str, "txt") == 0) return Extension::txt;
+    if(str[0] == 0)             return Extension::none;
+    return Extension::unrecognized;
+}
+
+Extension::IOfile Extension::getExtension(const char fileName[]) {
+    if(fileName == NULL) {
+        std::cerr << "In file Source/NTRUencryption.cpp, function static FileExtensions getExtension(const char fileName[]). filename == NULL...\n";
+        return Extension::unrecognized;
+    }
+    int i = -1;
+    while(fileName[++i] != 0) {}                                            // -Looking for end of string
+    while(fileName[i] != '.' && i > 0) {i--;}                               // -Looking for last point
+
+    if(i >= 0)  return Extension::strToIOfileExt(&fileName[++i]);
+    return Extension::none;
+}
+
+
+void Extension::appendEncryptedFileExtension(Extension::EncryptedFile cf, char destination[]) {
+    switch(cf) {                                                            // -Concatenating the extension at the end of destination
+        case enc_bin:
+            strcat(destination, "_enc.bin");
+            break;
+        case enc_txt:
+            strcat(destination, "_enc.txt");
+            break;
+    }
+}
+
+void Extension::appendDecryptedFileExtension(Extension::DecryptedFile df, char destination[]) {
+    switch(df) {                                                            // -Concatenating the extension at the end of destination
+        case dec_bin:
+            strcat(destination, "_dec.bin");
+            break;
+        case dec_txt:
+            strcat(destination, "_dec.txt");
+            break;
+    }
+}
+
+void Extension::NTRUsaveWith_enc_ext(const NTRU::ZqPolynomial& p, const char* name, EncryptedFile enc_ext){
+    char new_name[UPPER_BOUND];
+    strcpy(new_name, name);
+    if(enc_ext == Extension::enc_bin) appendEncryptedFileExtension(enc_bin, new_name);
+    if(enc_ext == Extension::enc_txt) appendEncryptedFileExtension(enc_txt, new_name);
+    try {
+        if(enc_ext == Extension::enc_bin) p.save(new_name);
+        if(enc_ext == Extension::enc_txt) p.save(new_name, true);
+    }
+    catch(const std::runtime_error&) {
+        cerrMessageBeforeReThrow("static void NTRUsaveWith_enc_ext(const NTRU::ZqPolynomial&, const char*)");
+        throw;
+    }
+}
+
+void Extension::NTRUsaveWith_dec_ext(const NTRU::ZpPolynomial& p, const char* name, DecryptedFile dec_ext){
+    char new_name[UPPER_BOUND];
+    strcpy(new_name, name);
+    if(dec_ext == Extension::dec_bin) appendDecryptedFileExtension(dec_bin, new_name);
+    if(dec_ext == Extension::dec_txt) appendDecryptedFileExtension(dec_txt, new_name);
+    try {
+        if(dec_ext == Extension::dec_bin) FileHandling::NTRUPolynomials::formatedSaving(p, new_name, Extension::bin);
+        if(dec_ext == Extension::dec_txt) FileHandling::NTRUPolynomials::formatedSaving(p, new_name, Extension::txt);
+    }
+    catch(const std::runtime_error&) {
+        cerrMessageBeforeReThrow("static void NTRUsaveWith_dec_ext(const NTRU::ZpPolynomial&, const char*, EncryptedFile dec_ext)");
+        throw;
+    }
+}
+
+struct TXT {
+	char	name[NAME_MAX_LEN] = {0};					                        // -Naming instance
+	size_t	size = 0;
+	char*	content = NULL;							                            // -Text file content.
+
+	TXT(): name() {}                                                            // -Just for type declaration.
+	TXT(const char* fname);							                            // -Initializing from file
+	TXT(const TXT& t);
+	~TXT();
+
+	TXT& operator = (const TXT& t);
+	void overwrite(const char data[], size_t dataSize);			                // -Overwrite content of object
+	void save(const char* fname = NULL) const;
+	void saveWith_enc_txt_ext()const;
+	void saveWith_dec_txt_ext()const;
+};
+
 TXT::TXT(const char fname[]) {                                                  // -Building from file.
     std::ifstream file;
     int i = 0, nameMaxLen = NAME_MAX_LEN - 1;
@@ -360,6 +444,30 @@ void TXT::save(const char fname[]) const{                                       
     }
 }
 
+void TXT::saveWith_enc_txt_ext() const{
+    char new_name[UPPER_BOUND];
+    strcpy(new_name, this->name);
+    appendEncryptedFileExtension(Extension::enc_txt, new_name);
+    try {
+        this->save(new_name);
+    } catch(const std::runtime_error&){
+        cerrMessageBeforeReThrow("void TXT::saveWith_enc_txt_ext(const char fname[]) const)");
+        throw;
+    }
+}
+
+void TXT::saveWith_dec_txt_ext() const{
+    char new_name[UPPER_BOUND];
+    strcpy(new_name, this->name);
+    appendDecryptedFileExtension(Extension::dec_txt, new_name);
+    try {
+        this->save(new_name);
+    } catch(const std::runtime_error&){
+        cerrMessageBeforeReThrow("void TXT::saveWith_dec_txt_ext(const char fname[]) const)");
+        throw;
+    }
+}
+
 namespace Options {                                                             // -Name space destined for naming the main process executed by the program
 	enum Key_retreaving {                                                       // -We can say each enumeration list all the possibilities for the refereed action
 		RetrieveFromFile,
@@ -394,11 +502,6 @@ namespace Options {                                                             
 	}
 };
 
-union ushort_to_char {                                                          // -Casting from short to an array of two chars
-    unsigned short ushort;
-    char         chars[2];
-};
-
 namespace CLI {                                                                 // -Functions that interact with user through CIL
     static int  validInput_int();                                               // -Checks valid integer input from CLI. If valid, returns the input
     static void getLine(const std::string message, char destination[]);         // -Get input string from console. Finish with a line ending '\n'
@@ -414,7 +517,9 @@ static void setEncryptionObject(NTRU_N _N_, NTRU_q _q_);
 static void encryptFileBinMode(const char fname[]);                             // -Opens file in binary mode and encrypt
 static void encryptTextFile(const char fname[]);                                // -Opens file as text and encrypt
 static void decryptFileBinMode(const char fname[]);
+static void decryptTextFile(const char fname[]);
 static void cipherObjectOverFile(const Options::Cipher_object, const char fname[]);// -Encrypts or decrypts file of second argument accordingly to the first argument
+static void runProgram(const Options::Cipher_object op);
 
 
 /************************************************************************* Attributes *****************************************************************************/
@@ -494,15 +599,12 @@ void setEncryptionObjectFromFile(const char fname[]) {
     }
 }
 
-static const int encrypFileHeaderSize = BYTES_FOR_FILE_SIZE + FILE_TYPE_ID_SIZE;
-
 void encryptFileBinMode(const char fname[]) {
     const char      thisFunc[] = "static void cipherbinFile(const char fname[])";
-    char            new_fname[UPPER_BOUND];
     std::ifstream   file;
     std::streampos  fileSize;
     const size_t    plainTextMaxSize = NTRUencryption.plainTextMaxSizeInBytes();
-    unsigned short  fileSizePlusHeaderSize;
+    unsigned short  fileSzPlusBytesForSz;
     char*           fileInput = NULL;
     NTRU::ZqPolynomial enc_msg;
     file.open(fname, std::ios::binary | std::ios::ate);                         // -Open the ifile in binary mode and move to the end
@@ -510,28 +612,25 @@ void encryptFileBinMode(const char fname[]) {
         cerrMessageBeforeThrow(thisFunc, "Error opening file for encryption");
         throw std::runtime_error("File opening failed");
     }
-    fileSize = file.tellg();                                            // -Get the file size
-    if((size_t)fileSize > plainTextMaxSize - encrypFileHeaderSize) {
+    fileSize = file.tellg();                                                    // -Get the file size
+    if((size_t)fileSize > plainTextMaxSize - BYTES_FOR_FILE_SIZE) {
         file.close();
         cerrMessageBeforeThrow(thisFunc, "");
-        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - encrypFileHeaderSize << " bytes)\n";
+        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - BYTES_FOR_FILE_SIZE << " bytes)\n";
         throw std::runtime_error("Upper bound for file size exceeded");
     }
-    file.seekg(0, std::ios::beg);                                   // -Move back to the beginning
-    fileSizePlusHeaderSize = (unsigned)fileSize + (unsigned)encrypFileHeaderSize;   // -This will allow us two write the size in the input array for
-    fileInput = new char[fileSizePlusHeaderSize];                   //  encryption.
-    memcpy(fileInput, supportedExt[bin], FILE_TYPE_ID_SIZE);              // -Assigning bin file type
-    memcpy((char*)&fileInput[FILE_TYPE_ID_SIZE], (char*)&fileSize, BYTES_FOR_FILE_SIZE); // -Writing file size
-    file.read((char*)&fileInput[encrypFileHeaderSize], fileSize);
+    file.seekg(0, std::ios::beg);                                               // -Move back to the beginning
+    fileSzPlusBytesForSz = (unsigned)fileSize + (unsigned)BYTES_FOR_FILE_SIZE;  // -This will allow us two write the size in the input array for encryption.
+    fileInput = new char[fileSzPlusBytesForSz];
+    memcpy(fileInput, (char*)&fileSize, BYTES_FOR_FILE_SIZE);                   // -Writing file size
+    file.read((char*)&fileInput[BYTES_FOR_FILE_SIZE], fileSize);
     file.close();
-    enc_msg = NTRUencryption.encrypt(fileInput, fileSizePlusHeaderSize);         // -Encrypting the bytes from the file and its size
+    enc_msg = NTRUencryption.encrypt(fileInput, fileSzPlusBytesForSz);          // -Encrypting the bytes from the file and its size
     delete[] fileInput;
-    strcpy(new_fname, fname);
-    strcat(new_fname, "_enc.ntruq");
     try {
-        enc_msg.save(new_fname);
+        Extension::NTRUsaveWith_enc_ext(enc_msg, fname, Extension::EncryptedFile::enc_bin);
     }
-    catch(const char* str) {
+    catch(const std::runtime_error&) {
         cerrMessageBeforeReThrow(thisFunc);
         throw;
     }
@@ -539,60 +638,47 @@ void encryptFileBinMode(const char fname[]) {
 
 void encryptTextFile(const char fname[]) {
     const char      thisFunc[] = "void encryptTextFile(const char fname[])";
-    char            new_fname[UPPER_BOUND];
     char*           fileInput = NULL;
-    char*           enc_text  = NULL;
     TXT             text;
-    const size_t    cipherTextSize   = NTRUencryption.cipherTextSizeInBytes();
+    //const size_t    cipherTextSize   = NTRUencryption.cipherTextSizeInBytes();
     const size_t    plainTextMaxSize = NTRUencryption.plainTextMaxSizeInBytes();
-    unsigned short  fileSizePlusHeaderSize = text.size + (unsigned)encrypFileHeaderSize;
+    unsigned short  fileSzPlusBytesForSz = text.size + (unsigned)BYTES_FOR_FILE_SIZE;
     NTRU::ZqPolynomial enc_msg;
     try { text = TXT(fname); }
     catch(const char* str) {
         cerrMessageBeforeReThrow(thisFunc);
         throw;
-    }
-    if(text.size > plainTextMaxSize - encrypFileHeaderSize) {
+    }std::cout << "Input text size: " << text.size << std::endl;
+    if(text.size > plainTextMaxSize - BYTES_FOR_FILE_SIZE) {
         cerrMessageBeforeThrow(thisFunc, "");
-        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - encrypFileHeaderSize << " bytes)\n";
+        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - BYTES_FOR_FILE_SIZE << " bytes)\n";
         throw std::runtime_error("Upper bound for file size exceeded");
     }
-    fileSizePlusHeaderSize = text.size + (unsigned)encrypFileHeaderSize;// -This will allow us two write the size in the input array for encryption.
-    fileInput = new char[fileSizePlusHeaderSize];
-    memcpy(fileInput, supportedExt[txt], FILE_TYPE_ID_SIZE);              // -Assigning txt file type
-    memcpy((char*)&fileInput[FILE_TYPE_ID_SIZE], (char*)&text.size, BYTES_FOR_FILE_SIZE);
-    memcpy((char*)&fileInput[encrypFileHeaderSize], text.content, text.size);
-    enc_msg = NTRUencryption.encrypt(fileInput, fileSizePlusHeaderSize, true);
+    fileSzPlusBytesForSz = text.size + (unsigned)BYTES_FOR_FILE_SIZE;           // -This will allow us two write the size in the input array for encryption.
+    fileInput = new char[fileSzPlusBytesForSz];
+    memcpy(fileInput, (char*)&text.size, BYTES_FOR_FILE_SIZE);                   // -Writing file size
+    memcpy((char*)&fileInput[BYTES_FOR_FILE_SIZE], text.content, text.size);
+    enc_msg = NTRUencryption.encrypt(fileInput, fileSzPlusBytesForSz, true);
     delete[] fileInput;
-    enc_msg.println("\nEncrypted message");
-    enc_text = new char[cipherTextSize];
-    enc_msg.toBytes(enc_text);
-    text.overwrite(enc_text, cipherTextSize);
-    delete[] enc_text; enc_text = NULL;
-    try{ text.save(); }
-    catch(const char* str) { std::cerr << str; }
-    strcpy(new_fname, fname);
-    strcat(new_fname, "_enc.ntruq");
-    try { enc_msg.save(new_fname); }
-    catch(const char* str) {
+    std::cout << '\n' << text.name;
+    enc_msg.println(" encrypted");
+    try {
+        Extension::NTRUsaveWith_enc_ext(enc_msg, fname, Extension::EncryptedFile::enc_txt);
+    }
+    catch(const std::runtime_error&) {
         cerrMessageBeforeReThrow(thisFunc);
         throw;
     }
-    if(enc_text != NULL) { delete[] enc_text; enc_text = NULL; }
 }
 
 void decryptFileBinMode(const char fname[]) {
-    const char thisFunc[] = "void decryptFileBinMode(const char fname[])";
-    char            new_fname[UPPER_BOUND];
+    const char      thisFunc[] = "void decryptFileBinMode(const char fname[])";
     char*           buff     = NULL;
     const char      ntruq[]  = "NTRUq";
-    char            ftype[FILE_TYPE_ID_SIZE + 1];
     const size_t    ntruqlen = strlen(ntruq);
     size_t          lenInBytes = 0;
-    ushort_to_char  fileSize_u= {0};                                              // -So we can convert two chars into a short
     NTRU_N N = _509_;
     NTRU_q q = _2048_;
-    FileExtensions  ext;
     std::ifstream   ifile;
     std::ofstream   ofile;
 
@@ -605,8 +691,8 @@ void decryptFileBinMode(const char fname[]) {
     ifile.read(buff, ntruqlen);
     buff[ntruqlen] = 0;
     if(strcmp(buff, ntruq) == 0) {
-        ifile.read((char*)&N, 2);                                       // -A short int for the degree of the polynomial
-        ifile.read((char*)&q, 2);                                       // -A short int for the q value
+        ifile.read((char*)&N, 2);                                               // -A short int for the degree of the polynomial
+        ifile.read((char*)&q, 2);                                               // -A short int for the q value
         lenInBytes = size_t(N*NTRU::ZqPolynomial::log2(q)/8 + 1);
         delete[] buff;
         buff = new char[lenInBytes];
@@ -614,41 +700,53 @@ void decryptFileBinMode(const char fname[]) {
         ifile.close();
         NTRU::ZpPolynomial msg = NTRUencryption.decrypt(buff, lenInBytes);
         delete[] buff;
-        lenInBytes = NTRUencryption.plainTextMaxSizeInBytes();
+        try{
+            Extension::NTRUsaveWith_dec_ext(msg, fname, Extension::DecryptedFile::dec_bin);
+        } catch(const std::runtime_error&){
+            cerrMessageBeforeReThrow(thisFunc);
+            throw;
+        }
+    } else {
+        if(buff != NULL) delete[] buff;
+        cerrMessageBeforeThrow(thisFunc, "Not a ntruq file");
+        throw std::runtime_error("Not valid input file");
+    }
+}
+
+void decryptTextFile(const char fname[]){
+    const char      thisFunc[] = "void decryptTextFile(const char fname[])";
+    char*           buff     = NULL;
+    const char      ntruq[]  = "NTRUq";
+    const size_t    ntruqlen = strlen(ntruq);
+    size_t          lenInBytes = 0;
+    NTRU_N N = _509_;
+    NTRU_q q = _2048_;
+    std::ifstream   ifile;
+    std::ofstream   ofile;
+
+    buff = new char[ntruqlen + 1];
+    ifile.open(fname);                                                          // -Open the ifile in binary mode and move to the end
+    if (!ifile.is_open()) {
+        cerrMessageBeforeThrow(thisFunc, "Error opening file for encryption");
+        throw std::runtime_error("File opening failed");
+    }
+    ifile.read(buff, ntruqlen);
+    buff[ntruqlen] = 0;
+    if(strcmp(buff, ntruq) == 0) {
+        ifile.read((char*)&N, 2);                                               // -A short int for the degree of the polynomial
+        ifile.read((char*)&q, 2);                                               // -A short int for the q value
+        lenInBytes = size_t(N*NTRU::ZqPolynomial::log2(q)/8 + 1);
+        delete[] buff;
         buff = new char[lenInBytes];
-        msg.toBytes(buff);
-        memcpy(ftype, buff, FILE_TYPE_ID_SIZE);
-        ftype[FILE_TYPE_ID_SIZE] = 0;
-        memcpy(fileSize_u.chars, (char*)&buff[FILE_TYPE_ID_SIZE], BYTES_FOR_FILE_SIZE);
-        ext = strToFileExtension(ftype);
-        strcpy(new_fname, fname);
-        switch(ext) {
-            case bin:
-                strcat(new_fname, "_dec.bin");
-                ofile.open(new_fname, std::ios::binary);
-                if(ofile.is_open()) {
-                    ofile.write((char*)&buff[encrypFileHeaderSize], fileSize_u.ushort);
-                } else {
-                    if(buff != NULL) delete[] buff;
-                    cerrMessageBeforeThrow(thisFunc, "Could not write decrypted file");
-                    throw std::runtime_error("File writing failed");
-                }
-                break;
-            case txt:
-                strcat(new_fname, "_dec.txt");
-                ofile.open(new_fname);
-                if(ofile.is_open()) {
-                    ofile.write((char*)&buff[encrypFileHeaderSize], fileSize_u.ushort);
-                } else {
-                    if(buff != NULL) delete[] buff;
-                    cerrMessageBeforeThrow(thisFunc, "Could not write decrypted file");
-                    throw std::runtime_error("File writing failed");
-                }
-                break;
-            case none:
-                break;
-            case unrecognized:
-                break;
+        ifile.read(buff, (std::streamsize)lenInBytes);
+        ifile.close();
+        NTRU::ZpPolynomial msg = NTRUencryption.decrypt(buff, lenInBytes);
+        delete[] buff;
+        try{
+            Extension::NTRUsaveWith_dec_ext(msg, fname, Extension::DecryptedFile::dec_txt);
+        } catch(const std::runtime_error&){
+            cerrMessageBeforeReThrow(thisFunc);
+            throw;
         }
     } else {
         if(buff != NULL) delete[] buff;
@@ -659,9 +757,9 @@ void decryptFileBinMode(const char fname[]) {
 
 void cipherObjectOverFile(const Options::Cipher_object act, const char fname[]) {
     const char  thisFunc[] = "void cipherObjectOverFile(const Options::Cipher_object act,  const char fname[])";
-    FileExtensions ext = getExtension(fname);                                                  // -Recognizing extension.
+    Extension::IOfile ext = Extension::getExtension(fname);                                                  // -Recognizing extension.
     switch(ext) {
-        case bin:
+        case Extension::bin:
             switch(act) {
                 case Options::Cipher_object::Ciphering:
                     try{
@@ -681,7 +779,7 @@ void cipherObjectOverFile(const Options::Cipher_object act, const char fname[]) 
                     break;
             }
             break;
-        case txt:                                                               // -Notice how a text file just can be encrypted
+        case Extension::txt:                                                               // -Notice how a text file just can be encrypted
             switch(act) {
                 case Options::Cipher_object::Ciphering:
                     try{
@@ -692,12 +790,17 @@ void cipherObjectOverFile(const Options::Cipher_object act, const char fname[]) 
                     }
                     break;
                 case Options::Cipher_object::Deciphering:
-                    std::cerr << "Decryption of text files not currently supported.\n";
+                    try{
+                        decryptTextFile(fname);
+                    }catch(const std::runtime_error&) {
+                        cerrMessageBeforeReThrow(thisFunc);
+                        throw;
+                    }
                     break;
             }
             break;
-        case none:
-        case unrecognized:
+        case Extension::none:
+        case Extension::unrecognized:
             switch(act) {
                 case Options::Cipher_object::Ciphering:
                     std::cout << "Not a .txt or .bin extension found. Proceeding to treat the file as a binary file.\n";
@@ -932,7 +1035,12 @@ void runProgram(const Options::Cipher_object op) {
                 cerrMessageBeforeThrow("void runProgram(const Options::Cipher_object op)", "Not valid private key found.");
                 throw std::runtime_error("Private key not found.");
             }
-            CLI::getFilesAndCipherAct(Options::Cipher_object::Deciphering);
+            try {
+                CLI::getFilesAndCipherAct(Options::Cipher_object::Deciphering);
+            } catch(std::runtime_error& exp) {
+                cerrMessageBeforeReThrow("void runProgram(const Options::Cipher_object op)");
+                std::cerr << exp.what();
+            }
             break;
     }
 }
