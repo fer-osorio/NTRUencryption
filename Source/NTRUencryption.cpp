@@ -574,15 +574,20 @@ void ZpPolynomial::println(const char* name) const{
 	this->print(name, "\n");
 }
 
-void ZpPolynomial::save(const char* name) const{
+void ZpPolynomial::save(const char* name, bool saveAsText) const{
     NTRU_N N = NTRUparameters.get_N();
     NTRU_q q = zq.get_q();
     int byteArrSize = N / 5 + 1;                                                // -this->N is necessarily prime, so this->N % 5 > 0 holds true
     char* byteArr = NULL;
     const char ntrup[] = "NTRUp";                                               // -This will indicate the binary file is saving a NTRU (NTRU) polynomial with
     std::ofstream file;                                                         //  coefficients in Zp (p)
-    if(name == NULL) file.open("ZpPolynomial.ntrup", std::ios::binary);
-    else             file.open(name, std::ios::binary);
+    if(name == NULL) {
+        if(saveAsText)  file.open("ZpPolynomial.ntrup");
+        else            file.open("ZpPolynomial.ntrup",std::ios::binary);
+    } else{
+        if(saveAsText)  file.open(name);
+        else            file.open(name, std::ios::binary);
+    }
     if(file.is_open()) {
         file.write(ntrup, 5);                                                   // -The first five bytes are for the letters 'N' 'T' 'R' 'U' 'p'
         file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial
@@ -1139,7 +1144,7 @@ void ZqPolynomial::println(const char* name) const{
     this->print(name, "\n");
 }
 
-void ZqPolynomial::save(const char* name) const{
+void ZqPolynomial::save(const char* name, bool saveAsText) const{
     const NTRU_N N = NTRUparameters.get_N();
     const short q = zq.get_q();
     int log2q = log2(zq.get_q());
@@ -1148,8 +1153,13 @@ void ZqPolynomial::save(const char* name) const{
     const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a Zq NTRU (NTRU) polynomial
 
     std::ofstream file;                                                         //  coefficients in Zp (p)
-    if(name == NULL) file.open("ZqPolynomial.ntrup", std::ios::binary);
-    else             file.open(name, std::ios::binary);
+    if(name == NULL) {
+        if(saveAsText)  file.open("ZpPolynomial.ntrup");
+        else            file.open("ZpPolynomial.ntrup",std::ios::binary);
+    } else{
+        if(saveAsText)  file.open(name);
+        else            file.open(name, std::ios::binary);
+    }
     if(file.is_open()) {
         file.write(ntruq, 5);
         file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial

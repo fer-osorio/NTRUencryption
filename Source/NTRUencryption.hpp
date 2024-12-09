@@ -98,7 +98,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
 
-	void save(const char* name = NULL) const;				// -Saving ZpPolynomial in a Binary file.
+	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZpPolynomial in a file.
 };
 
 struct Z2Polynomial {								// Representation of the polynomials in Z2[x]/(x^N-1)
@@ -211,7 +211,7 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
 
-	void save(const char* name = NULL) const;				// -Saving ZqPolynomial in a Binary file.
+	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZqPolynomial in a Binary file.
 };
 
 class Encryption {
