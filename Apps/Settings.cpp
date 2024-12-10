@@ -464,119 +464,6 @@ void Extension::NTRUsaveWith_dec_ext(const NTRU::ZpPolynomial& p, const char* na
     }
 }
 
-struct TXT {
-	char	name[NAME_MAX_LEN] = {0};					                        // -Naming instance
-	size_t	size = 0;
-	char*	content = NULL;							                            // -Text file content.
-
-	TXT(): name() {}                                                            // -Just for type declaration.
-	TXT(const char* fname);							                            // -Initializing from file
-	TXT(const TXT& t);
-	~TXT();
-
-	TXT& operator = (const TXT& t);
-	void overwrite(const char data[], size_t dataSize);			                // -Overwrite content of object
-	void save(const char* fname = NULL) const;
-	void saveWith_enc_txt_ext()const;
-	void saveWith_dec_txt_ext()const;
-};
-
-TXT::TXT(const char fname[]) {                                                  // -Building from file.
-    std::ifstream file;
-    int i = 0, nameMaxLen = NAME_MAX_LEN - 1;
-    for( ;fname[i] != 0; i++) {                                                 // -Assigning file name to name object
-        name[i] = fname[i];
-        if(i == nameMaxLen) {                                                   // -If maximum length reached, truncate the file name.
-            name[i] = 0;                                                        // -Indicate the end of the string
-            break;                                                              // -End for loop
-        }
-    }
-    file.open(fname);
-    if(file.is_open()) {
-        file.seekg(0, std::ios::end);                                           // -Look for the end of the file
-        std::streampos fileSize = file.tellg();
-        this->size = (size_t)fileSize;
-        file.seekg(0, std::ios::beg);                                           // -Go to the beginning
-        this->content = new char[fileSize];                                     // -Allocate memory and copy file content
-        file.read(this->content, fileSize);                                     // ...
-        file.close();
-    } else {
-        cerrMessageBeforeThrow("TXT::TXT(const char fname[])", "Could not open file");
-        throw std::runtime_error("File opening failed");
-    }
-}
-
-TXT::TXT(const TXT& t): size(t.size){                                           // -Copy constructor
-    strcpy(this->name, t.name);
-    this->content = new char[t.size];
-    for(unsigned i = 0; i < t.size; i++) this->content[i] = t.content[i];
-}
-
-TXT::~TXT(){
-    if(this->content != NULL) delete[] this->content;
-    this->content = NULL;
-}
-
-TXT& TXT::operator=(const TXT &t) {
-    if(this != &t) {                                                            // -Guarding against self assignment
-        if(this->content != NULL) delete[] this->content;                       // -Deleting old content
-        strcpy(this->name, t.name);
-        this->size = t.size;
-        this->content = new char[t.size];
-        for(unsigned i = 0; i < t.size; i++) this->content[i] = t.content[i];
-    }
-    return *this;
-}
-
-void TXT::overwrite(const char data[], size_t dataSize){                        // -Rewrites TXT files
-	if(this->content != NULL) delete[] this->content;                           // -Deleting old content
-    this->size = dataSize;
-    this->content = new char[this->size];
-    for(unsigned i = 0; i < dataSize; i++) this->content[i] = data[i];
-}
-
-void TXT::save(const char fname[]) const{                                       // -Saving the content in a .txt file
-    std::ofstream file;
-    char _fname[NAME_MAX_LEN];
-    if(fname == NULL) {                                                         // -If a file name is not provided, then we assign the name of the object
-        strcpy(_fname, this->name);
-        file.open(_fname);
-    } else {
-        file.open(fname);
-    }
-    if(file.is_open()) {
-        file.write(this->content, (std::streamsize)this->size);
-        file.close();
-    } else {
-        cerrMessageBeforeThrow("void TXT::save(const char fname[]) const)", "Could not save file");
-        throw std::runtime_error("File writing failed");
-    }
-}
-
-void TXT::saveWith_enc_txt_ext() const{
-    char new_name[UPPER_BOUND];
-    strcpy(new_name, this->name);
-    appendEncryptedFileExtension(Extension::enc_txt, new_name);
-    try {
-        this->save(new_name);
-    } catch(const std::runtime_error&){
-        cerrMessageBeforeReThrow("void TXT::saveWith_enc_txt_ext(const char fname[]) const)");
-        throw;
-    }
-}
-
-void TXT::saveWith_dec_txt_ext() const{
-    char new_name[UPPER_BOUND];
-    strcpy(new_name, this->name);
-    appendDecryptedFileExtension(Extension::dec_txt, new_name);
-    try {
-        this->save(new_name);
-    } catch(const std::runtime_error&){
-        cerrMessageBeforeReThrow("void TXT::saveWith_dec_txt_ext(const char fname[]) const)");
-        throw;
-    }
-}
-
 namespace Options {                                                             // -Name space destined for naming the main process executed by the program
 	enum Key_retreaving {                                                       // -We can say each enumeration list all the possibilities for the refereed action
 		RetrieveFromFile,
@@ -834,7 +721,6 @@ void CLI::retreaveTexAndEncrypt() {
     char*  aux = NULL;
     char   fileName[NAME_MAX_LEN];
     size_t stringSize = 0, k = 0;
-    size_t cipherSize = NTRUencryption.cipherTextSizeInBytes();
     std::ofstream file;
     NTRU::ZqPolynomial enc_msg;
     std::cout <<
