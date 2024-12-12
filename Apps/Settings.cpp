@@ -240,10 +240,22 @@ namespace FileHandling{
         static void formatedSaving(const NTRU::ZpPolynomial&, const char[], Extension::IOfile);
         static NTRU::ZqPolynomial formatDataEncryption(const char data[], size_t size);
     };
-    struct FileAndExtension{
-        std::fstream       file = std::fstream();
-        Extension::IOfile   ext;
-        FileAndExtension(const char fname[]);
+    struct InputFile{
+        private:
+        std::ifstream      file = std::ifstream();
+        std::streampos     size = -1;
+        Extension::IOfile  ext  = Extension::none;
+        InputFile();
+        InputFile(const InputFile&);
+        InputFile& operator = (const InputFile&);
+        public:
+        InputFile(const char fname[]);
+        ~InputFile()   { this->file.close(); }
+
+        std::streampos getSize() const{ return this->size; }
+        Extension::IOfile retreaveExtension() const{ return this->ext; }
+        bool is_open() const{ return this->file.is_open();}
+        std::istream& read(char* s, std::streamsize sz) { return this->file.read(s,sz); }
     };
     static void encryptf(const char fname[]);
     static void decryptf(const char fname[]);
@@ -265,7 +277,7 @@ void FileHandling::NTRUPolynomials::formatedSaving(const NTRU::ZpPolynomial& p, 
         ofile.open(fname);
     } else {
         ofile.open(fname, std::ios::binary);
-    }std::cout << "decrypted file size: " << fsize.ushort << std::endl;
+    }
     if(ofile.is_open()){
         ofile.write(&bytes[BYTES_FOR_FILE_SIZE], fsize.ushort);
     } else{
@@ -286,12 +298,11 @@ NTRU::ZqPolynomial FileHandling::NTRUPolynomials::formatDataEncryption(const cha
     return enc_msg;
 }
 
-FileHandling::FileAndExtension::FileAndExtension(const char fname[]): ext(Extension::getExtension(fname)) {
+FileHandling::InputFile::InputFile(const char fname[]): ext(Extension::getExtension(fname)) {
     bool is_bin = false;
-
     switch(ext){                                                                // -File extension will determine the way we will tread the file
         case Extension::txt:
-            this->file.open(fname);
+            this->file.open(fname, std::ios::ate);
             break;
         case Extension::bin:
             is_bin = true;
@@ -306,6 +317,8 @@ FileHandling::FileAndExtension::FileAndExtension(const char fname[]): ext(Extens
             break;
     }
     if(is_bin) this->file.open(fname, std::ios::binary | std::ios::ate);
+    if(this->file.is_open()) this->size = this->file.tellg();
+    this->file.seekg(0, std::ios::beg);                                         // -Move back to the beginning
 }
 
 void FileHandling::encryptf(const char fname[]) {
@@ -314,30 +327,28 @@ void FileHandling::encryptf(const char fname[]) {
     const size_t    plainTextMaxSize = NTRUencryption.plainTextMaxSizeInBytes();
     unsigned short  fileSzPlusBytesForSz;
     char*           fileInput = NULL;
-    NTRU::ZqPolynomial enc_msg;
-    FileHandling::FileAndExtension fe(fname);
+    NTRU::ZqPolynomial  enc_msg;
+    FileHandling::InputFile in_f(fname);
+    Extension::IOfile ext = in_f.retreaveExtension();
 
-    if (!fe.file.is_open()) {
+    if (!in_f.is_open()) {
         cerrMessageBeforeThrow(thisFunc, "Error opening file for encryption");
         throw std::runtime_error("File opening failed");
     }
-    fileSize = fe.file.tellg();                                                    // -Get the file size
+    fileSize = in_f.getSize();                                                  // -Get the file size
     if((size_t)fileSize > plainTextMaxSize - BYTES_FOR_FILE_SIZE) {
-        fe.file.close();
         cerrMessageBeforeThrow(thisFunc, "");
         std::cerr << "File size exceeds the limit size (" << plainTextMaxSize - BYTES_FOR_FILE_SIZE << " bytes)\n";
         throw std::runtime_error("Upper bound for file size exceeded");
     }
-    fe.file.seekg(0, std::ios::beg);                                               // -Move back to the beginning
     fileSzPlusBytesForSz = (unsigned)fileSize + (unsigned)BYTES_FOR_FILE_SIZE;  // -This will allow us two write the size in the input array for encryption.
     fileInput = new char[fileSzPlusBytesForSz];
     memcpy(fileInput, (char*)&fileSize, BYTES_FOR_FILE_SIZE);                   // -Writing file size
-    fe.file.read((char*)&fileInput[BYTES_FOR_FILE_SIZE], fileSize);
-    fe.file.close();
+    in_f.read((char*)&fileInput[BYTES_FOR_FILE_SIZE], fileSize);
     enc_msg = NTRUencryption.encrypt(fileInput, fileSzPlusBytesForSz);          // -Encrypting the bytes from the file and its size
     delete[] fileInput;
     try {
-        if(fe.ext == Extension::txt) Extension::NTRUsaveWith_enc_ext(enc_msg, fname, Extension::EncryptedFile::enc_txt);
+        if(ext == Extension::txt) Extension::NTRUsaveWith_enc_ext(enc_msg, fname, Extension::EncryptedFile::enc_txt);
         else Extension::NTRUsaveWith_enc_ext(enc_msg, fname, Extension::EncryptedFile::enc_bin);
     }
     catch(const std::runtime_error&) {
@@ -354,27 +365,28 @@ void FileHandling::decryptf(const char fname[]){
     size_t          lenInBytes = 0;
     NTRU_N N = _509_;
     NTRU_q q = _2048_;
-    FileHandling::FileAndExtension fe(fname);
+    FileHandling::InputFile in_f(fname);
+    Extension::IOfile ext = in_f.retreaveExtension();
 
-    buff = new char[ntruqlen + 1];
-    if (!fe.file.is_open()) {
-        cerrMessageBeforeThrow(thisFunc, "Error opening file for encryption");
+
+    if (!in_f.is_open()) {
+        cerrMessageBeforeThrow(thisFunc, "Error opening file for decryption");
         throw std::runtime_error("File opening failed");
     }
-    fe.file.read(buff, ntruqlen);
+    buff = new char[ntruqlen + 1];
+    in_f.read(buff, ntruqlen);
     buff[ntruqlen] = 0;
     if(strcmp(buff, ntruq) == 0) {
-        fe.file.read((char*)&N, 2);                                               // -A short int for the degree of the polynomial
-        fe.file.read((char*)&q, 2);                                               // -A short int for the q value
+        in_f.read((char*)&N, 2);                                             // -A short int for the degree of the polynomial
+        in_f.read((char*)&q, 2);                                             // -A short int for the q value
         lenInBytes = size_t(N*NTRU::ZqPolynomial::log2(q)/8 + 1);
         delete[] buff;
         buff = new char[lenInBytes];
-        fe.file.read(buff, (std::streamsize)lenInBytes);
-        fe.file.close();
+        in_f.read(buff, (std::streamsize)lenInBytes);
         NTRU::ZpPolynomial msg = NTRUencryption.decrypt(buff, lenInBytes);
         delete[] buff;
         try{
-            if(fe.ext == Extension::txt) Extension::NTRUsaveWith_dec_ext(msg, fname, Extension::dec_txt);
+            if(ext == Extension::txt) Extension::NTRUsaveWith_dec_ext(msg, fname, Extension::dec_txt);
             else Extension::NTRUsaveWith_dec_ext(msg, fname, Extension::dec_bin);
         } catch(const std::runtime_error&){
             cerrMessageBeforeReThrow(thisFunc);
