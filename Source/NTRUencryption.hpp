@@ -249,5 +249,8 @@ class Encryption {
 	void setKeys(bool showKeyCreationTime = false);				// -Creation of the keys
 	void setKeysFromPrivKey();						// -Creates private key inverse and public key from private key. Intended for the
 };										//  creation of Encryption object from file
+
+double entropy(const char data[], size_t size);
+double correlation(const char data[], size_t size, size_t offset);
 }
 #endif

@@ -1485,3 +1485,37 @@ ZpPolynomial Encryption::decrypt(const char bytes[], int size, bool showEncrypti
 }
 
 //________________________________________________________________________ Encryption _____________________________________________________________________________
+
+double entropy(const char data[], size_t size){
+    double  entropy =  0.0 ;
+    double  p[256]  = {0.0};
+    int     H[256]  = {0}  ;
+    int     i = 0, j=  0;
+
+    for(i = 0; i < size; i++) H[(uint8_t)data[i]]++;
+
+    for(i = 0; i < 256; i++) p[i] = H[i]/(double)size;
+    for(i = 0; i < 256; i++) if(p[i] != 0) entropy -= p[i]*log2(p[i]);
+
+    return entropy;
+}
+
+double correlation(const char data[], size_t size, size_t offset){
+    double average = 0.0;
+    double variance = 0.0;
+    double covariance = 0.0;
+    int i, j;
+    for(i = 0; i < size; i++) average += (uint8_t)data[i];
+    average /= double(size);
+
+    if(offset >= size) offset %= size;
+    for(i = 0, j = offset; i < size; i++, j++){
+        if(j == size) j = 0;
+        variance   += ((uint8_t)data[i] - average)*((uint8_t)data[i] - average);
+        covariance += ((uint8_t)data[i] - average)*((uint8_t)data[j] - average);
+    }
+    variance   /= (double)size;
+    covariance /= (double)size;
+
+    return covariance/variance;
+}
