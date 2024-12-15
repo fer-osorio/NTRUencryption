@@ -1,4 +1,4 @@
-all: NTRUencryption.exe NTRUdecryption.exe
+all: NTRUencryption.exe NTRUdecryption.exe Statistics.exe
 
 WARNINGS = -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors
 DEBUG    = -ggdb -fno-omit-frame-pointer
@@ -12,6 +12,9 @@ NTRUencryption.exe: Makefile $(HEADERS) $(SOURCE) Apps/encryption.cpp
 
 NTRUdecryption.exe: Makefile $(HEADERS) $(SOURCE) Apps/decryption.cpp
 	$(CXX) -o Apps/Executables/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/decryption.cpp $(SOURCE)
+
+Statistics.exe: Makefile $(HEADERS) $(SOURCE) Apps/Statistics.cpp
+	$(CXX) -o Apps/Executables/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/Statistics.cpp $(SOURCE)
 
 clean:
 	rm -f Apps/Executables/*.exe
@@ -27,3 +30,6 @@ run_encryption:
 
 run_decryption:
 	Apps/Executables/NTRUdecryption.exe
+
+run_statistics:
+	Apps/Executables/Statistics.exe
