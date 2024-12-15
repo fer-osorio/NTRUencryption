@@ -6,6 +6,7 @@
 #include"NTRUencryption.hpp"
 
 #define DECIMAL_BASE 10
+#define NUMBEROFROUNDS 1000
 
 static void cerrMessageBeforeThrow(const char callerFunction[], const char message[]) {
     std::cerr << "In file Source/NTRUencryption.cpp, function " << callerFunction << ": " << message << '\n';
@@ -1484,13 +1485,121 @@ ZpPolynomial Encryption::decrypt(const char bytes[], int size, bool showEncrypti
     return this->decrypt(ZqPolynomial(bytes, size), showEncryptionTime);
 }
 
+Encryption::KeyGenerationTimeStats::KeyGenerationTimeStats(const uint32_t time_data[], size_t size){
+    this->Maximum = this->maximum(time_data, size);
+    this->Minimum = this->minimum(time_data, size);
+    this->Average = this->average(time_data, size);
+    this->Variance= this->thisVariance(time_data, size);
+}
+
+double Encryption::KeyGenerationTimeStats::maximum(const uint32_t time_data[], size_t size) const{
+    uint32_t max = time_data[0];
+    for(size_t i = 0; i < size; i++) if(max < time_data[i]) max = time_data[i];
+    return max;
+}
+
+double Encryption::KeyGenerationTimeStats::minimum(const uint32_t time_data[], size_t size) const{
+    uint32_t min = time_data[0];
+    for(size_t i = 0; i < size; i++) if(min > time_data[i]) min = time_data[i];
+    return min;
+}
+
+double Encryption::KeyGenerationTimeStats::average(const uint32_t data[], size_t size) const{
+    double avr = 0.0;
+    for(size_t i = 0; i < size; i++) avr += (double)data[i];
+    avr /= size;
+    return avr;
+}
+
+double Encryption::KeyGenerationTimeStats::variance(const uint32_t time_data[], size_t size) const{
+    double var = 0.0;
+    double avr = this->average(time_data, size);
+    for(size_t i = 0; i < size; i++) {
+        var += (time_data[i] - avr) *(time_data[i] - avr);
+    }
+    var /= size;
+    return var;
+}
+
+double Encryption::KeyGenerationTimeStats::thisVariance(const uint32_t time_data[], size_t size) {
+    double var = 0.0;
+    if(this->Average == -1.0) this->Average = this->average(time_data, size);
+    for(size_t i = 0; i < size; i++) {
+        var += (time_data[i] - this->Average)*(time_data[i] - this->Average);
+    }
+    var /= size;
+    return var;
+}
+
+Encryption::KeyGenerationTimeStats Encryption::keyGenTimeStats(){
+    const char thisFunc[] = "Encryption::KeyGenerationTimeStats Encryption::keyGenTimeStats() const";
+    std::chrono::steady_clock::time_point begin;
+    std::chrono::steady_clock::time_point end;
+    ZpPolynomial privateKey_;
+	ZpPolynomial privateKeyInv_p_;
+	ZqPolynomial publicKey_;
+	ZpPolynomial Zp_gcdXNmns1;
+	Z2Polynomial Z2_privateKeyInv;
+	Z2Polynomial Z2_gcdXNmns1;
+	Z2Polynomial Z2_privateKey;
+	NTRU_q q = zq.get_q();
+	int counter, i, k = 2, l = 1;
+	uint32_t times[NUMBEROFROUNDS];
+
+	for(i = 0; i < NUMBEROFROUNDS; i++, k = 2, l = 1){
+	    if((i & 7) == 0) std::cout << "Round " << i << std::endl;
+	    begin = std::chrono::steady_clock::now();
+	    privateKey_ = ZpPolynomial::getPosiblePrivateKey();
+	    Z2_privateKey = Z2Polynomial(privateKey_);
+    	try{
+            Zp_gcdXNmns1 = privateKey_.gcdXNmns1(privateKeyInv_p_);
+        }catch(const std::runtime_error&) {
+            cerrMessageBeforeReThrow(thisFunc);
+        }
+        try{
+            Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv);
+        }catch(const std::runtime_error&) {
+            cerrMessageBeforeReThrow(thisFunc);
+        }
+	    counter = 1;
+        while(Zp_gcdXNmns1 != 1 || Z2_gcdXNmns1 != 1) {
+            if((counter & 3) != 0) {                                                // If we have not tried to much times, just permute the coefficients
+                privateKey_.permute();
+                Z2_privateKey = privateKey_;
+            } else {
+                std::cout << "Taking another possible private key. Counter = " << counter << "\n";
+                privateKey_ = ZpPolynomial::getPosiblePrivateKey();
+                Z2_privateKey = privateKey_;
+            }
+            try{ Zp_gcdXNmns1 = privateKey_.gcdXNmns1(privateKeyInv_p_); }
+            catch(const std::runtime_error&) {
+                cerrMessageBeforeReThrow(thisFunc);
+            }
+            try{ Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv); }
+            catch(const std::runtime_error&) {
+                cerrMessageBeforeReThrow(thisFunc);
+        	}
+            counter++;
+        }
+        publicKey_ = convolutionZq(Z2_privateKeyInv, 2 - convolutionZq(Z2_privateKeyInv, privateKey_));
+        k <<= l; l <<= 1;
+	    while(k < q) {
+            publicKey_ = publicKey_*(2 - publicKey_*privateKey_);
+            k <<= l; l <<= 1;
+        }                                                                       // -At this line, we have just created the private key and its inverse
+        end = std::chrono::steady_clock::now();
+        times[i] = std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
+    }
+    return Encryption::KeyGenerationTimeStats(times, NUMBEROFROUNDS);
+}
+
 //________________________________________________________________________ Encryption _____________________________________________________________________________
 
 double entropy(const char data[], size_t size){
     double  entropy =  0.0 ;
     double  p[256]  = {0.0};
-    int     H[256]  = {0}  ;
-    int     i = 0, j=  0;
+    size_t  H[256]  = {0}  ;
+    size_t  i = 0;
 
     for(i = 0; i < size; i++) H[(uint8_t)data[i]]++;
 
@@ -1504,7 +1613,7 @@ double correlation(const char data[], size_t size, size_t offset){
     double average = 0.0;
     double variance = 0.0;
     double covariance = 0.0;
-    int i, j;
+    size_t i, j;
     for(i = 0; i < size; i++) average += (uint8_t)data[i];
     average /= double(size);
 
