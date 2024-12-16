@@ -1613,14 +1613,21 @@ Encryption::Statistics::Data::Data(const char data[], size_t size){
 Encryption::Statistics::Data Encryption::Statistics::Data::encryption(){
     Encryption e(_1499_, _8192_);
     size_t blkSZ = e.plainTextMaxSizeInBytes() - 1;
+    size_t ciphBlkSz = e.cipherTextSizeInBytes() - 1;
     size_t numberOfRounds = NUMBEROFROUNDS << 3;
     size_t dummy_len = blkSZ*numberOfRounds, i, j, k;
+    size_t encbt_len = ciphBlkSz*numberOfRounds + 1;
     char* dummy = new char[dummy_len];
+    ZqPolynomial enc;
+    char* encbt = new char[encbt_len];
 
     for(i = 0, k = 0; i < numberOfRounds; i++)
         for(j = 0; j < blkSZ; j++) dummy[k++] = (char)(randomIntegersN() & 255);
-    for(i = 0; i < dummy_len; i += blkSZ) e.encrypt(dummy + i, blkSZ);
-    Encryption::Statistics::Data stats(dummy, dummy_len);
+    for(i = 0, j = 0; i < dummy_len; i += blkSZ, j += ciphBlkSz) {
+        enc = e.encrypt(dummy + i, blkSZ);
+        enc.toBytes(encbt + j);
+    }
+    Encryption::Statistics::Data stats(encbt, encbt_len);
     delete[] dummy;
 
     return stats;
