@@ -249,31 +249,45 @@ class Encryption {
 	void setKeys(bool showKeyCreationTime = false);				// -Creation of the keys
 	void setKeysFromPrivKey();						// -Creates private key inverse and public key from private key. Intended for the
 										//  creation of Encryption object from file
-	public: struct KeyGenerationTimeStats{
-		private:
-		double Maximum  =  0.0;
-		double Minimum  =  0.0;
-		double Average  = -1.0;
-		double Variance =  0.0;
+	public: struct Statistics{
+		struct Time{
+			private:
+			double Maximum  =  0.0;
+			double Minimum  =  0.0;
+			double Average  = -1.0;
+			double Variance =  0.0;
+			double AvrAbsDev=  0.0;
 
-		public:
-		KeyGenerationTimeStats(const uint32_t time_data[], size_t size);
-		double maximum( const uint32_t time_data[], size_t size) const;
-		double minimum( const uint32_t time_data[], size_t size) const;
-		double average( const uint32_t time_data[], size_t size) const;
-		double variance(const uint32_t time_data[], size_t size) const;
+			double maximum( const uint32_t time_data[], size_t size) const;
+			double minimum( const uint32_t time_data[], size_t size) const;
+			double average( const uint32_t time_data[], size_t size) const;
+			double variance(const uint32_t time_data[], size_t size) const;
+			double avrAbsDev( const uint32_t time_data[], size_t size) const;
+			Time(const uint32_t time_data[], size_t size);
 
-		double getMaximum() const{ return this->Maximum; }
-		double getMinimum() const{ return this->Minimum; }
-		double getAverage() const{ return this->Average; }
-		double getVariance()const{ return this->Variance;}
+			public:
+			double getMaximum() const{ return this->Maximum; }
+			double getMinimum() const{ return this->Minimum; }
+			double getAverage() const{ return this->Average; }
+			double getVariance()const{ return this->Variance;}
+			double getAAD()     const{ return this->AvrAbsDev; }
 
-		private:
-		double thisVariance(const uint32_t time_data[], size_t size);
+			static Time keyGeneration();
+			static Time ciphering();
+		};
+		struct Data{
+			private:
+			double Entropy = 0.0;
+			double Correlation = 10.0;
+			double entropy(const char data[], size_t size);
+			double correlation(const char data[], size_t size, size_t offset);
+			Data(const char data[], size_t size);
+			public:
+			double getEntropy() const{ return this->Entropy; }
+			double getCorrelation() const { return this->Correlation; }
+			static Data encryption();
+		};
 	};
-	static KeyGenerationTimeStats keyGenTimeStats();
 };
-double entropy(const char data[], size_t size);
-double correlation(const char data[], size_t size, size_t offset);
 }
 #endif
