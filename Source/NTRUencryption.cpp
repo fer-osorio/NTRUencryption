@@ -6,7 +6,7 @@
 #include"NTRUencryption.hpp"
 
 #define DECIMAL_BASE 10
-#define NUMBEROFROUNDS 1000
+#define NUMBEROFROUNDS 2048
 
 static void cerrMessageBeforeThrow(const char callerFunction[], const char message[]) {
     std::cerr << "In file Source/NTRUencryption.cpp, function " << callerFunction << ": " << message << '\n';
@@ -188,6 +188,7 @@ const ZpPolynomial::Z3 ZpPolynomial::Z3prod[3][3] = {{_0_,_0_,_0_},             
 
 const ZpPolynomial::Z3 ZpPolynomial::Z3neg[3]     =  {_0_,_2_,_1_};
 
+int* ZpPolynomial::permutation = NULL;
 
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZpPolynomial |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
@@ -254,21 +255,24 @@ ZpPolynomial ZpPolynomial::randomTernary() {
 	return r;
 }
 
-void ZpPolynomial::changeAzeroForAone() {
+void ZpPolynomial::interchangeZeroFor(Z3 k) {
+    int i = randomIntegersN(), j;
+    while(this->coefficients[i] != _0_) i = randomIntegersN();                  // -Looking for a zero in a random position
+    j = i;
+    while(this->coefficients[i] != k) i = randomIntegersN();                    // -Looking for a zero in a random position)
+    this->coefficients[j] = k;                                                  // -Changing zero for one
+    this->coefficients[i] = _0_;
+}
+
+void ZpPolynomial::changeZeroForOne() {
     int i = randomIntegersN();
     while(this->coefficients[i] != _0_) i = randomIntegersN();                  // -Looking for a zero in a random position
     this->coefficients[i] = _1_;                                                // -Changing zero for one
 }
 
-void ZpPolynomial::changeAzeroForAtwo() {
-    int i = randomIntegersN();
-    while(this->coefficients[i] != _0_) i = randomIntegersN();                  // -Looking for a zero in a random position
-    this->coefficients[i] = _2_;                                                // -Changing zero for one
-}
-
 ZpPolynomial ZpPolynomial::getPosiblePrivateKey() {
     ZpPolynomial r = ZpPolynomial::randomTernary();                             // -Setting d = N/3, r is a polynomial with d 1's and d -1's
-    r.changeAzeroForAone();                                                     // -Adding one more one
+    r.changeZeroForOne();                                                       // -Adding one more one
     return r;
 }
 
@@ -623,7 +627,7 @@ Z2Polynomial::Z2Polynomial(const ZpPolynomial& P) {
     const NTRU_N N = NTRUparameters.get_N();
 	this->coefficients = new Z2[N];
 	for(int i = 0; i < N; i++) {
-	    if(P[i] != 0) this->coefficients[i] = _1_;                              // Two won't go to zero because it's the additive inverse of one in Z3, therefore
+	    if(P[i] != ZpPolynomial::_0_) this->coefficients[i] = _1_;              // Two won't go to zero because it's the additive inverse of one in Z3, therefore
 	    else this->coefficients[i] = _0_;                                       // it must go to the additive inverse of one in Z2, which if itself
     }
 }
@@ -643,7 +647,7 @@ Z2Polynomial& Z2Polynomial::operator = (const ZpPolynomial& P) {
 	if(this->coefficients != NULL) delete[] this->coefficients;                 // In case of having an object created with the default (private) constructor
 	this->coefficients = new Z2[N];
 	for(int i = 0; i < N; i++) {                                                // Fitting the ZpPolynomial in a Z2Polynomial
-	    if(P[i] != 0) this->coefficients[i] = _1_;
+	    if(P[i] != ZpPolynomial::_0_) this->coefficients[i] = _1_;
 	    else this->coefficients[i] = _0_;
 	}
 	return *this;
@@ -1179,7 +1183,11 @@ void ZqPolynomial::save(const char* name, bool saveAsText) const{
 
 // ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Encryption |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-Encryption::Encryption(): N(_509_), q(_2048_) {                                                      // -Does nothing, just for type declaration. Should not be used just like this
+Encryption::Encryption(): N(_509_), q(_2048_) {                                 // -Just for type declaration. Should not be used just like this
+    setNTRUparameters(this->N, this->q);
+    this->privateKey = ZpPolynomial::_0_;
+    this->privateKeyInv_p = ZpPolynomial::_0_;
+    this->publicKey = ZpPolynomial();
 	/*try {
 	    this->setKeys(true);
 	}catch(const char* exp) {
@@ -1191,6 +1199,7 @@ Encryption::Encryption(): N(_509_), q(_2048_) {                                 
 
 Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
     setNTRUparameters(this->N, this->q);
+    this->privateKey = ZpPolynomial::getPosiblePrivateKey();
     this->validPrivateKey = true;
 	try {
 	    this->setKeys();
@@ -1344,13 +1353,12 @@ void Encryption::setKeys(bool showKeyCreationTime) {
 
 	counter = 1;
     while(Zp_gcdXNmns1 != 1 || Z2_gcdXNmns1 != 1) {
-        if((counter & 3) != 0) {                                                // If we have not tried to much times, just permute the coefficients
-            this->privateKey.permute();
-            Z2_privateKey = this->privateKey;
-        } else {
-            std::cout << "Taking another possible private key. Counter = " << counter << "\n";
-            this->privateKey = ZpPolynomial::getPosiblePrivateKey();
-            Z2_privateKey = this->privateKey;
+        //if((counter & 1) == 0)  this->privateKey.interchangeZeroFor(ZpPolynomial::_1_);
+        //else                    this->privateKey.interchangeZeroFor(ZpPolynomial::_2_);
+        this->privateKey.permute();
+        Z2_privateKey = this->privateKey;
+        if((counter&3)==0){
+            std::cout << "Source/NTRUencryption.cpp; void Encryption::setKeys(bool showKeyCreationTime). Counter = " << counter << "\n";
         }
         try{ Zp_gcdXNmns1 = this->privateKey.gcdXNmns1(this->privateKeyInv_p); }
         catch(const std::runtime_error&) {
@@ -1364,15 +1372,12 @@ void Encryption::setKeys(bool showKeyCreationTime) {
     	}
         counter++;
     }
-
     this->publicKey = convolutionZq(Z2_privateKeyInv, 2 - convolutionZq(Z2_privateKeyInv, this->privateKey));
     k <<= l; l <<= 1;
-
 	while(k < this->q) {
         this->publicKey = this->publicKey*(2 - this->publicKey*this->privateKey);
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
-
     /*
     if(this->publicKey*Zp_privateKey == 1) {
     if(Zp_privateKey*this->privateKeyInv_p == 1) {
@@ -1485,6 +1490,8 @@ ZpPolynomial Encryption::decrypt(const char bytes[], int size, bool showEncrypti
     return this->decrypt(ZqPolynomial(bytes, size), showEncryptionTime);
 }
 
+/************************************************************************* Statistics ****************************************************************************/
+
 Encryption::Statistics::Time::Time(const uint32_t time_data[], size_t size){
     this->Maximum = this->maximum(time_data, size);
     this->Minimum = this->minimum(time_data, size);
@@ -1533,14 +1540,14 @@ double Encryption::Statistics::Time::avrAbsDev(const uint32_t time_data[], size_
     return aad;
 }
 
-Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(){
+Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(NTRU_N N,NTRU_q q){
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
 	uint32_t times[NUMBEROFROUNDS], i;
-	Encryption e(_1499_, _8192_);
+	Encryption e(N, q);
 
 	for(i = 0; i < NUMBEROFROUNDS; i++, e.privateKey = ZpPolynomial::getPosiblePrivateKey()){
-        if((i & 7) == 0) std::cout << "Round " << i << std::endl;
+        if((i&31)==0)std::cout<<"Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(): Round " << i << std::endl;
 	    begin= std::chrono::steady_clock::now();
 	    e.setKeys();
 	    end  = std::chrono::steady_clock::now();
@@ -1549,10 +1556,10 @@ Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(){
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
 }
 
-Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(){
+Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(NTRU_N N,NTRU_q q){
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
-    Encryption e(_1499_, _8192_);
+    Encryption e(N, q);
     size_t dummy_sz = e.plainTextMaxSizeInBytes(), i;
     uint32_t times[NUMBEROFROUNDS];
     char* dummy = new char[dummy_sz];
@@ -1560,7 +1567,7 @@ Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(){
     for(i = 0; i < dummy_sz; i++) dummy[i] = (char)i;
 
     for(i = 0; i < NUMBEROFROUNDS; i++){
-        if((i & 7) == 0) std::cout << "Round " << i << std::endl;
+        if((i&63) == 0) std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(): Round " << i << std::endl;
 	    begin= std::chrono::steady_clock::now();
 	    e.encrypt(dummy, dummy_sz);
 	    end  = std::chrono::steady_clock::now();
@@ -1610,11 +1617,11 @@ Encryption::Statistics::Data::Data(const char data[], size_t size){
     this->Correlation= this->correlation(data, size, 1);
 }
 
-Encryption::Statistics::Data Encryption::Statistics::Data::encryption(){
-    Encryption e(_1499_, _8192_);
+Encryption::Statistics::Data Encryption::Statistics::Data::encryption(NTRU_N N,NTRU_q q){
+    Encryption e(N, q);
     size_t blkSZ = e.plainTextMaxSizeInBytes() - 1;
     size_t ciphBlkSz = e.cipherTextSizeInBytes() - 1;
-    size_t numberOfRounds = NUMBEROFROUNDS << 3;
+    size_t numberOfRounds = NUMBEROFROUNDS >> 4;
     size_t dummy_len = blkSZ*numberOfRounds, i, j, k;
     size_t encbt_len = ciphBlkSz*numberOfRounds + 1;
     char* dummy = new char[dummy_len];
@@ -1623,7 +1630,8 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(){
 
     for(i = 0, k = 0; i < numberOfRounds; i++)
         for(j = 0; j < blkSZ; j++) dummy[k++] = (char)(randomIntegersN() & 255);
-    for(i = 0, j = 0; i < dummy_len; i += blkSZ, j += ciphBlkSz) {
+    for(i = 0, j = 0, k = 0; i < dummy_len; i += blkSZ, j += ciphBlkSz, k++) {
+        if((k&7)==0) std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Data Encryption::Statistics::Data::encryption(): Round " << i << std::endl;
         enc = e.encrypt(dummy + i, blkSZ);
         enc.toBytes(encbt + j);
     }

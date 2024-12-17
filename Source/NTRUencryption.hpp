@@ -47,7 +47,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	private:
 	Z3*  coefficients = NULL;
 	Z3*  coeffCopy 	  = NULL;						// Copy of the coefficients. Useful at the moment of permute the coefficients
-	int* permutation  = NULL;						// This could be enhanced by making this attributes static
+	static int* permutation;						// This could be enhanced by making this attributes static
 
 	public:
 	ZpPolynomial();								// -Default constructor; initializes the polynomial with zeros
@@ -55,12 +55,11 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	ZpPolynomial(const char data[], int dataLength);			// -Initializing with string of bytes
 	~ZpPolynomial() {
 		if(this->coefficients != NULL) delete [] this->coefficients;
-		if(this->permutation  != NULL) delete [] this->permutation;
-		if(this->coeffCopy 	  != NULL) delete [] this->coeffCopy;
+		if(this->coeffCopy    != NULL) delete [] this->coeffCopy;
 	}
 	static ZpPolynomial randomTernary();
-	void changeAzeroForAone();
-	void changeAzeroForAtwo();
+	void interchangeZeroFor(Z3);
+	void changeZeroForOne();
 	static ZpPolynomial getPosiblePrivateKey();				// -Setting d = N/3, returns a polynomial with d -1's and d+1 1's
 
 	ZpPolynomial  operator + (const ZpPolynomial&) const;			// Addition element by element
@@ -86,7 +85,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 
 	void setPermutation();
 	void permute();
-	int degree() const;							// Returns degree of polynomial
+	int  degree() const;							// Returns degree of polynomial
 
 	ZqPolynomial encrypt(ZqPolynomial publicKey, bool showEncryptionTime = false) const;// -Encrypts the polynomial represented by this and return a ZqPolynomial
 
@@ -217,8 +216,8 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 class Encryption {
 	private:								// -Attributes
 	ZqPolynomial publicKey		= ZqPolynomial();			// -Initializing each argument as the zero polynomial
-	ZpPolynomial privateKey		= ZpPolynomial::getPosiblePrivateKey();
-	ZpPolynomial privateKeyInv_p 	= ZpPolynomial();				// -Private key inverse modulo p
+	ZpPolynomial privateKey		= ZpPolynomial();
+	ZpPolynomial privateKeyInv_p 	= ZpPolynomial();			// -Private key inverse modulo p
 	bool validPrivateKey		= false;				// -Flag; tells us if current object can only encrypt (only have a valid publickKey)
 										// -or also is capable of decryption (has a valid private key).
 	NTRU_N N;
@@ -272,8 +271,8 @@ class Encryption {
 			double getVariance()const{ return this->Variance;}
 			double getAAD()     const{ return this->AvrAbsDev; }
 
-			static Time keyGeneration();
-			static Time ciphering();
+			static Time keyGeneration(NTRU_N,NTRU_q);
+			static Time ciphering(NTRU_N,NTRU_q);
 		};
 		struct Data{
 			private:
@@ -285,7 +284,7 @@ class Encryption {
 			public:
 			double getEntropy() const{ return this->Entropy; }
 			double getCorrelation() const { return this->Correlation; }
-			static Data encryption();
+			static Data encryption(NTRU_N,NTRU_q);
 		};
 	};
 };
