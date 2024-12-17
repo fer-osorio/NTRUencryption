@@ -17,6 +17,7 @@ class  Encryption;
 
 ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
 ZqPolynomial convolutionZq(const Z2Polynomial&, const ZqPolynomial&);
+ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&);
 ZpPolynomial mods_p(ZqPolynomial);
 
 struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N-1)
@@ -91,6 +92,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 
 	friend ZpPolynomial mods_p(ZqPolynomial P);
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
+	friend ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&);
 
 	size_t sizeInBytes() const;
 	void toBytes(char dest[]) const;
@@ -183,7 +185,7 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 	ZqPolynomial operator + (const ZqPolynomial& P) const;
 	ZqPolynomial operator - (const ZqPolynomial& P) const;
 	ZqPolynomial operator * (const ZqPolynomial& P) const;
-	ZqPolynomial operator * (const ZpPolynomial& P) const;			// This function sees the ZpPolynomial as a ZqPolynomial
+	//ZqPolynomial operator * (const ZpPolynomial& P) const;			// This function sees the ZpPolynomial as a ZqPolynomial
 	friend ZqPolynomial operator - (int64_t, const ZqPolynomial&);
 	bool operator == (const Z2Polynomial& P) const;
 	bool operator == (int64_t t) const {
@@ -196,6 +198,7 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 	friend ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey, bool showEncryptionTime) const;
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZqPolynomial&);
+	friend ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&);
 
 	int degree()  const;							// -Returns degree of polynomial
 	void mod_q()  const;

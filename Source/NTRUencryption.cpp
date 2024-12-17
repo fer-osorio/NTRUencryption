@@ -950,32 +950,6 @@ ZqPolynomial ZqPolynomial::operator * (const ZqPolynomial& P) const{
 	return r;
 }
 
-ZqPolynomial ZqPolynomial::operator * (const ZpPolynomial& P) const{
-    const NTRU_N N = NTRUparameters.get_N();
-    ZqPolynomial r;
-    int i, j, k;
-
-	for(i = 0; i < N; i++) {
-		if(P[i] != ZpPolynomial::_0_) {                                         // -Taking advantage this polynomials have a big proportion of zeros
-		    if(P[i] == ZpPolynomial::_1_) {                                     // -The other two cases are one, as in this line is showed
-		        k = N - i;
-		        for(j = 0; j < k; j++)
-		            r.coefficients[i+j] += this->coefficients[j];
-		        for(k = 0; k < i; j++, k++)
-		            r.coefficients[k] += this->coefficients[j];
-		    } else {                                                            // -The only other case is two, which is interpreted as -1
-		        k = N - i;
-		        for(j = 0; j < k; j++)
-		            r.coefficients[i+j] -= this->coefficients[j];
-		        for(k = 0; k < i; j++, k++)
-		            r.coefficients[k] -= this->coefficients[j];
-		    }
-		}
-	}
-	r.mods_q();                                                                 // Applying mods q
-	return r;
-}
-
 ZqPolynomial NTRU::operator - (int64_t t, const ZqPolynomial& P) {
     const NTRU_N N = NTRUparameters.get_N();
     ZqPolynomial r;
@@ -1041,6 +1015,32 @@ ZqPolynomial NTRU::convolutionZq(const Z2Polynomial& z2P, const ZqPolynomial& zq
     }
     r.mods_q();                                                                 // Applying mods q
     return r;
+}
+
+ZqPolynomial NTRU::convolutionZq(const ZpPolynomial& p1, const ZqPolynomial& p2) {
+    const NTRU_N N = NTRUparameters.get_N();
+    ZqPolynomial r;
+    int i, j, k;
+
+	for(i = 0; i < N; i++) {
+		if(p1.coefficients[i] != ZpPolynomial::_0_) {                                         // -Taking advantage this polynomials have a big proportion of zeros
+		    if(p1.coefficients[i] == ZpPolynomial::_1_) {                                     // -The other two cases are one, as in this line is showed
+		        k = N - i;
+		        for(j = 0; j < k; j++)
+		            r.coefficients[i+j] += p2.coefficients[j];
+		        for(k = 0; k < i; j++, k++)
+		            r.coefficients[k] += p2.coefficients[j];
+		    } else {                                                            // -The only other case is two, which is interpreted as -1
+		        k = N - i;
+		        for(j = 0; j < k; j++)
+		            r.coefficients[i+j] -= p2.coefficients[j];
+		        for(k = 0; k < i; j++, k++)
+		            r.coefficients[k] -= p2.coefficients[j];
+		    }
+		}
+	}
+	r.mods_q();                                                                 // Applying mods q
+	return r;
 }
 
 int ZqPolynomial::degree() const{											    // -Returns degree of polynomial
@@ -1353,9 +1353,9 @@ void Encryption::setKeys(bool showKeyCreationTime) {
 
 	counter = 1;
     while(Zp_gcdXNmns1 != 1 || Z2_gcdXNmns1 != 1) {
-        //if((counter & 1) == 0)  this->privateKey.interchangeZeroFor(ZpPolynomial::_1_);
-        //else                    this->privateKey.interchangeZeroFor(ZpPolynomial::_2_);
-        this->privateKey.permute();
+        if((counter & 1) == 0)  this->privateKey.interchangeZeroFor(ZpPolynomial::_1_);
+        else                    this->privateKey.interchangeZeroFor(ZpPolynomial::_2_);
+        //this->privateKey.permute();
         Z2_privateKey = this->privateKey;
         if((counter&3)==0){
             std::cout << "Source/NTRUencryption.cpp; void Encryption::setKeys(bool showKeyCreationTime). Counter = " << counter << "\n";
@@ -1375,27 +1375,9 @@ void Encryption::setKeys(bool showKeyCreationTime) {
     this->publicKey = convolutionZq(Z2_privateKeyInv, 2 - convolutionZq(Z2_privateKeyInv, this->privateKey));
     k <<= l; l <<= 1;
 	while(k < this->q) {
-        this->publicKey = this->publicKey*(2 - this->publicKey*this->privateKey);
+        this->publicKey = this->publicKey*(2 - convolutionZq(this->privateKey, this->publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
-    /*
-    if(this->publicKey*Zp_privateKey == 1) {
-    if(Zp_privateKey*this->privateKeyInv_p == 1) {
-        if(counter > 1)
-            std::cout << "Private key was found after " <<counter<< " attempts.\n";
-        else
-                std::cout << "Private key was found after "<< counter << " attempt.\n";
-        } else {
-            (Zp_privateKey*this->privateKeyInv_p).println("this->privateKey*this->privateKeyInv_p");
-            cerrMessageBeforeThrow(thisFunc,"Private key inverse in Zp[x]/(x^N-1) ring not found.");
-            throw std::runtime_error("Private key inverse in Zp[x]/x^N-1 finding failed");
-        }
-    } else {
-        (this->publicKey*this->privateKey).println("this->publicKey*this->privateKey");
-        cerrMessageBeforeThrow(thisFunc,"Private key inverse in Zq[x]/x^N-1 finding failed");
-        throw std::runtime_error("Exception in private key inverse creation");
-    }
-    */
 
 	if(showKeyCreationTime) {
 	    end = std::chrono::steady_clock::now();
@@ -1437,11 +1419,11 @@ void Encryption::setKeysFromPrivKey() {                                         
     k <<= l; l <<= 1;
 
 	while(k < this->q) {
-        this->publicKey = this->publicKey*(2 - this->publicKey*this->privateKey);
+        this->publicKey = this->publicKey*(2 - convolutionZq(this->privateKey, this->publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
-    if(this->publicKey*this->privateKey != 1) {
-        (this->publicKey*this->privateKey).println("this->publicKey*this->privateKey");
+    if(convolutionZq(this->privateKey, this->publicKey) != 1) {
+        convolutionZq(this->privateKey, this->publicKey).println("this->publicKey*this->privateKey");
         cerrMessageBeforeThrow(thisFunc,"Public key inverse in Zq[x]/x^N-1 finding failed");
         throw std::runtime_error("Exception in public key inverse creation");
     }
