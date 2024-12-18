@@ -1200,7 +1200,6 @@ Encryption::Encryption(): N(_509_), q(_2048_) {                                 
 Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
     setNTRUparameters(this->N, this->q);
     this->privateKey = ZpPolynomial::getPosiblePrivateKey();
-    this->validPrivateKey = true;
 	try {
 	    this->setKeys();
 	}catch(const std::runtime_error&) {
@@ -1208,6 +1207,7 @@ Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
 	    cerrMessageBeforeReThrow("Encryption::Encryption(NTRU_N n, NTRU_q Q)");
 	    throw;
 	}
+	this->validPrivateKey = true;
 }
 
 Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
@@ -1284,7 +1284,7 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
     const char NTRUpublicKey[]  = "NTRUpublicKey";                              // -This will indicate the binary file is saving a NTRU public key
     const char NTRUprivateKey[] = "NTRUprivatKey";                              // -This will indicate the binary file is saving a NTRU private key
     std::ofstream file;
-    if(publicKeyName == NULL) file.open("Key.ntruPub", std::ios::binary);
+    if(publicKeyName == NULL) file.open("Key.ntrupub", std::ios::binary);
     else                      file.open(publicKeyName, std::ios::binary);
     if(file.is_open()) {
         file.write((char*)NTRUpublicKey, lengthString(NTRUpublicKey));          // -Initiating the file with the string "NTRUpublicKey"
@@ -1350,12 +1350,10 @@ void Encryption::setKeys(bool showKeyCreationTime) {
         cerrMessageBeforeReThrow(thisFunc);
         throw;
     }
-
 	counter = 1;
     while(Zp_gcdXNmns1 != 1 || Z2_gcdXNmns1 != 1) {
         if((counter & 1) == 0)  this->privateKey.interchangeZeroFor(ZpPolynomial::_1_);
         else                    this->privateKey.interchangeZeroFor(ZpPolynomial::_2_);
-        //this->privateKey.permute();
         Z2_privateKey = this->privateKey;
         if((counter&3)==0){
             std::cout << "Source/NTRUencryption.cpp; void Encryption::setKeys(bool showKeyCreationTime). Counter = " << counter << "\n";
@@ -1378,7 +1376,6 @@ void Encryption::setKeys(bool showKeyCreationTime) {
         this->publicKey = this->publicKey*(2 - convolutionZq(this->privateKey, this->publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
-
 	if(showKeyCreationTime) {
 	    end = std::chrono::steady_clock::now();
         std::cout << "\nPrivate and public keys generation took "<< std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()<<"[µs]\n"<<std::endl;
@@ -1458,7 +1455,7 @@ ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg, bool showDecryptionT
     std::chrono::steady_clock::time_point end;
     if(showDecryptionTime) begin = std::chrono::steady_clock::now();
 
-    ZpPolynomial msg = mods_p(e_msg*privateKey);
+    ZpPolynomial msg = mods_p(convolutionZq(this->privateKey, e_msg));
     msg = msg*privateKeyInv_p;
 
     if(showDecryptionTime) {
