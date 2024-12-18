@@ -416,8 +416,8 @@ Extension::IOfile Extension::getExtension(const char fileName[]) {
         return Extension::unrecognized;
     }
     int i = -1;
-    while(fileName[++i] != 0) {}                                            // -Looking for end of string
-    while(fileName[i] != '.' && i > 0) {i--;}                               // -Looking for last point
+    while(fileName[++i] != 0) {}                                                // -Looking for end of string
+    while(fileName[i] != '.' && i >= 0) {i--;}                                  // -Looking for last point
 
     if(i >= 0)  return Extension::strToIOfileExt(&fileName[++i]);
     return Extension::none;
@@ -425,7 +425,11 @@ Extension::IOfile Extension::getExtension(const char fileName[]) {
 
 
 void Extension::appendEncryptedFileExtension(Extension::EncryptedFile cf, char destination[]) {
-    switch(cf) {                                                            // -Concatenating the extension at the end of destination
+    int i = -1;
+    while(destination[++i] != 0) {}                                             // -Looking for end of string
+    while(destination[i] != '.' && i >= 0) {i--;}                               // -Looking for last point
+    if(i >= 0) destination[i] = 0;
+    switch(cf) {                                                                // -Concatenating the extension at the end of destination
         case enc_bin:
             strcat(destination, "_enc.bin");
             break;
@@ -436,7 +440,11 @@ void Extension::appendEncryptedFileExtension(Extension::EncryptedFile cf, char d
 }
 
 void Extension::appendDecryptedFileExtension(Extension::DecryptedFile df, char destination[]) {
-    switch(df) {                                                            // -Concatenating the extension at the end of destination
+    int i = -1;
+    while(destination[++i] != 0) {}                                             // -Looking for end of string
+    while(destination[i] != '.' && i >= 0) {i--;}                               // -Looking for last point
+    if(i >= 0) destination[i] = 0;
+    switch(df) {                                                                // -Concatenating the extension at the end of destination
         case dec_bin:
             strcat(destination, "_dec.bin");
             break;
@@ -807,6 +815,7 @@ void runProgram(const Options::Cipher_object op) {
                     } catch(std::runtime_error& exp) {
                         cerrMessageBeforeReThrow("void runProgram(const Options::Cipher_object op)");
                         std::cerr << exp.what();
+                        return;
                     }
                     break;
                 case Options::Encryption_main_menu::encryptTextFromCLI:
