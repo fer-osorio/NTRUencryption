@@ -17,6 +17,9 @@ std::string("Select NTRU_N parameter:\n") + NTRU_N_valuesList + "\n";
 static std::string selectNTRU_q =
 std::string("Select NTRU_q parameter:\n") + NTRU_q_valuesList + "\n";
 
+static std::string statsCategory =
+"(0) Key Generation \n(1) Ciphering \n(2) Data\n(3) All\n";
+
 static const char invalidInputMsg[] = "\nInvalid input. Try again.\n";
 
 static int validInput_int(){
@@ -43,8 +46,9 @@ static int retreaveValidOption(std::string optionsString, bool (validOptionCrite
     return option;
 }
 
-static bool NTRU_N_validOpt(int opt) { return opt >= 0 && opt < (int)NTRU_N_amount;}
-static bool NTRU_q_validOpt(int opt) { return opt >= 0 && opt < (int)NTRU_q_amount;}
+static bool NTRU_N_validOpt(int opt) { return opt >= 0 && opt < (int)NTRU_N_amount; }
+static bool NTRU_q_validOpt(int opt) { return opt >= 0 && opt < (int)NTRU_q_amount; }
+static bool statisticCategory(int opt) { return opt >= 0 && opt < 4; }
 
 int main(int argc, const char* argv[]){
     if(argc > 1) {
@@ -55,32 +59,66 @@ int main(int argc, const char* argv[]){
     }
     int opt_N = retreaveValidOption(selectNTRU_N, NTRU_N_validOpt);
     int opt_q = retreaveValidOption(selectNTRU_q, NTRU_q_validOpt);
+    int opt_C = retreaveValidOption(statsCategory, statisticCategory);
 
     NTRU_N N = NTRU_N_values[opt_N];
     NTRU_q q = NTRU_q_values[opt_q];
-    NTRU::Encryption::Statistics::Time kg = NTRU::Encryption::Statistics::Time::keyGeneration(N,q); std::cout << std::endl;
-    NTRU::Encryption::Statistics::Time ch = NTRU::Encryption::Statistics::Time::ciphering(N,q);     std::cout << std::endl;
-    NTRU::Encryption::Statistics::Data dt = NTRU::Encryption::Statistics::Data::encryption(N,q);    std::cout << std::endl;
 
-    std::cout << "Parameters:: N = "<< N << ", q = " << q << " ------------------------------------" << std::endl;
-    std::cout << std::fixed << std::setprecision(5) <<std::endl;
-    std::cout << "Key Generation:" << std::endl;
-    std::cout << "Maximum: " << kg.getMaximum() << '\n';
-    std::cout << "Minimum: " << kg.getMinimum() << '\n';
-    std::cout << "Average: " << kg.getAverage() << '\n';
-    std::cout << "Standard deviation: " << sqrt(kg.getMaximum()) << '\n';
-    std::cout << "Average Absolute Deviation: " << kg.getAAD() << '\n' << std::endl;
+    NTRU::Encryption::Statistics::Time kg;
+    NTRU::Encryption::Statistics::Time ch;
+    NTRU::Encryption::Statistics::Data dt;
 
-    std::cout << "Encryption:" << std::endl;
-    std::cout << "Maximum: " << ch.getMaximum() << '\n';
-    std::cout << "Minimum: " << ch.getMinimum() << '\n';
-    std::cout << "Average: " << ch.getAverage() << '\n';
-    std::cout << "Standard deviation: " << sqrt(ch.getMaximum()) << '\n';
-    std::cout << "Average Absolute Deviation: " << ch.getAAD() << '\n' << std::endl;
+    switch(opt_C){
+        case 0:
+            std::cout << "Computing Statistics::Time::keyGeneration(" << N << ", " << q << ")\n";
+            kg = NTRU::Encryption::Statistics::Time::keyGeneration(N,q);
+            std::cout << std::endl;
+            break;
+        case 1:
+            std::cout << "Computing Statistics::Time::ciphering(" << N << ", " << q << ")\n";
+            ch = NTRU::Encryption::Statistics::Time::ciphering(N,q);
+            std::cout << std::endl;
+            break;
+        case 2:
+            std::cout << "Computing Statistics::Data::encryption(" << N << ", " << q << ")\n";
+            dt = NTRU::Encryption::Statistics::Data::encryption(N,q);
+            std::cout << std::endl;
+            break;
+        default:
+            std::cout << "Computing Statistics::Time::keyGeneration(" << N << ", " << q << ")\n";
+            std::cout << "Computing Statistics::Time::ciphering(" << N << ", " << q << ")\n";
+            std::cout << "Computing Statistics::Data::encryption(" << N << ", " << q << ")\n";
+            kg = NTRU::Encryption::Statistics::Time::keyGeneration(N,q);
+            ch = NTRU::Encryption::Statistics::Time::ciphering(N,q);
+            dt = NTRU::Encryption::Statistics::Data::encryption(N,q);
+            break;
+    }
 
-    std::cout << "Data: " << std::endl;
-    std::cout << "Entropy: " << dt.getEntropy() << '\n';
-    std::cout << "Correlation: " << dt.getCorrelation() << '\n' << std::endl;
+    if(opt_C == 0 || opt_C == 3){
+        std::cout << "Parameters:: N = "<< N << ", q = " << q << " ------------------------------------" << std::endl;
+        std::cout << std::fixed << std::setprecision(5) <<std::endl;
+        std::cout << "Key Generation:" << std::endl;
+        std::cout << "Maximum: " << kg.getMaximum() << '\n';
+        std::cout << "Minimum: " << kg.getMinimum() << '\n';
+        std::cout << "Average: " << kg.getAverage() << '\n';
+        std::cout << "Standard deviation: " << sqrt(kg.getMaximum()) << '\n';
+        std::cout << "Average Absolute Deviation: " << kg.getAAD() << '\n' << std::endl;
+    }
+
+    if(opt_C == 1 || opt_C == 3){
+        std::cout << "Encryption:" << std::endl;
+        std::cout << "Maximum: " << ch.getMaximum() << '\n';
+        std::cout << "Minimum: " << ch.getMinimum() << '\n';
+        std::cout << "Average: " << ch.getAverage() << '\n';
+        std::cout << "Standard deviation: " << sqrt(ch.getMaximum()) << '\n';
+        std::cout << "Average Absolute Deviation: " << ch.getAAD() << '\n' << std::endl;
+    }
+
+    if(opt_C == 2 || opt_C == 3){
+        std::cout << "Data: " << std::endl;
+        std::cout << "Entropy: " << dt.getEntropy() << '\n';
+        std::cout << "Correlation: " << dt.getCorrelation() << '\n' << std::endl;
+    }
 
     return 0;
 }
