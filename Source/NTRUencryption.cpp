@@ -146,7 +146,7 @@ struct NTRU_Parameters {                                                        
 };
 
 static NTRU_Parameters NTRUparameters;                                          // -This unique instance puts every polynomial "inside the same polynomial ring"
-static NTRU_Parameters::Zq zq(_8192_);                                          // -Arithmetic for the operation modulo q
+static NTRU_Parameters::Zq zq(_2048_);                                          // -Arithmetic for the operation modulo q
 
 class RandInt {                                                                 // Little class for random integers. Taken from The C++ Programming Language 4th
     static unsigned _seed_;
@@ -163,7 +163,7 @@ static RandInt randomIntegersN(0, NTRUparameters.get_N() - 1);                  
 
 void setNTRUparameters(NTRU_N N, NTRU_q q) {
     NTRUparameters.N = N;
-    zq.q = q;
+    zq = NTRU_Parameters::Zq(q);
     randomIntegersN = RandInt(0,N - 1);
 }
 
@@ -936,15 +936,11 @@ ZqPolynomial ZqPolynomial::operator * (const ZqPolynomial& P) const{
     int i, j, k;
 
 	for(i = 0; i < N; i++) {
-		//if(this->coefficients[i] != 0) {                                      // Taking advantage this polynomials have a big proportion of zeros
-		    k = N - i;
-		    for(j = 0; j < k; j++)                                              // Ensuring we do not get out of the polynomial
-			    //if(P.coefficients[j] != 0)                                      // Expecting a big proportion of zeros
-			        r.coefficients[i+j] += this->coefficients[i] * P.coefficients[j];
-		    for(k = 0; k < i; j++, k++)                                         // Using the definition of convolution polynomial ring
-			    //if(P.coefficients[j] != 0)                                    // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
-			        r.coefficients[k] += this->coefficients[i] * P.coefficients[j];
-		//}
+		k = N - i;
+	    for(j = 0; j < k; j++)                                                  // Ensuring we do not get out of the polynomial
+		    r.coefficients[i+j] += this->coefficients[i] * P.coefficients[j];
+	    for(k = 0; k < i; j++, k++)                                             // Using the definition of convolution polynomial ring
+		    r.coefficients[k] += this->coefficients[i] * P.coefficients[j];
 	}
 	r.mod_q();                                                                  // Applying mod q
 	return r;
@@ -1119,7 +1115,7 @@ void ZqPolynomial::toBytes(char dest[]) const{                                  
     int64_to_char buffer = {0};                                                 // -buffer will do the cast from int to char[]
     int64_t aux;
 
-    //std::cout << "\nlog2q = " << log2q << '\n';                                 // -Debugging purposes
+    //std::cout << "ZqPolynomial::toBytes(char dest[]) const: log2q = " << log2q << '\n'; // -Debugging purposes
 
     for(bitsAllocInBuff = 0, aux = 0; i < N;) {
         buffer.int64 >>= (bytesAllocInDest << 3);                               // -l*8; Ruling out the bits allocated in the last cycle
@@ -1188,13 +1184,6 @@ Encryption::Encryption(): N(_509_), q(_2048_) {                                 
     this->privateKey = ZpPolynomial::_0_;
     this->privateKeyInv_p = ZpPolynomial::_0_;
     this->publicKey = ZpPolynomial();
-	/*try {
-	    this->setKeys(true);
-	}catch(const char* exp) {
-	    std::cerr << "\nIn file NTRUencryption.cpp, function Encryption::Encryption(NTRU_N _N_,NTRU_q _q_,int _d_,NTRU_p _p_): N(_N_),q(_q_), p(_p_), d(_d_), "
-        "privateKey(_N_, _p_), privateKeyInv_p(_N_, _p_), publicKey(_N_, _q_)\n";
-        std::cerr << exp;
-	}*/
 }
 
 Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
@@ -1376,6 +1365,7 @@ void Encryption::setKeys(bool showKeyCreationTime) {
         this->publicKey = this->publicKey*(2 - convolutionZq(this->privateKey, this->publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
+    this->publicKey.mods_q();
 	if(showKeyCreationTime) {
 	    end = std::chrono::steady_clock::now();
         std::cout << "\nPrivate and public keys generation took "<< std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()<<"[µs]\n"<<std::endl;
@@ -1455,7 +1445,9 @@ ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg, bool showDecryptionT
     std::chrono::steady_clock::time_point end;
     if(showDecryptionTime) begin = std::chrono::steady_clock::now();
 
-    ZpPolynomial msg = mods_p(convolutionZq(this->privateKey, e_msg));
+    ZqPolynomial msg_ = convolutionZq(this->privateKey, e_msg);
+    msg_.mods_q();
+    ZpPolynomial msg = mods_p(msg_);
     msg = msg*privateKeyInv_p;
 
     if(showDecryptionTime) {
@@ -1596,26 +1588,69 @@ Encryption::Statistics::Data::Data(const char data[], size_t size){
     this->Correlation= this->correlation(data, size, 1);
 }
 
+static void printHex(const char a[], size_t size, const char front[] = "", const char back[] = ""){
+    size_t sz = size > 0 ? size - 1: 0;
+    size_t i;
+    unsigned char ua;
+    std::cout << front;
+    printf("[");
+    for(i = 0; i < sz; i++){
+        ua = (unsigned char)a[i];
+        if(ua < 0x10) printf("0");
+        printf("%X", ua);
+    }
+    ua = (unsigned char)a[i];
+    if(ua < 0x10) printf("0");
+    printf("%X", ua);
+    printf("]");
+    std::cout << back;
+}
+
 Encryption::Statistics::Data Encryption::Statistics::Data::encryption(NTRU_N N,NTRU_q q){
     Encryption e(N, q);
-    size_t blkSZ = e.plainTextMaxSizeInBytes() - 1;
-    size_t ciphBlkSz = e.cipherTextSizeInBytes() - 1;
+    size_t blkSZ          = e.plainTextMaxSizeInBytes() - 1;
+    size_t ciphBlkSz      = e.cipherTextSizeInBytes() - 1;
     size_t numberOfRounds = NUMBEROFROUNDS >> 4;
-    size_t dummy_len = blkSZ*numberOfRounds, i, j, k;
-    size_t encbt_len = ciphBlkSz*numberOfRounds + 1;
-    char* dummy = new char[dummy_len];
+    size_t dummy_len      = blkSZ*numberOfRounds, i, j, k, l, t, r;
+    size_t dummy_enc_len  = ciphBlkSz*numberOfRounds + 1;
+    char* dummy           = new char[dummy_len];
+    char* dummy_enc       = new char[dummy_enc_len];
+    char* dummy_dec       = new char[blkSZ+1];
     ZqPolynomial enc;
-    char* encbt = new char[encbt_len];
+    ZpPolynomial dec;
 
-    for(i = 0, k = 0; i < numberOfRounds; i++)
-        for(j = 0; j < blkSZ; j++) dummy[k++] = (char)(randomIntegersN() & 255);
-    for(i = 0, j = 0, k = 0; i < dummy_len; i += blkSZ, j += ciphBlkSz, k++) {
-        if((k&7)==0) std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Data Encryption::Statistics::Data::encryption(): Round " << i << std::endl;
+    for(i = 0, k = 0; i < numberOfRounds; i++) for(j = 0; j < blkSZ; j++, k++) {if(j < blkSZ - 16) dummy[k] = (char)(i & 255); else dummy[k] = 0;}
+    for(i = 0; i < dummy_enc_len; i++) dummy_enc[i] = 0;
+    for(i = 0; i < blkSZ+1; i++) dummy_dec[i] = 0;
+
+    for(i = 0, j = 0, k = 0, r = 0; i < dummy_len; i += blkSZ, j += ciphBlkSz, k++) {
+        if((k&7)==0) {
+            std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Data Encryption::Statistics::Data::encryption(): Round " << i << ", ";
+            std::cout << "N = " << NTRUparameters.get_N() << ", q = " << zq.get_q() << std::endl;
+        }
         enc = e.encrypt(dummy + i, blkSZ);
-        enc.toBytes(encbt + j);
+        enc.toBytes(dummy_enc + j);
+        enc = ZqPolynomial(dummy_enc + j, ciphBlkSz + 1);
+        dec = e.decrypt(enc);
+        dec.toBytes(dummy_dec);
+        for(l = 0, t = i; l < blkSZ; l++, t++){
+            if(dummy[t] != dummy_dec[l]) {
+                std::cout << "At block " << k << ": Decryption failure in byte number " << l << std::endl; // -Showing firs decryption failure
+                std::cout << "SZ = " << blkSZ << '\n';
+                printHex(dummy+i, 16,               "Block[i][0,16]      = ", "  ");
+                printHex(dummy+(i+blkSZ-16), 16,    "Block[i][SZ-16,SZ-1]      = ", "\n");
+                printHex(dummy_dec, 16,             "Dec(Block[i])[0,16] = ", "  ");
+                printHex(dummy_dec+(blkSZ-16),16,   "Dec(Block[i])[SZ-16,SZ-1] = ", "\n");
+                r++;
+                break;
+            }
+        }
     }
-    Encryption::Statistics::Data stats(encbt, encbt_len);
+    std::cout << "Total amount of rounds: " << numberOfRounds << '\n';
+    std::cout << "Total amount of decryption failures: " << r << std::endl;
+    Encryption::Statistics::Data stats(dummy_enc, dummy_enc_len);
     delete[] dummy;
-
+    delete[] dummy_enc;
+    delete[] dummy_dec;
     return stats;
 }

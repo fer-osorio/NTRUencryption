@@ -185,7 +185,6 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 	ZqPolynomial operator + (const ZqPolynomial& P) const;
 	ZqPolynomial operator - (const ZqPolynomial& P) const;
 	ZqPolynomial operator * (const ZqPolynomial& P) const;
-	//ZqPolynomial operator * (const ZpPolynomial& P) const;			// This function sees the ZpPolynomial as a ZqPolynomial
 	friend ZqPolynomial operator - (int64_t, const ZqPolynomial&);
 	bool operator == (const Z2Polynomial& P) const;
 	bool operator == (int64_t t) const {
@@ -265,9 +264,11 @@ class Encryption {
 			double average( const uint32_t time_data[], size_t size) const;
 			double variance(const uint32_t time_data[], size_t size) const;
 			double avrAbsDev( const uint32_t time_data[], size_t size) const;
+
 			Time(const uint32_t time_data[], size_t size);
 
 			public:
+			Time(){}
 			double getMaximum() const{ return this->Maximum; }
 			double getMinimum() const{ return this->Minimum; }
 			double getAverage() const{ return this->Average; }
@@ -281,10 +282,14 @@ class Encryption {
 			private:
 			double Entropy = 0.0;
 			double Correlation = 10.0;
+
 			double entropy(const char data[], size_t size);
 			double correlation(const char data[], size_t size, size_t offset);
+
 			Data(const char data[], size_t size);
+
 			public:
+			Data(){}
 			double getEntropy() const{ return this->Entropy; }
 			double getCorrelation() const { return this->Correlation; }
 			static Data encryption(NTRU_N,NTRU_q);
