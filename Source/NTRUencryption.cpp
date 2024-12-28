@@ -2,6 +2,7 @@
 #include<random>
 #include<chrono>
 #include<ctime>
+#include<cstring>
 #include<exception>
 #include"NTRUencryption.hpp"
 
@@ -210,16 +211,16 @@ ZpPolynomial::ZpPolynomial(const char data[], int dataLength) {
 
     this->coefficients = new Z3[N];
     for(i = 0; i < N; i++) this->coefficients[i] = _0_;
-    if(dataLength <= 0) return;                                                 // Guarding against negative or null dataLength
+    if(dataLength <= 0) return;                                                 // -Guarding against negative or null dataLength
 
-    for(i = 0, j = 0; i < dataLength && j < N; i++) {                           // i will run through data, j through coefficients
+    for(i = 0, j = 0; i < dataLength && j < N; i++) {                           // -i will run through data, j through coefficients
         l = (int)(unsigned char)data[i];
-        for(k = 0; k < 5 && j < N; k++, l/=3) {                                 // Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
-            switch(l%3) {                                                       // in big endian notation. Notice that the maximum value allowed is 242
-                case  1:
-                    this->coefficients[j++] = _1_;
-                break;
-                case  2:
+        for(k = 0; k < 5 && j < N; k++, l/=3) {                                 // -Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
+            switch(l%3) {                                                       //  in big endian notation. Notice that the maximum value allowed is 242
+                case  1:                                                        // -One idea to solve this issue is to have a "flag" value, say 242. Suppose b is
+                    this->coefficients[j++] = _1_;                              //  a byte such that b >= 242; then we can write b = 242 + (b - 242). The
+                break;                                                          //  inequality 0 <= b - 242 <= 13 holds, so we will need 3 3-base digits to write
+                case  2:                                                        //  that new value.
                     this->coefficients[j++] = _2_;
                 break;
                 default:
@@ -1254,9 +1255,12 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
     this->validPrivateKey = isPrivateKey;                                       // -Only encryption if we got just the public key
 }
 
-size_t Encryption::plainTextMaxSizeInBytes() const{ return size_t(this->N/5 + 1); }     // -Notice the fact maximum size for plain text and the size of the private key
-size_t Encryption::cipherTextSizeInBytes()   const{ return size_t(this->N*ZqPolynomial::log2(this->q)/8 + 1); }//  (in bytes) is the same, and that is because they are
-size_t Encryption::privateKeySizeInBytes()   const{ return size_t(this->N/5 + 1); }     //  both ZpPolynomials. The same is true for the cipher text and the public key
+size_t Encryption::plainTextMaxSizeInBytes() const{ return size_t(this->N/5); } // -Notice: The maximum size for plain text and the size of the private key
+                                                                                //  differs in one, and that is because, even when they are both ZpPolynomials,
+                                                                                //  private key has allways a fixed length, and needs a last byte to allocate the
+                                                                                //  last this->N%5 coefficients (last expression is not zero because N is prime).
+size_t Encryption::cipherTextSizeInBytes()   const{ return size_t(this->N*ZqPolynomial::log2(this->q)/8 + 1); }
+size_t Encryption::privateKeySizeInBytes()   const{ return size_t(this->N/5 + 1); }
 size_t Encryption::publicKeySizeInBytes()    const{ return size_t(this->N*ZqPolynomial::log2(this->q)/8 + 1); }
 
 void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const{
@@ -1608,45 +1612,82 @@ static void printHex(const char a[], size_t size, const char front[] = "", const
 
 Encryption::Statistics::Data Encryption::Statistics::Data::encryption(NTRU_N N,NTRU_q q){
     Encryption e(N, q);
-    size_t blkSZ          = e.plainTextMaxSizeInBytes() - 1;
-    size_t ciphBlkSz      = e.cipherTextSizeInBytes() - 1;
-    size_t numberOfRounds = NUMBEROFROUNDS >> 4;
-    size_t dummy_len      = blkSZ*numberOfRounds, i, j, k, l, t, r;
-    size_t dummy_enc_len  = ciphBlkSz*numberOfRounds + 1;
-    char* dummy           = new char[dummy_len];
-    char* dummy_enc       = new char[dummy_enc_len];
-    char* dummy_dec       = new char[blkSZ+1];
+    const size_t blkSz          = e.plainTextMaxSizeInBytes();
+    const size_t ciphBlkSz      = e.cipherTextSizeInBytes();
+    const size_t dummy_len      = 256*256*3;                                    // -dummy_len is equivalent to the size of a 256*256 pixels image
+    const size_t numberOfRounds = dummy_len/blkSz;
+    const size_t lastDummyBlkSz = dummy_len % blkSz;
+    const size_t dummy_enc_len  = ciphBlkSz*(numberOfRounds + 1);
+    char* dummy       = new char[dummy_len];
+    char* dummy_enc   = new char[dummy_enc_len];
+    char* dummy_dec   = new char[blkSz+1];
     ZqPolynomial enc;
     ZpPolynomial dec;
+    size_t i, j, k, l, t, r;
+    int    a = 0;
 
-    for(i = 0, k = 0; i < numberOfRounds; i++) for(j = 0; j < blkSZ; j++, k++) {if(j < blkSZ - 16) dummy[k] = (char)(i & 255); else dummy[k] = 0;}
+    for(i = 0, j = 0, k = 0, l = blkSz*2 - 1; i < dummy_len; i++, j++) {
+        if(j == l) { j = 0; k++; }
+        if(k == 243) k = 0;                                                     // -Without this if there are some decryption failures
+        dummy[i] = k;
+    }
     for(i = 0; i < dummy_enc_len; i++) dummy_enc[i] = 0;
-    for(i = 0; i < blkSZ+1; i++) dummy_dec[i] = 0;
+    for(i = 0; i < blkSz+1; i++) dummy_dec[i] = 0;
 
-    for(i = 0, j = 0, k = 0, r = 0; i < dummy_len; i += blkSZ, j += ciphBlkSz, k++) {
-        if((k&7)==0) {
-            std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Data Encryption::Statistics::Data::encryption(): Round " << i << ", ";
-            std::cout << "N = " << NTRUparameters.get_N() << ", q = " << zq.get_q() << std::endl;
-        }
-        enc = e.encrypt(dummy + i, blkSZ);
+    std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Data Encryption::Statistics::Data::encryption(): Block size set as " << blkSz << '\n';
+
+    for(i = 0, j = 0, k = 0, r = 0; k < numberOfRounds; i += blkSz, j += ciphBlkSz, k++) {
+        if((k&7)==0) std::cout << "Encryption::Statistics::Data::encryption(): Round " << k << std::endl;
+        enc = e.encrypt(dummy + i, blkSz);
         enc.toBytes(dummy_enc + j);
-        enc = ZqPolynomial(dummy_enc + j, ciphBlkSz + 1);
+        enc = ZqPolynomial(dummy_enc + j, ciphBlkSz);
         dec = e.decrypt(enc);
         dec.toBytes(dummy_dec);
-        for(l = 0, t = i; l < blkSZ; l++, t++){
+        for(l = 0, t = i; l < blkSz; l++, t++){
             if(dummy[t] != dummy_dec[l]) {
-                std::cout << "At block " << k << ": Decryption failure in byte number " << l << std::endl; // -Showing firs decryption failure
-                std::cout << "SZ = " << blkSZ << '\n';
-                printHex(dummy+i, 16,               "Block[i][0,16]      = ", "  ");
-                printHex(dummy+(i+blkSZ-16), 16,    "Block[i][SZ-16,SZ-1]      = ", "\n");
-                printHex(dummy_dec, 16,             "Dec(Block[i])[0,16] = ", "  ");
-                printHex(dummy_dec+(blkSZ-16),16,   "Dec(Block[i])[SZ-16,SZ-1] = ", "\n");
+                a = (int)l*2 - 4;
+                std::cout << "At block " << k << ": Decryption failure in byte number " << "l = " << l << std::endl; // -Showing firs decryption failure
+                if(l < 8) {
+                    printHex(dummy+i,  16, "Block[0,16]           = ", "\n");
+                    printHex(dummy_dec,16, "Dec(Enc(Block))[0,16] = ", "\n");
+                    if(a > 0) for(; a > 0; a--) std::cout << ' ';
+                    std::cout <<           " First occurrence here ~~^" << std::endl;
+                } else if(blkSz - l < 8) {
+                    printHex(dummy+(i+blkSz-16),  16, "Block[SZ-16,SZ-1]           = ", "\n");
+                    printHex(dummy_dec+(blkSz-16),16, "Dec(Enc(Block))[SZ-16,SZ-1] = ", "\n");
+                    if(a > 0) for(; a > 0; a--) std::cout << ' ';
+                    std::cout <<                      "       First occurrence here ~~^" << std::endl;
+                } else{
+                    printHex(dummy+(i-8),    17, "Block[l-8,l+8]           = ", "\n");
+                    printHex(dummy_dec+(l-8),17, "Dec(Enc(Block))[l-8,l+8] = ", "\n");
+                    for(a = 0; a <16; a++) std::cout << ' ';
+                    std::cout <<                 "    First occurrence here ~~^" << std::endl;
+                }
                 r++;
                 break;
             }
         }
     }
-    std::cout << "Total amount of rounds: " << numberOfRounds << '\n';
+    if(lastDummyBlkSz != 0){
+        enc = e.encrypt(dummy + i, lastDummyBlkSz);
+        enc.toBytes(dummy_enc + j);
+        enc = ZqPolynomial(dummy_enc + j, ciphBlkSz);
+        dec = e.decrypt(enc);
+        dec.toBytes(dummy_dec);
+        for(l = 0, t = i; l < lastDummyBlkSz; l++, t++){
+            if(dummy[t] != dummy_dec[l]) {
+                std::cout << "At block " << k << ": Decryption failure in byte number " << l << std::endl; // -Showing firs decryption failure
+                std::cout << "SZ = " << blkSz << '\n';
+                printHex(dummy+i, 16,               "Block[i][0,16]      = ", "  ");
+                printHex(dummy+(i+blkSz-16), 16,    "Block[i][SZ-16,SZ-1]      = ", "\n");
+                printHex(dummy_dec, 16,             "Dec(Block[i])[0,16] = ", "  ");
+                printHex(dummy_dec+(blkSz-16),16,   "Dec(Block[i])[SZ-16,SZ-1] = ", "\n");
+                r++;
+                break;
+            }
+        }
+    }
+    std::cout << "Total amount of rounds: " << (lastDummyBlkSz == 0 ? numberOfRounds : numberOfRounds + 1) << '\n';
     std::cout << "Total amount of decryption failures: " << r << std::endl;
     Encryption::Statistics::Data stats(dummy_enc, dummy_enc_len);
     delete[] dummy;
