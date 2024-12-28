@@ -137,7 +137,8 @@ Use ``make`` commands to build the executables.
 
 1. ``make NTRUencryption.exe`` to build executable for encryption.
 2. ``make NTRUdecryption.exe`` to build executable for decryption.
-3. ``make`` to build both.
+3. ``make Statistics.exe`` to build executable for statistics.
+4. ``make`` to build both.
 
 Optionally, you can run the following commands on your terminal (command prompt on Windows)
 
@@ -153,6 +154,13 @@ For NTRUdecryption.exe:
 # This is, literally, the command that "make NTRUdecryption.exe" calls.
 g++ -o Apps/Executables/NTRUdecryption.exe -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors -ggdb -fno-omit-frame-pointer -O2 -std=c++2a
 Apps/decryption.cpp Apps/Settings.cpp Source/*.cpp
+```
+
+For Statistics.exe:
+```
+# This is, literally, the command that "make Statistics.exe" calls.
+g++ -o Apps/Executables/Statistics.exe -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors -ggdb -fno-omit-frame-pointer -O2 -std=c++2a
+Apps/Statistics.cpp Source/*.cpp
 ```
 
 These last two commands are convenient if you do not have ``make`` installed.
