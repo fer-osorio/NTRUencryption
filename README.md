@@ -96,7 +96,68 @@ ZpPolynomial decrypt(const char bytes[] ,int size, bool showEncryptionTime = fal
 Encryption and decryption process will succeed if and only if the Encryption objects used in each end have the
 identical public and private keys.
 
+#  Compilation
+
+### Before doing anything, I am assuming:
+
+1. You have installed GNU ``g++`` compiler.
+2. The command-line interface software GNU ``Make`` is installed in your computer.
+
+In order to check if you have ``g++`` available you can run:
+
+- For Windows:
+    - Open command prompt; one way to do this is searching *cmd* in Start menu.
+    - Type ``g++ --version`` and press enter.
+
+- For macOS and Linux:
+    - Open terminal application.
+    - Type ``g++ --version`` and press enter.
+
+If you do not have this compiler installed, I strongly recommend you to install the GNU compiler collection (GCC). Installation
+instructions can be found here:
+[Linux](https://www.geeksforgeeks.org/how-to-install-gcc-compiler-on-linux/), 
+[MacOS](https://cs.millersville.edu/~gzoppetti/InstallingGccMac.html),
+[Windows](https://www.ibm.com/docs/en/devops-test-embedded/9.0.0?topic=overview-installing-recommended-gnu-compiler-windows).
+
+To verify if you hame GNU ``make`` installed:
+
+- For Linux and macOS:
+    - Open terminal application.
+    - Type ``make --version``
+
+To install GNU ``make``, you can follow the instructions of the following links:
+[Windows](https://stackoverflow.com/a/57042516), 
+[MacOS](https://ipv6.rs/tutorial/macOS/GNU_Make/)
+
+**Important**: From this point I am assuming you are in the inside the ``Executables`` directory.
+
+## Use make commands
+
+Use ``make`` commands to build the executables.
+
+1. ``make NTRUencryption.exe`` to build executable for encryption.
+2. ``make NTRUdecryption.exe`` to build executable for decryption.
+3. ``make`` to build both.
+
+Optionally, you can run the following commands on your terminal (command prompt on Windows)
+
+For NTRUencryption.exe:
+```
+# This is, literally, the command that "make NTRUencryption.exe" calls.
+g++ -o Apps/Executables/NTRUencryption.exe -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors -ggdb -fno-omit-frame-pointer -O2 -std=c++2a
+Apps/encryption.cpp Apps/Settings.cpp Source/*.cpp
+```
+
+For NTRUdecryption.exe:
+```
+# This is, literally, the command that "make NTRUdecryption.exe" calls.
+g++ -o Apps/Executables/NTRUdecryption.exe -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors -ggdb -fno-omit-frame-pointer -O2 -std=c++2a
+Apps/decryption.cpp Apps/Settings.cpp Source/*.cpp
+```
+
+These last two commands are convenient if you do not have ``make`` installed.
+
 # Executable Files
 
-Two executables can be created in [Executables](Apps/Executables) directory. Instructions for the building of this files can be found 
+The executables are located in [Executables](Apps/Executables) directory. Instructions for passing arguments to them can be found
 [here](Apps/Executables/README.md)
