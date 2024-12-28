@@ -1610,11 +1610,26 @@ static void printHex(const char a[], size_t size, const char front[] = "", const
     std::cout << back;
 }
 
+/*                                                                              // Relation between cipher text length in bytes and plain text in bytes
+pt_len = N/5                                                                    // Ideal
+ct_len = N*log_2(q)/8 + 1 = N*(log_2(q)/8 + 1/N)                                // ...
+pt_len/ct_len = [N/5]/[N*(log_2(q)/8 + 1/N)]                                    // ...
+		  = [1/5]/[log_2(q)/8 + 1/N]
+		  = 1/[5*(N*log_2(q) + 8)/(8*N)]
+		  = 8*N/[5*(N*log_2(q) + 8)]
+
+pt_len/ct_len = [N/5]/[N*(log_2(q)/8]                                           // Truncated
+		  = [1/5]/[log_2(q)/8]                                                  // ...
+		  = 8/[5*log_2(q)]
+
+pt_len = 8*ct_len/[5*log_2(q)]                                                  // ...
+*/
+
 Encryption::Statistics::Data Encryption::Statistics::Data::encryption(NTRU_N N,NTRU_q q){
     Encryption e(N, q);
     const size_t blkSz          = e.plainTextMaxSizeInBytes();
     const size_t ciphBlkSz      = e.cipherTextSizeInBytes();
-    const size_t dummy_len      = 256*256*3;                                    // -dummy_len is equivalent to the size of a 256*256 pixels image
+    const size_t dummy_len      = 8*256*256*3/(5*(size_t)ZqPolynomial::log2(q));// -dummy_len is equivalent to the size of a 256*256 pixels image
     const size_t numberOfRounds = dummy_len/blkSz;
     const size_t lastDummyBlkSz = dummy_len % blkSz;
     const size_t dummy_enc_len  = ciphBlkSz*(numberOfRounds + 1);
@@ -1634,7 +1649,9 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(NTRU_N N,N
     for(i = 0; i < dummy_enc_len; i++) dummy_enc[i] = 0;
     for(i = 0; i < blkSz+1; i++) dummy_dec[i] = 0;
 
-    std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Data Encryption::Statistics::Data::encryption(): Block size set as " << blkSz << '\n';
+    std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Data::encryption(): "
+                 "Dummy data length = " << dummy_len << ". Encrypted dummy length = " << dummy_enc_len << ". Block size = " << blkSz << '\n';
+
 
     for(i = 0, j = 0, k = 0, r = 0; k < numberOfRounds; i += blkSz, j += ciphBlkSz, k++) {
         if((k&7)==0) std::cout << "Encryption::Statistics::Data::encryption(): Round " << k << std::endl;
