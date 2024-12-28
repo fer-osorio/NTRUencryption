@@ -68,6 +68,8 @@ int main(int argc, const char* argv[]){
     NTRU::Encryption::Statistics::Time ch;
     NTRU::Encryption::Statistics::Data dt;
 
+    std::cout << '\n';
+
     switch(opt_C){
         case 0:
             std::cout << "Computing Statistics::Time::keyGeneration(" << N << ", " << q << ")\n";
@@ -94,28 +96,29 @@ int main(int argc, const char* argv[]){
             break;
     }
 
+    std::cout << "Parameters:: N = "<< N << ", q = " << q << " ------------------------------------" << std::endl;
+    std::cout << std::fixed << std::setprecision(5) <<std::endl;
+
     if(opt_C == 0 || opt_C == 3){
-        std::cout << "Parameters:: N = "<< N << ", q = " << q << " ------------------------------------" << std::endl;
-        std::cout << std::fixed << std::setprecision(5) <<std::endl;
-        std::cout << "Key Generation:" << std::endl;
+        std::cout << "Key Generation time statistics (microseconds):" << std::endl;
         std::cout << "Maximum: " << kg.getMaximum() << '\n';
         std::cout << "Minimum: " << kg.getMinimum() << '\n';
         std::cout << "Average: " << kg.getAverage() << '\n';
-        std::cout << "Standard deviation: " << sqrt(kg.getMaximum()) << '\n';
+        std::cout << "Standard deviation: " << sqrt(kg.getVariance()) << '\n';
         std::cout << "Average Absolute Deviation: " << kg.getAAD() << '\n' << std::endl;
     }
 
     if(opt_C == 1 || opt_C == 3){
-        std::cout << "Encryption:" << std::endl;
+        std::cout << "Encryption time statistics (microseconds):" << std::endl;
         std::cout << "Maximum: " << ch.getMaximum() << '\n';
         std::cout << "Minimum: " << ch.getMinimum() << '\n';
         std::cout << "Average: " << ch.getAverage() << '\n';
-        std::cout << "Standard deviation: " << sqrt(ch.getMaximum()) << '\n';
+        std::cout << "Standard deviation: " << sqrt(ch.getVariance()) << '\n';
         std::cout << "Average Absolute Deviation: " << ch.getAAD() << '\n' << std::endl;
     }
 
     if(opt_C == 2 || opt_C == 3){
-        std::cout << "Data: " << std::endl;
+        std::cout << "Encrypted data statistics: " << std::endl;
         std::cout << "Entropy: " << dt.getEntropy() << '\n';
         std::cout << "Correlation: " << dt.getCorrelation() << '\n' << std::endl;
     }
