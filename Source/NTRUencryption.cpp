@@ -1348,9 +1348,9 @@ void Encryption::setKeys(bool showKeyCreationTime) {
         if((counter & 1) == 0)  this->privateKey.interchangeZeroFor(ZpPolynomial::_1_);
         else                    this->privateKey.interchangeZeroFor(ZpPolynomial::_2_);
         Z2_privateKey = this->privateKey;
-        if((counter&3)==0){
-            std::cout << "Source/NTRUencryption.cpp; void Encryption::setKeys(bool showKeyCreationTime). Counter = " << counter << "\n";
-        }
+        //if((counter&3)==0){
+            //std::cout << "Source/NTRUencryption.cpp; void Encryption::setKeys(bool showKeyCreationTime). Counter = " << counter << "\n";
+        //}
         try{ Zp_gcdXNmns1 = this->privateKey.gcdXNmns1(this->privateKeyInv_p); }
         catch(const std::runtime_error&) {
             cerrMessageBeforeReThrow(thisFunc);
