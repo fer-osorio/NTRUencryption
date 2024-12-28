@@ -18,7 +18,7 @@ static std::string selectNTRU_q =
 std::string("Select NTRU_q parameter:\n") + NTRU_q_valuesList + "\n";
 
 static std::string statsCategory =
-"(0) Key Generation \n(1) Ciphering \n(2) Data\n(3) All\n";
+"What statistics do you want to get?\n(0) Key Generation time \n(1) Ciphering time \n(2) Encrypted data\n(3) All\n";
 
 static const char invalidInputMsg[] = "\nInvalid input. Try again.\n";
 
