@@ -5,6 +5,19 @@
 #include<cstring>
 #include<exception>
 #include"NTRUencryption.hpp"
+#ifdef _MSC_VER
+# include <intrin.h>
+#else
+# include <x86intrin.h>
+#endif
+
+// optional wrapper if you don't want to just use __rdtsc() everywhere
+static uint64_t readTSC() {
+    // _mm_lfence();  // optionally wait for earlier insns to retire before reading the clock
+    uint64_t tsc = __rdtsc();
+    // _mm_lfence();  // optionally block later instructions until rdtsc retires
+    return tsc;
+}
 
 #define DECIMAL_BASE 10
 #define NUMBEROFROUNDS 2048
@@ -1467,7 +1480,7 @@ ZpPolynomial Encryption::decrypt(const char bytes[], int size, bool showEncrypti
 
 /************************************************************************* Statistics ****************************************************************************/
 
-Encryption::Statistics::Time::Time(const uint32_t time_data[], size_t size){
+Encryption::Statistics::Time::Time(const uint64_t time_data[], size_t size){
     this->Maximum = this->maximum(time_data, size);
     this->Minimum = this->minimum(time_data, size);
     this->Average = this->average(time_data, size);
@@ -1475,26 +1488,26 @@ Encryption::Statistics::Time::Time(const uint32_t time_data[], size_t size){
     this->AvrAbsDev=this->avrAbsDev(time_data, size);
 }
 
-double Encryption::Statistics::Time::maximum(const uint32_t time_data[], size_t size) const{
-    uint32_t max = time_data[0];
+double Encryption::Statistics::Time::maximum(const uint64_t time_data[], size_t size) const{
+    uint64_t max = time_data[0];
     for(size_t i = 0; i < size; i++) if(max < time_data[i]) max = time_data[i];
     return max;
 }
 
-double Encryption::Statistics::Time::minimum(const uint32_t time_data[], size_t size) const{
-    uint32_t min = time_data[0];
+double Encryption::Statistics::Time::minimum(const uint64_t time_data[], size_t size) const{
+    uint64_t min = time_data[0];
     for(size_t i = 0; i < size; i++) if(min > time_data[i]) min = time_data[i];
     return min;
 }
 
-double Encryption::Statistics::Time::average(const uint32_t data[], size_t size) const{
+double Encryption::Statistics::Time::average(const uint64_t data[], size_t size) const{
     double avr = 0.0;
     for(size_t i = 0; i < size; i++) avr += (double)data[i];
     avr /= (double)size;
     return avr;
 }
 
-double Encryption::Statistics::Time::variance(const uint32_t time_data[], size_t size) const{
+double Encryption::Statistics::Time::variance(const uint64_t time_data[], size_t size) const{
     double var = 0.0;
     double avr = this->average(time_data, size);
     for(size_t i = 0; i < size; i++) {
@@ -1504,7 +1517,7 @@ double Encryption::Statistics::Time::variance(const uint32_t time_data[], size_t
     return var;
 }
 
-double Encryption::Statistics::Time::avrAbsDev(const uint32_t time_data[], size_t size) const{
+double Encryption::Statistics::Time::avrAbsDev(const uint64_t time_data[], size_t size) const{
     double aad = 0.0, buff = 0.0;
     double avr = this->average(time_data, size);
     for(size_t i = 0; i < size; i++) {
@@ -1516,37 +1529,37 @@ double Encryption::Statistics::Time::avrAbsDev(const uint32_t time_data[], size_
 }
 
 Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(NTRU_N N,NTRU_q q){
-    std::chrono::steady_clock::time_point begin;
-    std::chrono::steady_clock::time_point end;
-	uint32_t times[NUMBEROFROUNDS], i;
+    uint64_t begin;
+    uint64_t end;
+	uint64_t times[NUMBEROFROUNDS], i;
 	Encryption e(N, q);
 
 	for(i = 0; i < NUMBEROFROUNDS; i++, e.privateKey = ZpPolynomial::getPosiblePrivateKey()){
         if((i&31)==0)std::cout<<"Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(): Round " << i << std::endl;
-	    begin= std::chrono::steady_clock::now();
+	    begin = readTSC();
 	    e.setKeys();
-	    end  = std::chrono::steady_clock::now();
-	    times[i] = std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
+	    end   = readTSC();
+	    times[i] = end-begin;
     }
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
 }
 
 Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(NTRU_N N,NTRU_q q){
-    std::chrono::steady_clock::time_point begin;
-    std::chrono::steady_clock::time_point end;
+    uint64_t begin;
+    uint64_t end;
     Encryption e(N, q);
     size_t dummy_sz = e.plainTextMaxSizeInBytes(), i;
-    uint32_t times[NUMBEROFROUNDS];
+    uint64_t times[NUMBEROFROUNDS];
     char* dummy = new char[dummy_sz];
 
     for(i = 0; i < dummy_sz; i++) dummy[i] = (char)i;
 
     for(i = 0; i < NUMBEROFROUNDS; i++){
         if((i&63) == 0) std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(): Round " << i << std::endl;
-	    begin= std::chrono::steady_clock::now();
+	    begin = readTSC();
 	    e.encrypt(dummy, dummy_sz);
-	    end  = std::chrono::steady_clock::now();
-	    times[i] = std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
+	    end    = readTSC();
+	    times[i] = end-begin;
     }
     delete[] dummy;
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);

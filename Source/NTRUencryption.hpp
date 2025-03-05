@@ -259,13 +259,13 @@ class Encryption {
 			double Variance =  0.0;
 			double AvrAbsDev=  0.0;
 
-			double maximum( const uint32_t time_data[], size_t size) const;
-			double minimum( const uint32_t time_data[], size_t size) const;
-			double average( const uint32_t time_data[], size_t size) const;
-			double variance(const uint32_t time_data[], size_t size) const;
-			double avrAbsDev( const uint32_t time_data[], size_t size) const;
+			double maximum( const uint64_t time_data[], size_t size) const;
+			double minimum( const uint64_t time_data[], size_t size) const;
+			double average( const uint64_t time_data[], size_t size) const;
+			double variance(const uint64_t time_data[], size_t size) const;
+			double avrAbsDev( const uint64_t time_data[], size_t size) const;
 
-			Time(const uint32_t time_data[], size_t size);
+			Time(const uint64_t time_data[], size_t size);
 
 			public:
 			Time(){}
