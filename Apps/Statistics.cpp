@@ -100,7 +100,7 @@ int main(int argc, const char* argv[]){
     std::cout << std::fixed << std::setprecision(5) <<std::endl;
 
     if(opt_C == 0 || opt_C == 3){
-        std::cout << "Key Generation time statistics (microseconds):" << std::endl;
+        std::cout << "Key Generation time statistics (Cycles):" << std::endl;
         std::cout << "Maximum: " << kg.getMaximum() << '\n';
         std::cout << "Minimum: " << kg.getMinimum() << '\n';
         std::cout << "Average: " << kg.getAverage() << '\n';
@@ -109,7 +109,7 @@ int main(int argc, const char* argv[]){
     }
 
     if(opt_C == 1 || opt_C == 3){
-        std::cout << "Encryption time statistics (microseconds):" << std::endl;
+        std::cout << "Encryption time statistics (Cycles):" << std::endl;
         std::cout << "Maximum: " << ch.getMaximum() << '\n';
         std::cout << "Minimum: " << ch.getMinimum() << '\n';
         std::cout << "Average: " << ch.getAverage() << '\n';
