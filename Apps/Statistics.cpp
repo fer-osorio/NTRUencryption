@@ -120,7 +120,8 @@ int main(int argc, const char* argv[]){
     if(opt_C == 2 || opt_C == 3){
         std::cout << "Encrypted data statistics: " << std::endl;
         std::cout << "Entropy: " << dt.getEntropy() << '\n';
-        std::cout << "Correlation: " << dt.getCorrelation() << '\n' << std::endl;
+        std::cout << "Correlation: " << dt.getCorrelation() << '\n';
+        std::cout << "XiSquare: " << dt.getXiSquare() << '\n' << std::endl;
     }
 
     return 0;
