@@ -281,9 +281,15 @@ class Encryption {
 		struct Data{
 			private:
 			double Entropy = 0.0;
+			double XiSquare = 0.0;
 			double Correlation = 10.0;
 
+			uint32_t byteValueFrequence[256] = {0};
+			bool byteValueFrequenceStablisched = false;
+			void setbyteValueFrequence(const char data[], size_t size);
+
 			double entropy(const char data[], size_t size);
+			double xiSquare(const char data[], size_t size);
 			double correlation(const char data[], size_t size, size_t offset);
 
 			Data(const char data[], size_t size);
@@ -292,6 +298,7 @@ class Encryption {
 			Data(){}
 			double getEntropy() const{ return this->Entropy; }
 			double getCorrelation() const { return this->Correlation; }
+			double getXiSquare() const{ return this->XiSquare; }
 			static Data encryption(NTRU_N,NTRU_q);
 		};
 	};
