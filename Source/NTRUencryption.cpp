@@ -1005,7 +1005,7 @@ ZqPolynomial NTRU::convolutionZq(const Z2Polynomial& z2P, const ZpPolynomial& zp
 		        };
         }
     }
-    r.mods_q();                                                                 // Applying mods q
+    r.mod_q();                                                                 // Applying mods q
     return r;
 }
 
@@ -1023,7 +1023,7 @@ ZqPolynomial NTRU::convolutionZq(const Z2Polynomial& z2P, const ZqPolynomial& zq
 		        r.coefficients[k] += zqP.coefficients[j];
         }
     }
-    r.mods_q();                                                                 // Applying mods q
+    r.mod_q();                                                                 // Applying mods q
     return r;
 }
 
@@ -1049,7 +1049,7 @@ ZqPolynomial NTRU::convolutionZq(const ZpPolynomial& p1, const ZqPolynomial& p2)
 		    }
 		}
 	}
-	r.mods_q();                                                                 // Applying mods q
+	r.mod_q();                                                                 // Applying mods q
 	return r;
 }
 
@@ -1382,6 +1382,7 @@ void Encryption::setKeys(bool showKeyCreationTime) {
         this->publicKey = this->publicKey*(2 - convolutionZq(this->privateKey, this->publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
+    this->publicKey = convolutionZq(ZpPolynomial::randomTernary(), this->publicKey); // -Multiplicatioin by the g polynomial.
     this->publicKey.mods_q();
 	if(showKeyCreationTime) {
 	    end = std::chrono::steady_clock::now();
