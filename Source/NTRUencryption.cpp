@@ -1427,6 +1427,8 @@ void Encryption::setKeysFromPrivKey() {                                         
         this->publicKey = this->publicKey*(2 - convolutionZq(this->privateKey, this->publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
+    this->publicKey = convolutionZq(ZpPolynomial::randomTernary(), this->publicKey); // -Multiplicatioin by the g polynomial.
+    this->publicKey.mods_q();
     if(convolutionZq(this->privateKey, this->publicKey) != 1) {
         convolutionZq(this->privateKey, this->publicKey).println("this->publicKey*this->privateKey");
         cerrMessageBeforeThrow(thisFunc,"Public key inverse in Zq[x]/x^N-1 finding failed");
@@ -1570,8 +1572,10 @@ Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(NTRU_N N,NT
 
 
 void Encryption::Statistics::Data::setbyteValueFrequence(const char data[], size_t size){
-    if(!this->byteValueFrequenceStablisched) for(size_t i = 0; i < size; i++) this->byteValueFrequence[(uint8_t)data[i]]++;
-    this->byteValueFrequenceStablisched = true;
+    if(!this->byteValueFrequenceStablisched) {
+        for(size_t i = 0; i < size; i++) this->byteValueFrequence[(uint8_t)data[i]]++;
+        this->byteValueFrequenceStablisched = true;
+    }
 }
 
 double Encryption::Statistics::Data::entropy(const char data[], size_t size){
@@ -1657,14 +1661,16 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(NTRU_N N,N
     const size_t blockSize      = e.plainTextMaxSizeInBytes();                  // cipherTextSize = plainTextSize*5*log2(q)/8
     const size_t cipherBlockSize= e.cipherTextSizeInBytes();                    // cipherTextSize*numberOfRounds = 512*512*3 (size of a 256x256 pixel image)
     const size_t numberOfRounds = 8*3*512*512/(5*blockSize*(size_t)ZqPolynomial::log2(q));// (plainTextSize*5*log2(q)/8)*numberOfRounds = 512*512*3
-    const size_t dummyEncLen  = cipherBlockSize*numberOfRounds;                 // dummyLen = plainTextSize*numberOfRounds = 512*512*3*8/[5*log2(q)]
+    const size_t dummyEncLen  = cipherBlockSize*(numberOfRounds);               // dummyLen = plainTextSize*numberOfRounds = 512*512*3*8/[5*log2(q)]
     char* dummy       = new char[blockSize];                                    // numberOfRounds = dummyLen/plainTextSize
-    char* dummy_enc   = new char[dummyEncLen + 1];
-    char* dummy_dec   = new char[blockSize + 1];
+    char* dummy_enc   = new char[dummyEncLen];
+    char* dummy_dec   = new char[blockSize];
     ZqPolynomial enc;
     ZpPolynomial dec;
     size_t i, j, k, l, r;
     int    a = 0;
+
+    std::cout << "Encryption::Statistics::Data::encryption::Parameters: N = "<< NTRUparameters.get_N() << ", q = " << zq.get_q() << " --------------" << std::endl;
 
     for(i = 0; i < blockSize; i++)   dummy[i]     = 0;
     for(i = 0; i < dummyEncLen; i++) dummy_enc[i] = 0;
@@ -1712,6 +1718,7 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(NTRU_N N,N
     Encryption::Statistics::Data stats(dummy_enc, dummyEncLen);
     delete[] dummy;
     delete[] dummy_enc;
+    std::cout << "Source/NTRUencryption->Encryption::Statistics::Data::Data(const char data[], size_t size); line 1717" << std::endl;
     delete[] dummy_dec;
     return stats;
 }

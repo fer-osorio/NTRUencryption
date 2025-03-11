@@ -296,6 +296,23 @@ class Encryption {
 
 			public:
 			Data(){}
+			Data(const Data& d){
+				this->Entropy = d.Entropy;
+				this->XiSquare = d.XiSquare;
+				this->Correlation = d.Correlation;
+				for(int i = 0; i < 256; i++) this->byteValueFrequence[i] = d.byteValueFrequence[i];
+				this->byteValueFrequenceStablisched = d.byteValueFrequenceStablisched;
+			}
+			Data& operator = (const Data& d){
+				if(this!=&d){
+					this->Entropy = d.Entropy;
+					this->XiSquare = d.XiSquare;
+					this->Correlation = d.Correlation;
+					for(int i = 0; i < 256; i++) this->byteValueFrequence[i] = d.byteValueFrequence[i];
+					this->byteValueFrequenceStablisched = d.byteValueFrequenceStablisched;
+				}
+				return *this;
+			}
 			double getEntropy() const{ return this->Entropy; }
 			double getCorrelation() const { return this->Correlation; }
 			double getXiSquare() const{ return this->XiSquare; }
