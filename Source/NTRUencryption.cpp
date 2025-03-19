@@ -567,6 +567,11 @@ size_t ZpPolynomial::sizeInBytes() const{
     return size_t(NTRUparameters.get_N()/5 + 1);
 }
 
+void ZpPolynomial::writeCoeffZ3(char dest[]) const{
+    NTRU_N N = NTRUparameters.get_N();
+    for(int i = 0; i < N; i++) dest[i] = (char)this->coefficients[i];
+}
+
 void ZpPolynomial::toBytes(char dest[]) const{
     NTRU_N N = NTRUparameters.get_N();
     int i,j,k;

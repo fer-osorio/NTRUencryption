@@ -95,6 +95,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	friend ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&);
 
 	size_t sizeInBytes() const;
+	void writeCoeffZ3(char dest[]) const;
 	void toBytes(char dest[]) const;
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
