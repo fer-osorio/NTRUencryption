@@ -5,7 +5,7 @@
 #include<cstring>
 #include<exception>
 #include"NTRUencryption.hpp"
-#ifdef _MSC_VER
+/*#ifdef _MSC_VER
 # include <intrin.h>
 #else
 # include <x86intrin.h>
@@ -17,10 +17,10 @@ static uint64_t readTSC() {
     uint64_t tsc = __rdtsc();
     // _mm_lfence();  // optionally block later instructions until rdtsc retires
     return tsc;
-}
+}*/
 
 #define DECIMAL_BASE 10
-#define NUMBEROFROUNDS 2048
+#define NUMBEROFROUNDS 16384                                                    // 2^14
 
 static void cerrMessageBeforeThrow(const char callerFunction[], const char message[]) {
     std::cerr << "In file Source/NTRUencryption.cpp, function " << callerFunction << ": " << message << '\n';
@@ -1537,24 +1537,31 @@ double Encryption::Statistics::Time::avrAbsDev(const uint64_t time_data[], size_
 }
 
 Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(NTRU_N N,NTRU_q q){
-    uint64_t begin;
-    uint64_t end;
+    std::chrono::steady_clock::time_point begin;
+    std::chrono::steady_clock::time_point end;
+    /*uint64_t begin;
+    uint64_t end;*/
 	uint64_t times[NUMBEROFROUNDS], i;
 	Encryption e(N, q);
 
 	for(i = 0; i < NUMBEROFROUNDS; i++, e.privateKey = ZpPolynomial::getPosiblePrivateKey()){
         if((i&31)==0)std::cout<<"Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(): Round " << i << std::endl;
-	    begin = readTSC();
+	    begin= std::chrono::steady_clock::now();
 	    e.setKeys();
+	    end  = std::chrono::steady_clock::now();
+	    times[i] = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
+	    /*begin = readTSC();
 	    end   = readTSC();
-	    times[i] = end-begin;
+	    times[i] = end-begin;*/
     }
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
 }
 
 Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(NTRU_N N,NTRU_q q){
-    uint64_t begin;
-    uint64_t end;
+    std::chrono::steady_clock::time_point begin;
+    std::chrono::steady_clock::time_point end;
+    /*uint64_t begin;
+    uint64_t end;*/
     Encryption e(N, q);
     size_t dummy_sz = e.plainTextMaxSizeInBytes(), i;
     uint64_t times[NUMBEROFROUNDS];
@@ -1564,10 +1571,14 @@ Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(NTRU_N N,NT
 
     for(i = 0; i < NUMBEROFROUNDS; i++){
         if((i&63) == 0) std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(): Round " << i << std::endl;
-	    begin = readTSC();
+        begin= std::chrono::steady_clock::now();
+	    e.encrypt(dummy, dummy_sz);
+	    end  = std::chrono::steady_clock::now();
+	    times[i] = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
+	    /*begin = readTSC();
 	    e.encrypt(dummy, dummy_sz);
 	    end    = readTSC();
-	    times[i] = end-begin;
+	    times[i] = end-begin;*/
     }
     delete[] dummy;
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
