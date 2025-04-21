@@ -1584,6 +1584,33 @@ Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(NTRU_N N,NT
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
 }
 
+Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(NTRU_N N,NTRU_q q){
+    std::chrono::steady_clock::time_point begin;
+    std::chrono::steady_clock::time_point end;
+    /*uint64_t begin;
+    uint64_t end;*/
+    Encryption e(N, q);
+    size_t dummy_sz = e.cipherTextSizeInBytes(), i;
+    uint64_t times[NUMBEROFROUNDS];
+    char* dummy = new char[dummy_sz];
+
+    for(i = 0; i < dummy_sz; i++) dummy[i] = (char)i;
+
+    for(i = 0; i < NUMBEROFROUNDS; i++){
+        if((i&63) == 0) std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(): Round " << i << std::endl;
+        begin= std::chrono::steady_clock::now();
+	    e.decrypt(dummy, dummy_sz);
+	    end  = std::chrono::steady_clock::now();
+	    times[i] = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
+	    /*begin = readTSC();
+	    e.encrypt(dummy, dummy_sz);
+	    end    = readTSC();
+	    times[i] = end-begin;*/
+    }
+    delete[] dummy;
+    return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
+}
+
 //________________________________________________________________________ Encryption _____________________________________________________________________________
 
 

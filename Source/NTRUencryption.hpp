@@ -278,6 +278,7 @@ class Encryption {
 
 			static Time keyGeneration(NTRU_N,NTRU_q);
 			static Time ciphering(NTRU_N,NTRU_q);
+			static Time deciphering(NTRU_N,NTRU_q);
 		};
 		struct Data{
 			private:
