@@ -18,7 +18,7 @@ static std::string selectNTRU_q =
 std::string("Select NTRU_q parameter:\n") + NTRU_q_valuesList + "\n";
 
 static std::string statsCategory =
-"What statistics do you want to get?\n(0) Key Generation time \n(1) Ciphering time \n(2) Encrypted data\n(3) All\n";
+"What statistics do you want to get?\n(0) Key Generation time \n(1) Ciphering and deciphering time \n(2) Encrypted data\n(3) All\n";
 
 static const char invalidInputMsg[] = "\nInvalid input. Try again.\n";
 
@@ -65,7 +65,7 @@ int main(int argc, const char* argv[]){
     NTRU_q q = NTRU_q_values[opt_q];
 
     NTRU::Encryption::Statistics::Time kg;
-    NTRU::Encryption::Statistics::Time ch;
+    NTRU::Encryption::Statistics::Time ch, dc;
     NTRU::Encryption::Statistics::Data dt;
 
     std::cout << '\n';
@@ -78,7 +78,9 @@ int main(int argc, const char* argv[]){
             break;
         case 1:
             std::cout << "Computing Statistics::Time::ciphering(" << N << ", " << q << ")\n";
+            std::cout << "Computing Statistics::Time::deciphering(" << N << ", " << q << ")\n";
             ch = NTRU::Encryption::Statistics::Time::ciphering(N,q);
+            dc = NTRU::Encryption::Statistics::Time::deciphering(N,q);
             std::cout << std::endl;
             break;
         case 2:
@@ -92,6 +94,7 @@ int main(int argc, const char* argv[]){
             std::cout << "Computing Statistics::Data::encryption(" << N << ", " << q << ")\n";
             kg = NTRU::Encryption::Statistics::Time::keyGeneration(N,q);
             ch = NTRU::Encryption::Statistics::Time::ciphering(N,q);
+            dc = NTRU::Encryption::Statistics::Time::deciphering(N,q);
             dt = NTRU::Encryption::Statistics::Data::encryption(N,q);
             break;
     }
@@ -100,7 +103,7 @@ int main(int argc, const char* argv[]){
     std::cout << std::fixed << std::setprecision(5) <<std::endl;
 
     if(opt_C == 0 || opt_C == 3){
-        std::cout << "Key Generation time statistics (Cycles):" << std::endl;
+        std::cout << "Key Generation time statistics:" << std::endl;
         std::cout << "Maximum: " << kg.getMaximum() << '\n';
         std::cout << "Minimum: " << kg.getMinimum() << '\n';
         std::cout << "Average: " << kg.getAverage() << '\n';
@@ -109,12 +112,19 @@ int main(int argc, const char* argv[]){
     }
 
     if(opt_C == 1 || opt_C == 3){
-        std::cout << "Encryption time statistics (Cycles):" << std::endl;
+        std::cout << "Encryption time statistics:" << std::endl;
         std::cout << "Maximum: " << ch.getMaximum() << '\n';
         std::cout << "Minimum: " << ch.getMinimum() << '\n';
         std::cout << "Average: " << ch.getAverage() << '\n';
         std::cout << "Standard deviation: " << sqrt(ch.getVariance()) << '\n';
         std::cout << "Average Absolute Deviation: " << ch.getAAD() << '\n' << std::endl;
+
+        std::cout << "Decryption time statistics:" << std::endl;
+        std::cout << "Maximum: " << dc.getMaximum() << '\n';
+        std::cout << "Minimum: " << dc.getMinimum() << '\n';
+        std::cout << "Average: " << dc.getAverage() << '\n';
+        std::cout << "Standard deviation: " << sqrt(dc.getVariance()) << '\n';
+        std::cout << "Average Absolute Deviation: " << dc.getAAD() << '\n' << std::endl;
     }
 
     if(opt_C == 2 || opt_C == 3){
