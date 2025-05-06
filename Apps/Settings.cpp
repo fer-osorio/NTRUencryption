@@ -268,10 +268,10 @@ void FileHandling::NTRUPolynomials::formatedSaving(const NTRU::ZpPolynomial& p, 
         std::cout << "File name rejected: " << fname << '\n';
         throw std::runtime_error("Not a valid file name");
     }
-    char* bytes = new char[p.sizeInBytes()];
+    char* bytes = new char[p.sizeInBytes(true)];                                // -Plaintext mode
     ushort_to_char fsize;
     std::ofstream ofile;
-    p.toBytes(bytes);
+    p.toBytes(bytes,true);                                                      // -Plaintext mode
     memcpy(fsize.chars, bytes, BYTES_FOR_FILE_SIZE);                            // -The format it refers is: the first two bytes will be interpreted as the file
     if(io_ext == Extension::txt){                                               //  size, and the rest of the bytes will contain the information of the file.
         ofile.open(fname);
@@ -293,7 +293,7 @@ NTRU::ZqPolynomial FileHandling::NTRUPolynomials::formatDataEncryption(const cha
     encf_size.ushort = size;
     memcpy(szdata, encf_size.chars, BYTES_FOR_FILE_SIZE);
     memcpy((char*)&szdata[BYTES_FOR_FILE_SIZE], data, size);
-    NTRU::ZqPolynomial enc_msg = NTRUencryption.decrypt(szdata, szdata_size);
+    NTRU::ZqPolynomial enc_msg = NTRUencryption.encrypt(szdata, szdata_size);
     delete[] szdata;
     return enc_msg;
 }
@@ -346,6 +346,7 @@ void FileHandling::encryptf(const char fname[]) {
     memcpy(fileInput, (char*)&fileSize, BYTES_FOR_FILE_SIZE);                   // -Writing file size
     in_f.read((char*)&fileInput[BYTES_FOR_FILE_SIZE], fileSize);
     enc_msg = NTRUencryption.encrypt(fileInput, fileSzPlusBytesForSz);          // -Encrypting the bytes from the file and its size
+    enc_msg.println("Encrypted message:");
     delete[] fileInput;
     try {
         if(ext == Extension::txt) Extension::NTRUsaveWith_enc_ext(enc_msg, fname, Extension::EncryptedFile::enc_txt);
@@ -368,7 +369,6 @@ void FileHandling::decryptf(const char fname[]){
     FileHandling::InputFile in_f(fname);
     Extension::IOfile ext = in_f.retreaveExtension();
 
-
     if (!in_f.is_open()) {
         cerrMessageBeforeThrow(thisFunc, "Error opening file for decryption");
         throw std::runtime_error("File opening failed");
@@ -384,6 +384,7 @@ void FileHandling::decryptf(const char fname[]){
         buff = new char[lenInBytes];
         in_f.read(buff, (std::streamsize)lenInBytes);
         NTRU::ZpPolynomial msg = NTRUencryption.decrypt(buff, lenInBytes);
+        msg.println("Decrypted Message");
         delete[] buff;
         try{
             if(ext == Extension::txt) Extension::NTRUsaveWith_dec_ext(msg, fname, Extension::dec_txt);
@@ -868,7 +869,7 @@ void decryptFile(const char fileName[]) {
     try {
         cipherObjectOverFile(Options::Cipher_object::Deciphering, fileName);
     } catch(const std::runtime_error& exp) {
-        cerrMessageBeforeReThrow("void encryptFile(const char fileName[])");
+        cerrMessageBeforeReThrow("void decryptFile(const char fileName[])");
         std::cerr << exp.what() << std::endl;
     }
 }
