@@ -218,17 +218,19 @@ ZpPolynomial::ZpPolynomial(const ZpPolynomial& P) {
 	for(int i = 0; i < N; i++) this->coefficients[i] = P.coefficients[i];
 }
 
-ZpPolynomial::ZpPolynomial(const char data[], int dataLength) {
-    int i,j,k,l;
+ZpPolynomial::ZpPolynomial(const char data[], int dataLength, bool isPlainText) {
+    int i,j,k,l,m;
     const NTRU_N N = NTRUparameters.get_N();
 
     this->coefficients = new Z3[N];
     for(i = 0; i < N; i++) this->coefficients[i] = _0_;
     if(dataLength <= 0) return;                                                 // -Guarding against negative or null dataLength
+    isPlainText == true ? m = 6 : m = 5;
+
 
     for(i = 0, j = 0; i < dataLength && j < N; i++) {                           // -i will run through data, j through coefficients
         l = (int)(unsigned char)data[i];
-        for(k = 0; k < 5 && j < N; k++, l/=3) {                                 // -Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
+        for(k = 0; k < m && j < N; k++, l/=3) {                                 // -Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
             switch(l%3) {                                                       //  in big endian notation. Notice that the maximum value allowed is 242
                 case  1:                                                        // -One idea to solve this issue is to have a "flag" value, say 242. Suppose b is
                     this->coefficients[j++] = _1_;                              //  a byte such that b >= 242; then we can write b = 242 + (b - 242). The
@@ -505,10 +507,7 @@ static int64_t multiplyBy_3(int64_t t) {
     return (t << 1) + t;                                                        // -This expression is equivalent to t*2 + t
 }
 
-ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey, bool showEncryptionTime) const{
-    std::chrono::steady_clock::time_point begin;
-    std::chrono::steady_clock::time_point end;
-    if(showEncryptionTime) begin = std::chrono::steady_clock::now();
+ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey) const{
     NTRU_N N = NTRUparameters.get_N();
     ZqPolynomial encryption;
     int*  randTernaryTimes_p = new int[N];                                      // -Will represent the random polynomial needed for encryption
@@ -556,15 +555,11 @@ ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey, bool showEncryptionTi
 	            encryption.coefficients[i] = q_div_2_minus1;                    //  e[i]<-e[i]+q = (-q/2-1) + (q/2 + q/2) = q/2 - 1
 	}
 	delete[] randTernaryTimes_p;
-	if(showEncryptionTime) {
-	    end = std::chrono::steady_clock::now();
-        std::cout << "\nMessage was encrypted in " << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
-    }
 	return encryption;
 }
 
-size_t ZpPolynomial::sizeInBytes() const{
-    return size_t(NTRUparameters.get_N()/5 + 1);
+size_t ZpPolynomial::sizeInBytes(bool isPlainText) const{
+    return isPlainText == true ? size_t(NTRUparameters.get_N()/6 + 1) : size_t(NTRUparameters.get_N()/5 + 1);
 }
 
 void ZpPolynomial::writeCoeffZ3(char dest[]) const{
@@ -572,17 +567,20 @@ void ZpPolynomial::writeCoeffZ3(char dest[]) const{
     for(int i = 0; i < N; i++) dest[i] = (char)this->coefficients[i];
 }
 
-void ZpPolynomial::toBytes(char dest[]) const{
+void ZpPolynomial::toBytes(char dest[], bool isPlainText) const{
     NTRU_N N = NTRUparameters.get_N();
-    int i,j,k;
-    int N_mod_5 = N%5;                                                          // -Since N is a prime number, N_mod_5 is always bigger than 0
-    int _N_ = N - N_mod_5;
+    int i,j,k,m;
+    int N_mod_m;
+    int _N_;
     int buff;
-    for(i = 0, j = 0; i < _N_; i += 5, j++) {                                   // i will run through dest, j through coefficients
-        for(k = 4, buff = 0; k >= 0; k--) buff = buff*3 + this->coefficients[i+k];// Here we're supposing _p_ == 3. Basically we're changing from base 3 to base 2
+    isPlainText == true ? m = 6 : m = 5;
+    N_mod_m = N%m;                                                              // -Since N is a prime number, N_mod_m is always bigger than 0
+    _N_ = N - N_mod_m;
+    for(i = 0, j = 0; i < _N_; i += m, j++) {                                   // i will run through dest, j through coefficients
+        for(k = m-1, buff = 0; k >= 0; k--) buff = buff*3 + this->coefficients[i+k];// Here we're supposing _p_ == 3. Basically we're changing from base 3 to base 2
         dest[j] = (char)buff;                                                   // Supposing the numbers in base 3 are in big endian notation
     }
-    for(k = N_mod_5-1, buff = 0; k >= 0; k--) buff = buff*3 + this->coefficients[i+k];// Supposing the numbers in base 3 are in big endian notation
+    for(k = N_mod_m-1, buff = 0; k >= 0; k--) buff = buff*3 + this->coefficients[i+k];// Supposing the numbers in base 3 are in big endian notation
     dest[j] = (char)buff;
 }
 
@@ -1010,7 +1008,7 @@ ZqPolynomial NTRU::convolutionZq(const Z2Polynomial& z2P, const ZpPolynomial& zp
 		        };
         }
     }
-    r.mod_q();                                                                 // Applying mods q
+    r.mod_q();                                                                  // Applying mods q
     return r;
 }
 
@@ -1273,7 +1271,7 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
     this->validPrivateKey = isPrivateKey;                                       // -Only encryption if we got just the public key
 }
 
-size_t Encryption::plainTextMaxSizeInBytes() const{ return size_t(this->N/5); } // -Notice: The maximum size for plain text and the size of the private key
+size_t Encryption::plainTextMaxSizeInBytes() const{ return size_t(this->N/6); } // -Notice: The maximum size for plain text and the size of the private key
                                                                                 //  differs in one, and that is because, even when they are both ZpPolynomials,
                                                                                 //  private key has allways a fixed length, and needs a last byte to allocate the
                                                                                 //  last this->N%5 coefficients (last expression is not zero because N is prime).
@@ -1334,11 +1332,8 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
 
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Encryption keys |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-void Encryption::setKeys(bool showKeyCreationTime) {
-    const char thisFunc[] = "void Encryption::setKeys(bool showKeyCreationTime)";
-    std::chrono::steady_clock::time_point begin;
-    std::chrono::steady_clock::time_point end;
-    if(showKeyCreationTime) begin = std::chrono::steady_clock::now();
+void Encryption::setKeys() {
+    const char thisFunc[] = "void Encryption::setKeys()";
 
     if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
         setNTRUparameters(this->N, this->q);
@@ -1389,12 +1384,6 @@ void Encryption::setKeys(bool showKeyCreationTime) {
     }                                                                           // -At this line, we have just created the private key and its inverse
     this->publicKey = convolutionZq(ZpPolynomial::randomTernary(), this->publicKey); // -Multiplicatioin by the g polynomial.
     this->publicKey.mods_q();
-	if(showKeyCreationTime) {
-	    end = std::chrono::steady_clock::now();
-        std::cout << "\nPrivate and public keys generation took "<< std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()<<"[µs]\n"<<std::endl;
-        if(counter > 1) std::cout << "Private key was found after " <<counter<< " attempts.\n";
-        else std::cout << "Private key was found after "<< counter << " attempt.\n";
-    }
 }
 
 void Encryption::setKeysFromPrivKey() {                                         // -In this function we're supposing private key polynomial has inverse.
@@ -1432,33 +1421,35 @@ void Encryption::setKeysFromPrivKey() {                                         
         this->publicKey = this->publicKey*(2 - convolutionZq(this->privateKey, this->publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
-    this->publicKey = convolutionZq(ZpPolynomial::randomTernary(), this->publicKey); // -Multiplicatioin by the g polynomial.
-    this->publicKey.mods_q();
-    if(convolutionZq(this->privateKey, this->publicKey) != 1) {
+    ZqPolynomial t = convolutionZq(this->privateKey, this->publicKey);
+    t.mods_q();
+    if(t != 1) {
         convolutionZq(this->privateKey, this->publicKey).println("this->publicKey*this->privateKey");
         cerrMessageBeforeThrow(thisFunc,"Public key inverse in Zq[x]/x^N-1 finding failed");
         throw std::runtime_error("Exception in public key inverse creation");
     }
+    this->publicKey = convolutionZq(ZpPolynomial::randomTernary(), this->publicKey); // -Multiplicatioin by the g polynomial.
+    this->publicKey.mods_q();
 }
 
 // ____________________________________________________________________ Encryption keys ___________________________________________________________________________
 
-ZqPolynomial Encryption::encrypt(const char bytes[], int size, bool showEncryptionTime) const{
+ZqPolynomial Encryption::encrypt(const char bytes[], int size) const{
     if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
         setNTRUparameters(this->N, this->q);
     }
-    ZpPolynomial msg(bytes, size);
-    ZqPolynomial encryptedMsg = msg.encrypt(this->publicKey, showEncryptionTime);
+    ZpPolynomial msg(bytes, size, true);
+    ZqPolynomial encryptedMsg = msg.encrypt(this->publicKey);
     return encryptedMsg;
 }
 
-ZqPolynomial Encryption::encrypt(const ZpPolynomial& msg, bool showEncryptionTime) const{
+ZqPolynomial Encryption::encrypt(const ZpPolynomial& msg) const{
     if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) setNTRUparameters(this->N, this->q);
-    ZqPolynomial encryptedMsg = msg.encrypt(publicKey, showEncryptionTime);
+    ZqPolynomial encryptedMsg = msg.encrypt(publicKey);
     return encryptedMsg;
 }
 
-ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg, bool showDecryptionTime) const{
+ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg) const{
     if(!this->validPrivateKey) {
         std::cerr << "\nThis object has no valid private key, therefore is only capable of encryption. Returning zero ZpPolynomial.\n";
         return ZpPolynomial();
@@ -1466,24 +1457,15 @@ ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg, bool showDecryptionT
     if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
         setNTRUparameters(this->N, this->q);
     }
-    std::chrono::steady_clock::time_point begin;
-    std::chrono::steady_clock::time_point end;
-    if(showDecryptionTime) begin = std::chrono::steady_clock::now();
-
     ZqPolynomial msg_ = convolutionZq(this->privateKey, e_msg);
     msg_.mods_q();
     ZpPolynomial msg = mods_p(msg_);
     msg = msg*privateKeyInv_p;
-
-    if(showDecryptionTime) {
-        end = std::chrono::steady_clock::now();
-        std::cout << "\nMessage was decrypted in " << std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count() << "[µs]\n" << std::endl;
-    }
     return msg;
 }
 
-ZpPolynomial Encryption::decrypt(const char bytes[], int size, bool showEncryptionTime) const{
-    return this->decrypt(ZqPolynomial(bytes, size), showEncryptionTime);
+ZpPolynomial Encryption::decrypt(const char bytes[], int size) const{
+    return this->decrypt(ZqPolynomial(bytes, size));
 }
 
 /************************************************************************* Statistics ****************************************************************************/

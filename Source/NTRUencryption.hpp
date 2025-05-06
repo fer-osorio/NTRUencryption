@@ -53,7 +53,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	public:
 	ZpPolynomial();								// -Default constructor; initializes the polynomial with zeros
 	ZpPolynomial(const ZpPolynomial& P);
-	ZpPolynomial(const char data[], int dataLength);			// -Initializing with string of bytes
+	ZpPolynomial(const char data[], int dataLength, bool isPlainText = false);// -Initializing with string of bytes
 	~ZpPolynomial() {
 		if(this->coefficients != NULL) delete [] this->coefficients;
 		if(this->coeffCopy    != NULL) delete [] this->coeffCopy;
@@ -88,15 +88,15 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	void permute();
 	int  degree() const;							// Returns degree of polynomial
 
-	ZqPolynomial encrypt(ZqPolynomial publicKey, bool showEncryptionTime = false) const;// -Encrypts the polynomial represented by this and return a ZqPolynomial
+	ZqPolynomial encrypt(ZqPolynomial publicKey) const;			// -Encrypts the polynomial represented by this and return a ZqPolynomial
 
 	friend ZpPolynomial mods_p(ZqPolynomial P);
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
 	friend ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&);
 
-	size_t sizeInBytes() const;
+	size_t sizeInBytes(bool isPlainText) const;				// The polynomial represents: plain text-->N/6  or a private key-->N/5
 	void writeCoeffZ3(char dest[]) const;
-	void toBytes(char dest[]) const;
+	void toBytes(char dest[], bool isPlainText = false) const;
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
 
@@ -195,7 +195,7 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 		return this->degree() != 0 || this->coefficients[0] != t;
 	}
 
-	friend ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey, bool showEncryptionTime) const;
+	friend ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey) const;
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZqPolynomial&);
 	friend ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&);
@@ -231,10 +231,10 @@ class Encryption {
 	Encryption(NTRU_N, NTRU_q);
 	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file
 
-	ZqPolynomial encrypt(const char bytes[] ,int size, bool showEncryptionTime = false) const;// -Encryption of char array
-	ZqPolynomial encrypt(const ZpPolynomial&,bool showEncryptionTime = false) const;// -Encrypts ZpPolynomial
-	ZpPolynomial decrypt(const ZqPolynomial&,bool showDecryptionTime = false) const;// -Decryption of ZqPolynomial
-	ZpPolynomial decrypt(const char bytes[] ,int size, bool showEncryptionTime = false) const;// -Decryption of char array
+	ZqPolynomial encrypt(const char bytes[] ,int size) const;		// -Encryption of char array
+	ZqPolynomial encrypt(const ZpPolynomial&) const;			// -Encrypts ZpPolynomial
+	ZpPolynomial decrypt(const ZqPolynomial&) const;			// -Decryption of ZqPolynomial
+	ZpPolynomial decrypt(const char bytes[] ,int size) const;		// -Decryption of char array
 
 	NTRU_N get_N() const { return this->N; }
 	NTRU_q get_q() const { return this->q; }
@@ -248,7 +248,7 @@ class Encryption {
 	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
 
 	private:
-	void setKeys(bool showKeyCreationTime = false);				// -Creation of the keys
+	void setKeys();								// -Creation of the keys
 	void setKeysFromPrivKey();						// -Creates private key inverse and public key from private key. Intended for the
 										//  creation of Encryption object from file
 	public: struct Statistics{
