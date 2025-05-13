@@ -28,19 +28,19 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	static const Z3 Z3prod[3][3];						// -Product in Z3
 	static const Z3 Z3neg [3];						// -Negative in Z3
 	friend Z3 operator + (Z3 a, Z3 b) {
-    	return Z3add[a][b];
+    		return Z3add[a][b];
 	}
 	friend void operator += (Z3& a, Z3 b) {
-    	a = Z3add[a][b];
+    		a = Z3add[a][b];
 	}
 	friend Z3 operator - (Z3 a, Z3 b) {
-    	return Z3subt[a][b];
+    		return Z3subt[a][b];
 	}
 	friend Z3 operator - (Z3 a) {
 		return Z3neg[a];
 	}
 	friend void operator -= (Z3& a, Z3 b) {
-    	a = Z3subt[a][b];
+    		a = Z3subt[a][b];
 	}
 	friend Z3 operator * (Z3 a, Z3 b) {
     	return Z3prod[a][b];
@@ -159,6 +159,10 @@ struct Z2Polynomial {								// Representation of the polynomials in Z2[x]/(x^N-
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZqPolynomial&);
 
 	int  degree() const;
+	void negFirstCoeff() {
+		if(this->coefficients[0] == 0) this->coefficients[0] = _1_;
+		else this->coefficients[0] = _0_;
+	}
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
 };
@@ -168,6 +172,7 @@ ZqPolynomial operator - (int64_t, const ZqPolynomial&);				// The intention is t
 struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-1)
 	private:
 	int64_t* coefficients = NULL;
+	friend Encryption;
 
 	public:
 	ZqPolynomial();
@@ -208,19 +213,22 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 
 	ZqPolynomial getNTRUpublicKey();					// -Provided this object is the inverse in Z[x]/X^N-1 modulo q of the private key,
 										//  this function returns the public key
+	static ZqPolynomial timesThree(const ZpPolynomial& p);			// -Gets a ZpPolynomial via the operations 3p + 1
+	static ZqPolynomial timesThreePlusOne(const ZpPolynomial& p);		// -Gets a ZpPolynomial via the operations 3p + 1
 	void toBytes(char dest[]) const;					// -Writes the coefficients into an array of bytes. If a certain coefficient is
 										//  negative, +=q is applied in order to write a positive number
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
-
 	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZqPolynomial in a Binary file.
+
+	private:
+	ZqPolynomial& timesThree();						// -Gets a ZpPolynomial via the operations 3p + 1
 };
 
 class Encryption {
-	private:								// -Attributes
-	ZqPolynomial publicKey		= ZqPolynomial();			// -Initializing each argument as the zero polynomial
-	ZpPolynomial privateKey		= ZpPolynomial();
-	ZpPolynomial privateKeyInv_p 	= ZpPolynomial();			// -Private key inverse modulo p
+	private:								// -Initializing with zeros
+	ZqPolynomial publicKey	= ZqPolynomial();
+	ZpPolynomial privatKey	= ZpPolynomial();				// -Private key has the form p·F0+1, we are saving just F0
 	bool validPrivateKey		= false;				// -Flag; tells us if current object can only encrypt (only have a valid publickKey)
 										// -or also is capable of decryption (has a valid private key).
 	NTRU_N N;
@@ -229,7 +237,7 @@ class Encryption {
 	public:
 	Encryption();
 	Encryption(NTRU_N, NTRU_q);
-	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file
+//	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file
 
 	ZqPolynomial encrypt(const char bytes[] ,int size) const;		// -Encryption of char array
 	ZqPolynomial encrypt(const ZpPolynomial&) const;			// -Encrypts ZpPolynomial
@@ -245,9 +253,11 @@ class Encryption {
 	size_t privateKeySizeInBytes()   const;
 	size_t publicKeySizeInBytes()    const;
 
-	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
+//	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
 
 	private:
+	ZqPolynomial productByPrivatKey(const ZqPolynomial& P) const;
+	ZqPolynomial productByPrivatKey(const Z2Polynomial& P) const;
 	void setKeys();								// -Creation of the keys
 	void setKeysFromPrivKey();						// -Creates private key inverse and public key from private key. Intended for the
 										//  creation of Encryption object from file

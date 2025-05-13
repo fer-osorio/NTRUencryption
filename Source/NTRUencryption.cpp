@@ -513,47 +513,44 @@ ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey) const{
     int*  randTernaryTimes_p = new int[N];                                      // -Will represent the random polynomial needed for encryption
     const int d = N/3;
     int _d_ = d, i, j, k;
-    int q_div_2 = zq.get_q() >> 1;
-    int neg_qdiv2 = -q_div_2;
-    int q_div_2_minus1 = q_div_2 - 1;
+
+    //int q_div_2 = zq.get_q() >> 1;
+    //int neg_qdiv2 = -q_div_2;
+    //int q_div_2_minus1 = q_div_2 - 1;
 
     for(i = 0; i < N; i++) randTernaryTimes_p[i] = 0;
 
     while(_d_ > 0) {
         i = randomIntegersN();                                                  // -Filling with threes. It represent the random polynomial multiplied by p
-        if(randTernaryTimes_p[i] == 0) {randTernaryTimes_p[i] =  3; _d_--;}     //  ...
+        if(randTernaryTimes_p[i] == 0) {randTernaryTimes_p[i] =  1; _d_--;}     //  ...
     }
     _d_ = d;
     while(_d_ > 0) {
         i = randomIntegersN();                                                  // -Filling with negative threes
-        if(randTernaryTimes_p[i] == 0) {randTernaryTimes_p[i] = -3; _d_--;}     //  ...
+        if(randTernaryTimes_p[i] == 0) {randTernaryTimes_p[i] = -1; _d_--;}     //  ...
     }
 	for(i = 0; i < N; i++) {                                                    // -Convolution process
 	    k = N - i;
 	    if(randTernaryTimes_p[i] != 0) {
-	        if(randTernaryTimes_p[i] == 3) {
+	        if(randTernaryTimes_p[i] == 1) {
 	            for(j = 0; j < k; j++)                                          // -Ensuring we do not get out of the polynomial
-                    encryption.coefficients[i+j] += multiplyBy_3(publicKey[j]);
+                    encryption.coefficients[i+j] += publicKey[j];
 	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
-	    	        encryption.coefficients[k] += multiplyBy_3(publicKey[j]);   // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
+	    	        encryption.coefficients[k] += publicKey[j];                 // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
 	        }
-	        if(randTernaryTimes_p[i] == -3) {
+	        if(randTernaryTimes_p[i] == -1) {
 	            for(j = 0; j < k; j++)                                          // Ensuring we do not get out of the polynomial
-                    encryption.coefficients[i+j] -= multiplyBy_3(publicKey[j]);
+                    encryption.coefficients[i+j] -= publicKey[j];
 	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
-	    	        encryption.coefficients[k] -= multiplyBy_3(publicKey[j]);   // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
+	    	        encryption.coefficients[k] -= publicKey[j];                 // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
 	        }
 	    }
 	}
-	encryption.mods_q();                                                        // -Obtaining center modulus for each coefficient
 	for(i = 0; i < N; i++) {                                                    // -Adding this polynomial (adding message)
-	    if(this->coefficients[i] == _1_)
-	        if((++encryption.coefficients[i]) == q_div_2)                       // -Possible case: e[i] = q/2, but the -q/2 <= e[i] < q/2 must bet met, so
-	            encryption.coefficients[i] = neg_qdiv2;                         //  e[i]<-e[i]-q = q/2 -(q/2 + q/2) = -q/2
-	    if(this->coefficients[i] == _2_)
-	        if((--encryption.coefficients[i]) < neg_qdiv2)                      // -Possible case: e[i] = -q/2-1, but the -q/2 <= e[i] < q/2 must bet met, so
-	            encryption.coefficients[i] = q_div_2_minus1;                    //  e[i]<-e[i]+q = (-q/2-1) + (q/2 + q/2) = q/2 - 1
+	    if(this->coefficients[i] == _1_) encryption.coefficients[i]++;
+	    if(this->coefficients[i] == _2_) encryption.coefficients[i]--;
 	}
+	encryption.mods_q();                                                        // -Obtaining center modulus for each coefficient
 	delete[] randTernaryTimes_p;
 	return encryption;
 }
@@ -1122,6 +1119,21 @@ ZqPolynomial ZqPolynomial::getNTRUpublicKey() {                                 
 	return publicKey;
 }
 
+ZqPolynomial NTRU::ZqPolynomial::timesThree(const ZpPolynomial& p){
+    ZqPolynomial r;
+    const NTRU_N N = NTRUparameters.get_N();
+    for(int i = 0; i < N; i++){
+        if(p[i] != 0) r.coefficients[i] = multiplyBy_3(p[i]);                   // -Getting 3p
+    }
+    return r;
+}
+
+ZqPolynomial NTRU::ZqPolynomial::timesThreePlusOne(const ZpPolynomial& p){
+    ZqPolynomial r = ZqPolynomial::timesThree(p);
+    r.coefficients[0]++;                                                        // 3p + 1
+    return r;
+}
+
 void ZqPolynomial::toBytes(char dest[]) const{                                  // -Supposing dest is pointing to a suitable memory location
     const NTRU_N N = NTRUparameters.get_N();
     const int buffBitsSize = 64;
@@ -1192,20 +1204,26 @@ void ZqPolynomial::save(const char* name, bool saveAsText) const{
     if(byteArr != NULL) delete[] byteArr;
 }
 
+ZqPolynomial& ZqPolynomial::timesThree(){
+    const NTRU_N N = NTRUparameters.get_N();
+    for(int i = 0; i < N; i++){
+        this->coefficients[i] = multiplyBy_3(this->coefficients[i]);            // -Getting 3p
+    }
+    return *this;
+}
+
 //_______________________________________________________________________ ZqPolynomial ____________________________________________________________________________
 
 // ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Encryption |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 Encryption::Encryption(): N(_509_), q(_2048_) {                                 // -Just for type declaration. Should not be used just like this
     setNTRUparameters(this->N, this->q);
-    this->privateKey = ZpPolynomial::_0_;
-    this->privateKeyInv_p = ZpPolynomial::_0_;
+    this->privatKey = ZpPolynomial();
     this->publicKey = ZpPolynomial();
 }
 
 Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
     setNTRUparameters(this->N, this->q);
-    this->privateKey = ZpPolynomial::getPosiblePrivateKey();
 	try {
 	    this->setKeys();
 	}catch(const std::runtime_error&) {
@@ -1216,7 +1234,7 @@ Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
 	this->validPrivateKey = true;
 }
 
-Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
+/*Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
     const char thisFunc[] = "Encryption::Encryption(const char* NTRUkeyFile)";
     const char NTRUpublicKey[] = "NTRUpublicKey";                               // -This will indicate the binary file is saving a NTRU public key
     const char NTRUprivatKey[] = "NTRUprivatKey";                               // -This will indicate the binary file is saving a NTRU private key
@@ -1269,7 +1287,7 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
     if(coeffBytes != NULL) delete[] coeffBytes;
     if(fileHeader != NULL) delete[] fileHeader;
     this->validPrivateKey = isPrivateKey;                                       // -Only encryption if we got just the public key
-}
+}*/
 
 size_t Encryption::plainTextMaxSizeInBytes() const{ return size_t(this->N/6); } // -Notice: The maximum size for plain text and the size of the private key
                                                                                 //  differs in one, and that is because, even when they are both ZpPolynomials,
@@ -1279,7 +1297,7 @@ size_t Encryption::cipherTextSizeInBytes()   const{ return size_t(this->N*ZqPoly
 size_t Encryption::privateKeySizeInBytes()   const{ return size_t(this->N/5 + 1); }
 size_t Encryption::publicKeySizeInBytes()    const{ return size_t(this->N*ZqPolynomial::log2(this->q)/8 + 1); }
 
-void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const{
+/*void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const{
     const char thisFunc[] = "void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const";
     if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
         setNTRUparameters(this->N, this->q);
@@ -1328,28 +1346,37 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
     }
     if(publicKeyBytes  != NULL) delete[] publicKeyBytes;
     if(privateKeyBytes != NULL) delete[] privateKeyBytes;
-}
+}*/
 
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Encryption keys |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
+ZqPolynomial Encryption::productByPrivatKey(const ZqPolynomial& P) const{
+    return convolutionZq(this->privatKey, P).timesThree() + P;                  // Private key f has the form 1+p·F0, so f*P = P+p(P*F0)
+}
+
+ZqPolynomial Encryption::productByPrivatKey(const Z2Polynomial& P) const{
+    return convolutionZq(P, this->privatKey).timesThree() + P;                  // Private key f has the form 1+p·F0, so f*P = P+p(P*F0)
+}
+
 void Encryption::setKeys() {
     const char thisFunc[] = "void Encryption::setKeys()";
-
-    if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
+    if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {            // -Making sure the uniqueness of the NTRU parameters
         setNTRUparameters(this->N, this->q);
     }
 	ZpPolynomial Zp_gcdXNmns1;
 	Z2Polynomial Z2_privateKeyInv;
 	Z2Polynomial Z2_gcdXNmns1;
-	Z2Polynomial Z2_privateKey(this->privateKey);
-	int counter, k = 2, l = 1;
-
-	try{
+	this->privatKey = NTRU::ZpPolynomial::randomTernary();
+	Z2Polynomial Z2_privateKey(this->privatKey);
+	Z2_privateKey.negFirstCoeff();                                              // -Embeding 3·privatKey0 + 1 in Z2Polynomial. For i > 0 and int polynoimal F:
+	int counter, k = 2, l = 1;                                                  //  (3·F[i]) mod 2 -> [(3 mod 2)·F[i]] mod 2 -> [1·F[i]] mod 2 = F[i] mod 2.In
+                                                                                //  other hand, (F[0]+1) mod 2 -> [(F[0] mod 2)+1)] mod 2 -> neg[(F[0]+1) mod 2]
+	/*try{
         Zp_gcdXNmns1 = this->privateKey.gcdXNmns1(this->privateKeyInv_p);
     }catch(const std::runtime_error&) {
         cerrMessageBeforeReThrow(thisFunc);
         throw;
-    }
+    }*/
     try{
         Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv);
     }catch(const std::runtime_error&) {
@@ -1357,7 +1384,22 @@ void Encryption::setKeys() {
         throw;
     }
 	counter = 1;
-    while(Zp_gcdXNmns1 != 1 || Z2_gcdXNmns1 != 1) {
+	while(Z2_gcdXNmns1 != 1) {
+        if((counter & 1) == 0)  this->privatKey.interchangeZeroFor(ZpPolynomial::_1_);
+        else                    this->privatKey.interchangeZeroFor(ZpPolynomial::_2_);
+        Z2_privateKey = this->privatKey;
+        //if((counter&3)==0){
+            //std::cout << "Source/NTRUencryption.cpp; void Encryption::setKeys(bool showKeyCreationTime). Counter = " << counter << "\n";\\Debuggin purposes
+        //}
+        Z2_privateKey.negFirstCoeff();
+        try{ Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv); }
+        catch(const std::runtime_error&) {
+            cerrMessageBeforeReThrow(thisFunc);
+            throw;
+    	}
+        counter++;
+    }
+    /*while(Zp_gcdXNmns1 != 1 || Z2_gcdXNmns1 != 1) {
         if((counter & 1) == 0)  this->privateKey.interchangeZeroFor(ZpPolynomial::_1_);
         else                    this->privateKey.interchangeZeroFor(ZpPolynomial::_2_);
         Z2_privateKey = this->privateKey;
@@ -1375,18 +1417,26 @@ void Encryption::setKeys() {
             throw;
     	}
         counter++;
-    }
-    this->publicKey = convolutionZq(Z2_privateKeyInv, 2 - convolutionZq(Z2_privateKeyInv, this->privateKey));
+    }*/
+    //this->privatKey = NTRU::ZqPolynomial::timesThreePlusOne(privatKey0);      // -This hole section can be optimized by making it a function like lift R2-Rq for private key
+    this->publicKey = convolutionZq(Z2_privateKeyInv, 2 - Encryption::productByPrivatKey(Z2_privateKeyInv));
     k <<= l; l <<= 1;
 	while(k < this->q) {
-        this->publicKey = this->publicKey*(2 - convolutionZq(this->privateKey, this->publicKey));
+        this->publicKey = this->publicKey*(2 - Encryption::productByPrivatKey(publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
-    this->publicKey = convolutionZq(ZpPolynomial::randomTernary(), this->publicKey); // -Multiplicatioin by the g polynomial.
+    ZqPolynomial t = productByPrivatKey(this->publicKey);                       // -Testing the if the statement above is true
+    t.mods_q();
+    if(t != 1) {
+        t.println("this->publicKey*this->privateKey");
+        cerrMessageBeforeThrow(thisFunc,"Public key inverse in Zq[x]/x^N-1 finding failed");
+        throw std::runtime_error("Exception in public key inverse creation");
+    }
+    this->publicKey = convolutionZq(ZpPolynomial::randomTernary(), this->publicKey).timesThree(); // -Multiplication by the g polynomial.
     this->publicKey.mods_q();
 }
 
-void Encryption::setKeysFromPrivKey() {                                         // -In this function we're supposing private key polynomial has inverse.
+/*void Encryption::setKeysFromPrivKey() {                                         // -In this function we're supposing private key polynomial has inverse.
     const char thisFunc[] = "void Encryption::setKeysFromPrivKey()";
     if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
         setNTRUparameters(this->N, this->q);
@@ -1430,7 +1480,7 @@ void Encryption::setKeysFromPrivKey() {                                         
     }
     this->publicKey = convolutionZq(ZpPolynomial::randomTernary(), this->publicKey); // -Multiplicatioin by the g polynomial.
     this->publicKey.mods_q();
-}
+}*/
 
 // ____________________________________________________________________ Encryption keys ___________________________________________________________________________
 
@@ -1457,10 +1507,9 @@ ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg) const{
     if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
         setNTRUparameters(this->N, this->q);
     }
-    ZqPolynomial msg_ = convolutionZq(this->privateKey, e_msg);
+    ZqPolynomial msg_ = productByPrivatKey(e_msg);
     msg_.mods_q();
     ZpPolynomial msg = mods_p(msg_);
-    msg = msg*privateKeyInv_p;
     return msg;
 }
 
@@ -1526,7 +1575,7 @@ Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(NTRU_N 
 	uint64_t times[NUMBEROFROUNDS], i;
 	Encryption e(N, q);
 
-	for(i = 0; i < NUMBEROFROUNDS; i++, e.privateKey = ZpPolynomial::getPosiblePrivateKey()){
+	for(i = 0; i < NUMBEROFROUNDS; i++, e.privatKey = ZpPolynomial::getPosiblePrivateKey()){
         if((i&31)==0)std::cout<<"Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(): Round " << i << std::endl;
 	    begin= std::chrono::steady_clock::now();
 	    e.setKeys();
