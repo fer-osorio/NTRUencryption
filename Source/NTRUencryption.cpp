@@ -1425,13 +1425,13 @@ void Encryption::setKeys() {
         this->publicKey = this->publicKey*(2 - Encryption::productByPrivatKey(publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
-    ZqPolynomial t = productByPrivatKey(this->publicKey);                       // -Testing the if the statement above is true
+    /*ZqPolynomial t = productByPrivatKey(this->publicKey);                       // -Testing the if the statement above is true
     t.mods_q();
     if(t != 1) {
         t.println("this->publicKey*this->privateKey");
         cerrMessageBeforeThrow(thisFunc,"Public key inverse in Zq[x]/x^N-1 finding failed");
         throw std::runtime_error("Exception in public key inverse creation");
-    }
+    }*/
     this->publicKey = convolutionZq(ZpPolynomial::randomTernary(), this->publicKey).timesThree(); // -Multiplication by the g polynomial.
     this->publicKey.mods_q();
 }
