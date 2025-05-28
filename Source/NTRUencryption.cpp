@@ -974,7 +974,7 @@ Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
 	this->validPrivateKey = true;
 }
 
-/*Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
+Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
     const char thisFunc[] = "Encryption::Encryption(const char* NTRUkeyFile)";
     const char NTRUpublicKey[] = "NTRUpublicKey";                               // -This will indicate the binary file is saving a NTRU public key
     const char NTRUprivatKey[] = "NTRUprivatKey";                               // -This will indicate the binary file is saving a NTRU private key
@@ -998,7 +998,7 @@ Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
                 sz = this->privateKeySizeInBytes();
                 coeffBytes = new char[sz];
                 file.read(coeffBytes, sz);                                      // -Reading the coefficients of the polynomial
-                this->privateKey = ZpPolynomial(coeffBytes, sz);
+                this->privatKey = ZpPolynomial(coeffBytes, sz);
                 try {
                     this->setKeysFromPrivKey();
                 } catch(const std::runtime_error&) {
@@ -1027,7 +1027,7 @@ Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
     if(coeffBytes != NULL) delete[] coeffBytes;
     if(fileHeader != NULL) delete[] fileHeader;
     this->validPrivateKey = isPrivateKey;                                       // -Only encryption if we got just the public key
-}*/
+}
 
 size_t Encryption::plainTextMaxSizeInBytes() const{ return size_t(this->N/6); }
 size_t Encryption::cipherTextSizeInBytes()   const{ return size_t(this->N*ZqPolynomial::log2(this->q)/8 + 1); }
@@ -1116,7 +1116,7 @@ void Encryption::setKeys() {
         throw;
     }
 	counter = 1;
-	while(Z2_gcdXNmns1 != 1) {
+	while(Z2_gcdXNmns1 != 1) {                                                  // -Looking for a valid private key.
         if((counter & 1) == 0)  this->privatKey.interchangeZeroFor(ZpPolynomial::_1_);
         else                    this->privatKey.interchangeZeroFor(ZpPolynomial::_2_);
         Z2_privateKey = this->privatKey;
@@ -1130,7 +1130,8 @@ void Encryption::setKeys() {
             throw;
     	}
         counter++;
-    }                                                                           // -This hole section can be optimized by making it a function like lift R2-Rq for private key
+    }                                                                           // -Shearch finished.
+    // -This hole section can be optimized by making it a function like lift R2-Rq for private key
     this->publicKey = convolutionZq(Z2_privateKeyInv, 2 - Encryption::productByPrivatKey(Z2_privateKeyInv));
     k <<= l; l <<= 1;
 	while(k < this->q) {
@@ -1148,51 +1149,39 @@ void Encryption::setKeys() {
     this->publicKey.mods_q();
 }
 
-/*void Encryption::setKeysFromPrivKey() {                                         // -In this function we're supposing private key polynomial has inverse.
+void Encryption::setKeysFromPrivKey() {                                         // -In this function we're supposing we already have a valid private key.
     const char thisFunc[] = "void Encryption::setKeysFromPrivKey()";
     if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
         setNTRUparameters(this->N, this->q);
     }
-    Z2Polynomial Z2_privateKey(this->privateKey);
+    Z2Polynomial Z2_privateKey(this->privatKey);
     Z2Polynomial Z2_privateKeyInv;
     Z2Polynomial Z2_gcdXNmns1;
-    ZpPolynomial Zp_gcdXN1;
     int k = 2, l = 1;
 
-    try{
-        Zp_gcdXN1 = this->privateKey.gcdXNmns1(this->privateKeyInv_p);
-    }catch(const std::runtime_error&) {
-        cerrMessageBeforeReThrow(thisFunc);
-        throw;
-	}
-    if(this->privateKey*this->privateKeyInv_p != 1) {
-        (this->privateKey*this->privateKeyInv_p).println("this->privateKey*this->privateKeyInv_p");
-        cerrMessageBeforeThrow(thisFunc,"Private key inverse in Zp[x]/(x^N-1) ring not found.");
-        throw std::runtime_error("Private key inverse in Zp[x]/x^N-1 finding failed");
-    }
-    try{
-        Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv);
-    }catch(const std::runtime_error&) {
+    Z2_privateKey.negFirstCoeff();
+    try{ Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv); }
+    catch(const std::runtime_error&) {
         cerrMessageBeforeReThrow(thisFunc);
         throw;
     }
-    this->publicKey = convolutionZq(Z2_privateKeyInv, 2 - convolutionZq(Z2_privateKeyInv, this->privateKey));
+    // -This hole section can be optimized by making it a function like lift R2-Rq for private key
+    this->publicKey = convolutionZq(Z2_privateKeyInv, 2 - Encryption::productByPrivatKey(Z2_privateKeyInv));
     k <<= l; l <<= 1;
-
 	while(k < this->q) {
-        this->publicKey = this->publicKey*(2 - convolutionZq(this->privateKey, this->publicKey));
+        this->publicKey = this->publicKey*(2 - Encryption::productByPrivatKey(publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
-    ZqPolynomial t = convolutionZq(this->privateKey, this->publicKey);
+    /*ZqPolynomial t = productByPrivatKey(this->publicKey);                     // -Testing the if the statement above is true (Debugging purposes)
     t.mods_q();
     if(t != 1) {
-        convolutionZq(this->privateKey, this->publicKey).println("this->publicKey*this->privateKey");
+        t.println("this->publicKey*this->privateKey");
         cerrMessageBeforeThrow(thisFunc,"Public key inverse in Zq[x]/x^N-1 finding failed");
         throw std::runtime_error("Exception in public key inverse creation");
-    }
-    this->publicKey = convolutionZq(ZpPolynomial::randomTernary(), this->publicKey); // -Multiplicatioin by the g polynomial.
+    }*/
+    this->publicKey = convolutionZq(ZpPolynomial::randomTernary(), this->publicKey).timesThree(); // -Multiplication by the g polynomial.
     this->publicKey.mods_q();
-}*/
+}
 
 // ____________________________________________________________________ Encryption keys ___________________________________________________________________________
 

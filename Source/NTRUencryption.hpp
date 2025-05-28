@@ -176,7 +176,7 @@ class Encryption {
 	public:
 	Encryption();
 	Encryption(NTRU_N, NTRU_q);
-//	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file
+	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file
 
 	ZqPolynomial encrypt(const char bytes[] ,int size) const;		// -Encryption of char array
 	ZqPolynomial encrypt(const ZpPolynomial&) const;			// -Encrypts ZpPolynomial
