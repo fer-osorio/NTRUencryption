@@ -148,6 +148,7 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 	friend ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&);
 
 	int degree()  const;							// -Returns degree of polynomial
+	bool equalsOne() const;
 	void mod_q()  const;
 	void mods_q() const;
 	int lengthInBytes() const;
@@ -172,12 +173,12 @@ class Encryption {
 	ZpPolynomial privatKey	= ZpPolynomial();				// -Private key has the form p·F0+1, we are saving just F0
 	bool validPrivateKey	= false;					// -Flag; tells us if current object can only encrypt (only have a valid publickKey)
 										// -or also is capable of decryption (has a valid private key).
-	NTRU_N N;
-	NTRU_q q;
+	/*NTRU_N N;
+	NTRU_q q;*/
 
 	public:
 	Encryption();
-	Encryption(NTRU_N, NTRU_q);
+	//Encryption(NTRU_N, NTRU_q);
 	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file
 
 	ZqPolynomial encrypt(const char bytes[] ,int size) const;		// -Encryption of char array
@@ -185,8 +186,8 @@ class Encryption {
 	ZpPolynomial decrypt(const ZqPolynomial&) const;			// -Decryption of ZqPolynomial
 	ZpPolynomial decrypt(const char bytes[] ,int size) const;		// -Decryption of char array
 
-	NTRU_N get_N() const { return this->N; }
-	NTRU_q get_q() const { return this->q; }
+	NTRU_N get_N() const;
+	NTRU_q get_q() const;
 	bool validPrivateKeyAvailable() const{ return this->validPrivateKey; }
 
 	size_t plainTextMaxSizeInBytes() const;
@@ -227,9 +228,9 @@ class Encryption {
 			double getVariance()const{ return this->Variance;}
 			double getAAD()     const{ return this->AvrAbsDev; }
 
-			static Time keyGeneration(NTRU_N,NTRU_q);
-			static Time ciphering(NTRU_N,NTRU_q);
-			static Time deciphering(NTRU_N,NTRU_q);
+			static Time keyGeneration();
+			static Time ciphering();
+			static Time deciphering();
 		};
 		struct Data{
 			private:
@@ -269,7 +270,7 @@ class Encryption {
 			double getEntropy() const{ return this->Entropy; }
 			double getCorrelation() const { return this->Correlation; }
 			double getXiSquare() const{ return this->XiSquare; }
-			static Data encryption(NTRU_N,NTRU_q);
+			static Data encryption();
 		};
 	};
 };

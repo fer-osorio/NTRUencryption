@@ -22,6 +22,12 @@ static uint64_t readTSC() {
 
 #define DECIMAL_BASE 10
 #define NUMBEROFROUNDS 16384                                                    // 2^14
+#ifndef _N_
+    #define _N_ 701
+#endif
+#ifndef _q_
+    #define _q_ 8192
+#endif
 
 static void cerrMessageBeforeThrow(const char callerFunction[], const char message[]) {
     std::cerr << "In file Source/NTRUencryption.cpp, function " << callerFunction << ": " << message << '\n';
@@ -116,35 +122,33 @@ static bool compareStrings(const char* str1, const char* str2) {
 
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| NTRU Parameters |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-static void setNTRUparameters(NTRU_N, NTRU_q);
-
-struct NTRU_Parameters {                                                        // -The intention of this structure is to protect the NTRU parameters against
+/*struct NTRU_Parameters {                                                        // -The intention of this structure is to protect the NTRU parameters against
     private: NTRU_N N = _1499_;                                                 //  not intentional modifications.
     private: NTRU_p p = _3_;
     public:  NTRU_N get_N() const{ return this->N; }
-    public:  NTRU_p get_p() const{ return this->p; }
-    class Zq {																	// Representation of the group of integers modulus q: Zq
-		NTRU_q 	q;
-		int64_t q_1;															// Will hold q-1, this will help with mod q operation
-		int64_t negq_1;															// This will help in the centering process. Set as ~q_1
-		int64_t q_div_2;
+    public:  NTRU_p get_p() const{ return this->p; }*/
+//    class Zq {																// Representation of the group of integers modulus q: Zq
+static int64_t q_1     = (int64_t)_q_-1;										// Will hold q-1, this will help with mod q operation
+static int64_t negq_1  = ~q_1;													// This will help in the centering process. Set as ~q_1
+static int64_t q_div_2 = _q_>>1;
+static int     log2q   = NTRU::ZqPolynomial::log2((NTRU_q)_q_);
 
-		public: Zq(NTRU_q _q_): q(_q_), q_1((int64_t)_q_-1), negq_1(~q_1), q_div_2(q>>1) {}
-		public: NTRU_q get_q() const{ return q; }
+		//public: Zq(NTRU_q _q_): q(_q_), q_1((int64_t)_q_-1), negq_1(~q_1), q_div_2(q>>1) {}
+//		public: NTRU_q get_q() const{ return q; }
 
-		int64_t mod_q(int64_t t) const{											// operation t % q
-    		if(t >= 0)	return t & this->q_1;									// Equivalent to t % q since q is a power of 2
-    		else 		return (t | this->negq_1);								// Computing q - (-t%q) because -t = -(Q-1)q + (q-r) 0 <= r < q
-		}
-		int64_t mods_q(int64_t a) const{
-    		int64_t r;
-    		if(a >= 0) r = a & this->q_1;										// Equivalent to a % q since q is a power of 2
-    		else r = (a | this->negq_1) & this->q_1;							// Computing q - (-a%q) because -t = -(Q-1)q + (q-r) 0 <= r < q
-    		if(r < this->q_div_2) return r;										// At this point we know 0 <= r < q
-    		else return r | this->negq_1;										// This is equivalent to r - this->q when r < q
-		}
-		int64_t add(int64_t a, int64_t b) const{
-			return this->mod_q(a+b);
+static int64_t modq(int64_t t) {											// operation t % q
+    if(t >= 0)	return t & q_1;									// Equivalent to t % q since q is a power of 2
+    else 		return (t | negq_1);								// Computing q - (-t%q) because -t = -(Q-1)q + (q-r) 0 <= r < q
+}
+static int64_t modsq(int64_t a) {
+    int64_t r;
+    if(a >= 0) r = a & q_1;										// Equivalent to a % q since q is a power of 2
+        else r = (a | negq_1) & q_1;							// Computing q - (-a%q) because -t = -(Q-1)q + (q-r) 0 <= r < q
+    if(r < q_div_2) return r;										// At this point we know 0 <= r < q
+    else return r | negq_1;										// This is equivalent to r - this->q when r < q
+}
+/*int64_t add(int64_t a, int64_t b) {
+	return this->mod_q(a+b);
 		}
 		void addEqual(int64_t& a, int64_t b) const{
 			a = this->mod_q(a+b);
@@ -154,14 +158,13 @@ struct NTRU_Parameters {                                                        
 		}
 		int64_t product(int64_t a, int64_t b) const{
 			return this->mod_q(a*b);
-		}
-		friend void setNTRUparameters(NTRU_N, NTRU_q);
-	};
-	friend void setNTRUparameters(NTRU_N, NTRU_q);
-};
+		}*/
+	//};
+//};
 
-static NTRU_Parameters NTRUparameters;                                          // -This unique instance puts every polynomial "inside the same polynomial ring"
-static NTRU_Parameters::Zq zq(_2048_);                                          // -Arithmetic for the operation modulo q
+//static NTRU_Parameters NTRUparameters;                                          // -This unique instance puts every polynomial "inside the same polynomial ring"
+//static NTRU_Parameters::Zq zq(_2048_);                                          // -Arithmetic for the operation modulo q
+//static Zq zq();                                                                 // -Arithmetic for the operation modulo q
 
 class RandInt {                                                                 // Little class for random integers. Taken from The C++ Programming Language 4th
     static unsigned _seed_;
@@ -174,16 +177,18 @@ class RandInt {                                                                 
     std::uniform_int_distribution<> dist;
 };
 unsigned RandInt::_seed_ = (unsigned)time(NULL);
-static RandInt randomIntegersN(0, NTRUparameters.get_N() - 1);                  // -Random integers from 0 to N-1.
+static RandInt randomIntegersN(0, _N_ - 1);
+//static RandInt randomIntegersN(0, NTRUparameters.get_N() - 1);                  // -Random integers from 0 to N-1.
 
-void setNTRUparameters(NTRU_N N, NTRU_q q) {
+
+/*void setNTRUparameters(NTRU_N N, NTRU_q q) {
     NTRUparameters.N = N;
     zq = NTRU_Parameters::Zq(q);
     randomIntegersN = RandInt(0,N - 1);
-}
+}*/
 
-static NTRU_N N_backup = NTRUparameters.get_N();							    // -In case of encrypting or decrypting using keys from an external file, this
-static NTRU_q q_backup = zq.get_q();                                            //  files will save the original internal values
+/*static NTRU_N N_backup = NTRUparameters.get_N();							    // -In case of encrypting or decrypting using keys from an external file, this
+static NTRU_q q_backup = zq.get_q();                                            //  files will save the original internal values*/
 
 // ____________________________________________________________________ NTRU Parameters ___________________________________________________________________________
 
@@ -192,30 +197,26 @@ using namespace NTRU;
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZpPolynomial |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 ZpPolynomial::ZpPolynomial() {
-    const NTRU_N N = NTRUparameters.get_N();
-	this->coefficients = new Z3[N];
-	for(int i = 0; i < N; i++) this->coefficients[i] = _0_;
+	this->coefficients = new Z3[_N_];
+	for(int i = 0; i < _N_; i++) this->coefficients[i] = _0_;
 }
 
 ZpPolynomial::ZpPolynomial(const ZpPolynomial& P) {
-    const NTRU_N N = NTRUparameters.get_N();
-	this->coefficients = new Z3[N];
-	for(int i = 0; i < N; i++) this->coefficients[i] = P.coefficients[i];
+	this->coefficients = new Z3[_N_];
+	for(int i = 0; i < _N_; i++) this->coefficients[i] = P.coefficients[i];
 }
 
 ZpPolynomial::ZpPolynomial(const char data[], int dataLength, bool isPlainText) {
     int i,j,k,l,m;
-    const NTRU_N N = NTRUparameters.get_N();
-
-    this->coefficients = new Z3[N];
-    for(i = 0; i < N; i++) this->coefficients[i] = _0_;
+    this->coefficients = new Z3[_N_];
+    for(i = 0; i < _N_; i++) this->coefficients[i] = _0_;
     if(dataLength <= 0) return;                                                 // -Guarding against negative or null dataLength
     isPlainText == true ? m = 6 : m = 5;
 
 
-    for(i = 0, j = 0; i < dataLength && j < N; i++) {                           // -i will run through data, j through coefficients
+    for(i = 0, j = 0; i < dataLength && j < _N_; i++) {                           // -i will run through data, j through coefficients
         l = (int)(unsigned char)data[i];
-        for(k = 0; k < m && j < N; k++, l/=3) {                                 // -Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
+        for(k = 0; k < m && j < _N_; k++, l/=3) {                                 // -Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
             switch(l%3) {                                                       //  in big endian notation. Notice that the maximum value allowed is 242
                 case  1:                                                        // -One idea to solve this issue is to have a "flag" value, say 242. Suppose b is
                     this->coefficients[j++] = _1_;                              //  a byte such that b >= 242; then we can write b = 242 + (b - 242). The
@@ -231,13 +232,12 @@ ZpPolynomial::ZpPolynomial(const char data[], int dataLength, bool isPlainText) 
 }
 
 ZpPolynomial ZpPolynomial::randomTernary() {
-    const NTRU_N N = NTRUparameters.get_N();
-    const int d = N/3;
+    const int d = _N_/3;
     int i, j, dd = d;
     ZpPolynomial r;
 
-	r.coefficients = new Z3[N];
-	for(i = 0; i < N; i++) r.coefficients[i] = _0_;
+	r.coefficients = new Z3[_N_];
+	for(i = 0; i < _N_; i++) r.coefficients[i] = _0_;
 	while(dd > 0) {                                                             // Putting the ones first
         j = randomIntegersN();
         if(r.coefficients[j] == _0_) {
@@ -277,24 +277,22 @@ ZpPolynomial ZpPolynomial::getPosiblePrivateKey() {
 }
 
 ZpPolynomial& ZpPolynomial::operator = (const ZpPolynomial& P) {
-    const NTRU_N N = NTRUparameters.get_N();
     if(this != &P) {													        // Guarding against self assignment
         if(this->coefficients != NULL) delete[] this->coefficients;
-        this->coefficients = new Z3[N];
-	    for(int i = 0; i < N; i++) this->coefficients[i] = P.coefficients[i];
+        this->coefficients = new Z3[_N_];
+	    for(int i = 0; i < _N_; i++) this->coefficients[i] = P.coefficients[i];
 	}
 	return *this;
 }
 
 int ZpPolynomial::operator [] (int i) const{
-    const NTRU_N N = NTRUparameters.get_N();
 	if(i < 0) i = -i;
-	if(i > N) i %= N;
+	if(i > _N_) i %= _N_;
 	return this->coefficients[i];
 }
 
 int ZpPolynomial::degree() const{
-    int deg = NTRUparameters.get_N();
+    int deg = _N_;
 	while(this->coefficients[--deg] == 0 && deg > 0) {}
 	return deg;
 }
@@ -304,13 +302,12 @@ static int64_t multiplyBy_3(int64_t t) {
 }
 
 ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey) const{
-    NTRU_N N = NTRUparameters.get_N();
     ZqPolynomial encryption;
-    int*  randTernaryTimes_p = new int[N];                                      // -Will represent the random polynomial needed for encryption
-    const int d = N/3;
+    int*  randTernaryTimes_p = new int[_N_];                                      // -Will represent the random polynomial needed for encryption
+    const int d = _N_/3;
     int _d_ = d, i, j, k;
 
-    for(i = 0; i < N; i++) randTernaryTimes_p[i] = 0;
+    for(i = 0; i < _N_; i++) randTernaryTimes_p[i] = 0;
 
     while(_d_ > 0) {
         i = randomIntegersN();                                                  // -Filling with threes. It represent the random polynomial multiplied by p
@@ -321,24 +318,24 @@ ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey) const{
         i = randomIntegersN();                                                  // -Filling with negative threes
         if(randTernaryTimes_p[i] == 0) {randTernaryTimes_p[i] = -1; _d_--;}     //  ...
     }
-	for(i = 0; i < N; i++) {                                                    // -Convolution process
-	    k = N - i;
+	for(i = 0; i < _N_; i++) {                                                    // -Convolution process
+	    k = _N_ - i;
 	    if(randTernaryTimes_p[i] != 0) {
 	        if(randTernaryTimes_p[i] == 1) {
 	            for(j = 0; j < k; j++)                                          // -Ensuring we do not get out of the polynomial
                     encryption.coefficients[i+j] += publicKey[j];
 	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
-	    	        encryption.coefficients[k] += publicKey[j];                 // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
+	    	        encryption.coefficients[k] += publicKey[j];                 // Notice i+j = i + (k+_N_-i), so i+j is congruent with k mod _N_
 	        }
 	        if(randTernaryTimes_p[i] == -1) {
 	            for(j = 0; j < k; j++)                                          // Ensuring we do not get out of the polynomial
                     encryption.coefficients[i+j] -= publicKey[j];
 	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
-	    	        encryption.coefficients[k] -= publicKey[j];                 // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
+	    	        encryption.coefficients[k] -= publicKey[j];                 // Notice i+j = i + (k+_N_-i), so i+j is congruent with k mod _N_
 	        }
 	    }
 	}
-	for(i = 0; i < N; i++) {                                                    // -Adding this polynomial (adding message)
+	for(i = 0; i < _N_; i++) {                                                    // -Adding this polynomial (adding message)
 	    if(this->coefficients[i] == _1_) encryption.coefficients[i]++;
 	    if(this->coefficients[i] == _2_) encryption.coefficients[i]--;
 	}
@@ -348,19 +345,18 @@ ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey) const{
 }
 
 size_t ZpPolynomial::sizeInBytes(bool isPlainText) const{
-    return isPlainText == true ? size_t(NTRUparameters.get_N()/6 + 1) : size_t(NTRUparameters.get_N()/5 + 1);
+    return isPlainText == true ? size_t(_N_/6 + 1) : size_t(_N_/5 + 1);
 }
 
 void ZpPolynomial::toBytes(char dest[], bool isPlainText) const{
-    NTRU_N N = NTRUparameters.get_N();
     int i,j,k,m;
     int N_mod_m;
-    int _N_;
+    int N_florm;
     int buff;
     isPlainText == true ? m = 6 : m = 5;
-    N_mod_m = N%m;                                                              // -Since N is a prime number, N_mod_m is always bigger than 0
-    _N_ = N - N_mod_m;
-    for(i = 0, j = 0; i < _N_; i += m, j++) {                                   // i will run through dest, j through coefficients
+    N_mod_m = _N_ % m;                                                            // -Since _N_ is a prime number, N_mod_m is always bigger than 0
+    N_florm = _N_ - N_mod_m;
+    for(i = 0, j = 0; i < N_florm; i += m, j++) {                                   // i will run through dest, j through coefficients
         for(k = m-1, buff = 0; k >= 0; k--) buff = buff*3 + this->coefficients[i+k];// Here we're supposing _p_ == 3. Basically we're changing from base 3 to base 2
         dest[j] = (char)buff;                                                   // Supposing the numbers in base 3 are in big endian notation
     }
@@ -369,10 +365,8 @@ void ZpPolynomial::toBytes(char dest[], bool isPlainText) const{
 }
 
 mpz_class ZpPolynomial::toNumber() const{                                       // -Interprets this->coefficients as a number in base 3
-    NTRU_N N = NTRUparameters.get_N();
-    mpz_class r = 0;
-    mpz_class base = 3;
-    for(int i = 0; i >= 0; i--) r = r*base + this->coefficients[i];             // -Horner's algorithm
+    mpz_class r = 0, base = 3;
+    for(int i = _N_-1; i >= 0; i--) r = r*base + this->coefficients[i];         // -Horner's algorithm
     return r;
 }
 
@@ -389,9 +383,7 @@ void ZpPolynomial::println(const char* name) const{
 }
 
 void ZpPolynomial::save(const char* name, bool saveAsText) const{
-    NTRU_N N = NTRUparameters.get_N();
-    NTRU_q q = zq.get_q();
-    int byteArrSize = N / 5 + 1;                                                // -this->N is necessarily prime, so this->N % 5 > 0 holds true
+    int byteArrSize = _N_ / 5 + 1;                                                // -_N_ is necessarily prime, so _N_ % 5 > 0 holds true
     char* byteArr = NULL;
     const char ntrup[] = "NTRUp";                                               // -This will indicate the binary file is saving a NTRU (NTRU) polynomial with
     std::ofstream file;                                                         //  coefficients in Zp (p)
@@ -404,8 +396,8 @@ void ZpPolynomial::save(const char* name, bool saveAsText) const{
     }
     if(file.is_open()) {
         file.write(ntrup, 5);                                                   // -The first five bytes are for the letters 'N' 'T' 'R' 'U' 'p'
-        file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial
-        file.write((char*)&q, 2);                                               // -A short int for the degree of the polynomial
+        file.write((char*)_N_, 2);                                               // -A short int for the degree of the polynomial
+        file.write((char*)_q_, 2);                                               // -A short int for the degree of the polynomial
         byteArr = new char[byteArrSize];                                        // -The following bytes are for the polynomials coefficients
         this->toBytes(byteArr);
         file.write(byteArr, byteArrSize);
@@ -421,21 +413,18 @@ void ZpPolynomial::save(const char* name, bool saveAsText) const{
 //||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Z2Polynomial ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 Z2Polynomial::Z2Polynomial() {
-    const NTRU_N N = NTRUparameters.get_N();
-	this->coefficients = new Z2[N];
-	for(int i = 0; i < N; i++) this->coefficients[i] = _0_;
+	this->coefficients = new Z2[_N_];
+	for(int i = 0; i < _N_; i++) this->coefficients[i] = _0_;
 }
 
 Z2Polynomial::Z2Polynomial(const Z2Polynomial& P) {
-    const NTRU_N N = NTRUparameters.get_N();
-    this->coefficients = new Z2[N];
-    for(int i = 0; i < N; i++) this->coefficients[i] = P.coefficients[i];
+    this->coefficients = new Z2[_N_];
+    for(int i = 0; i < _N_; i++) this->coefficients[i] = P.coefficients[i];
 }
 
 Z2Polynomial::Z2Polynomial(const ZpPolynomial& P) {
-    const NTRU_N N = NTRUparameters.get_N();
-	this->coefficients = new Z2[N];
-	for(int i = 0; i < N; i++) {
+	this->coefficients = new Z2[_N_];
+	for(int i = 0; i < _N_; i++) {
 	    if(P[i] != ZpPolynomial::_0_) this->coefficients[i] = _1_;              // Two won't go to zero because it's the additive inverse of one in Z3, therefore
 	    else this->coefficients[i] = _0_;                                       // it must go to the additive inverse of one in Z2, which if itself
     }
@@ -443,19 +432,17 @@ Z2Polynomial::Z2Polynomial(const ZpPolynomial& P) {
 
 Z2Polynomial& Z2Polynomial::operator = (const Z2Polynomial& P)  {
 	if(this != &P) {													        // Guarding against self assignment
-	    const NTRU_N N = NTRUparameters.get_N();
 		if(this->coefficients != NULL) delete[] this->coefficients;
-		this->coefficients = new Z2[N];
-		for(int i = 0; i < N; i++) this->coefficients[i] = P.coefficients[i];
+		this->coefficients = new Z2[_N_];
+		for(int i = 0; i < _N_; i++) this->coefficients[i] = P.coefficients[i];
 	}
 	return *this;
 }
 
 Z2Polynomial& Z2Polynomial::operator = (const ZpPolynomial& P) {
-    const NTRU_N N = NTRUparameters.get_N();
 	if(this->coefficients != NULL) delete[] this->coefficients;                 // In case of having an object created with the default (private) constructor
-	this->coefficients = new Z2[N];
-	for(int i = 0; i < N; i++) {                                                // Fitting the ZpPolynomial in a Z2Polynomial
+	this->coefficients = new Z2[_N_];
+	for(int i = 0; i < _N_; i++) {                                                // Fitting the ZpPolynomial in a Z2Polynomial
 	    if(P[i] != ZpPolynomial::_0_) this->coefficients[i] = _1_;
 	    else this->coefficients[i] = _0_;
 	}
@@ -463,18 +450,16 @@ Z2Polynomial& Z2Polynomial::operator = (const ZpPolynomial& P) {
 }
 
 Z2Polynomial& Z2Polynomial::operator = (Z2 t)  {
-    const NTRU_N N = NTRUparameters.get_N();
 	if(this->coefficients != NULL) delete[] this->coefficients;                 // In case of have been generated from the (private) default constructor
-	this->coefficients = new Z2[N];
+	this->coefficients = new Z2[_N_];
 	this->coefficients[0] = t;
-	for(int i = 1; i < N; i++) this->coefficients[i] = _0_;
+	for(int i = 1; i < _N_; i++) this->coefficients[i] = _0_;
 	return *this;
 }
 
 Z2Polynomial Z2Polynomial::operator + (const Z2Polynomial& P) const {
-    const NTRU_N N = NTRUparameters.get_N();
     Z2Polynomial r;                                                             // -Initializing result with zeros
-    for(int i = 0; i < N; i++)
+    for(int i = 0; i < _N_; i++)
         r.coefficients[i] = this->coefficients[i] + P.coefficients[i];          // -Addition element by element till the smallest degree of the arguments
     return r;
 }
@@ -484,13 +469,12 @@ Z2Polynomial Z2Polynomial::operator - (const Z2Polynomial& P) const{
 }
 
 Z2Polynomial Z2Polynomial::operator * (const Z2Polynomial& P) const{ // Classical polynomial multiplication algorithm
-    const NTRU_N N = NTRUparameters.get_N();
     Z2Polynomial r;                                                             // -Initializing with zeros
     int i, j, k, l;
 
-	for(i = 0; i < N; i++) {
+	for(i = 0; i < _N_; i++) {
 		if(this->coefficients[i] != _0_) {                                      // -Polynomial over binary field, here we know  this->coefficients[i] is 1
-		    k = N - i;
+		    k = _N_ - i;
 		    for(j = 0; j < k; j++) {                                            // -Adding and multiplying while the inequality i+j < N holds
 		        l = i+j;
 			    if(P.coefficients[j] != r.coefficients[l]) r.coefficients[l] = _1_;
@@ -551,7 +535,6 @@ void Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial result[2]) const
 }
 
 Z2Polynomial Z2Polynomial::gcdXNmns1(Z2Polynomial& thisBezout) const{
-    const NTRU_N N = NTRUparameters.get_N();
     Z2Polynomial gcd;                                                           // Initializing result with zeros
     Z2Polynomial remainders;
     Z2Polynomial tmp[2] = {Z2Polynomial(), Z2Polynomial()};
@@ -559,12 +542,12 @@ Z2Polynomial Z2Polynomial::gcdXNmns1(Z2Polynomial& thisBezout) const{
     Z2 leadCoeff = this->coefficients[deg];                                     // Lead coefficient of this polynomial
     Z2Polynomial quoRem[2]={Z2Polynomial(), Z2Polynomial()};
 
-    quoRem[0].coefficients[N-deg] = leadCoeff;                                  // Start of division algorithm between virtual polynomial x^N-1 and this
-    for(i = deg-1, j = N - 1; i >= 0; i--, j--) {                               // First coefficient of quotient and first subtraction
+    quoRem[0].coefficients[_N_-deg] = leadCoeff;                                  // Start of division algorithm between virtual polynomial x^N-1 and this
+    for(i = deg-1, j = _N_ - 1; i >= 0; i--, j--) {                               // First coefficient of quotient and first subtraction
         quoRem[1].coefficients[j] = this->coefficients[i];                      // All x in Z2, -x = x
     }
     quoRem[1].coefficients[0] = _1_;                                            // Putting the -1 that is at the end of the polynomial x^N-1. 1 == -1 in Z2
-    for(i = N-1 - deg, j = N-1; j >= deg; i = j - deg) {                        // Continuing with division algorithm; i is the place of the next coefficient of
+    for(i = _N_-1 - deg, j = _N_-1; j >= deg; i = j - deg) {                        // Continuing with division algorithm; i is the place of the next coefficient of
         quoRem[0].coefficients[i] = leadCoeff * quoRem[1].coefficients[j];      // the quotient, j is the degree of the remainders.
         for(k = deg, l = j; k >= 0; k--, l--) {                                 // Multiplication-subtraction step
             quoRem[1].coefficients[l] -=
@@ -595,20 +578,18 @@ Z2Polynomial Z2Polynomial::gcdXNmns1(Z2Polynomial& thisBezout) const{
 }
 
 bool Z2Polynomial::operator == (const Z2Polynomial& P) const{
-    const NTRU_N N = NTRUparameters.get_N();
-	for(int i = 0; i < N; i++) if(this->coefficients[i] != P.coefficients[i])  return false;
+	for(int i = 0; i < _N_; i++) if(this->coefficients[i] != P.coefficients[i])  return false;
 	return true;
 }
 
 Z2Polynomial::Z2 Z2Polynomial::operator[](int i) const{
-    const NTRU_N N = NTRUparameters.get_N();
 	if(i < 0) i = -i;
-	if(i >= N) i %= N;
+	if(i >= _N_) i %= _N_;
 	return this->coefficients[i];
 }
 
 int Z2Polynomial::degree() const{												// Returns degree of polynomial
-	int deg = NTRUparameters.get_N();
+	int deg = _N_;
 	while(this->coefficients[--deg] == _0_ && deg > 0) {}
 	return deg;
 }
@@ -630,33 +611,25 @@ void Z2Polynomial::println(const char* name) const{
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ZqPolynomial ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 ZqPolynomial::ZqPolynomial() {
-    const NTRU_N N = NTRUparameters.get_N();
-    this->coefficients = new int64_t[N];
-    for(int i = 0; i < N; i++) this->coefficients[i] = 0;
+    this->coefficients = new int64_t[_N_];
+    for(int i = 0; i < _N_; i++) this->coefficients[i] = 0;
 }
 
 ZqPolynomial::ZqPolynomial(const ZqPolynomial& P) {
-    const NTRU_N N = NTRUparameters.get_N();
-    this->coefficients = new int64_t[N];
-    for(int i = 0; i < N; i++) this->coefficients[i] = P.coefficients[i];
+    this->coefficients = new int64_t[_N_];
+    for(int i = 0; i < _N_; i++) this->coefficients[i] = P.coefficients[i];
 }
 
 ZqPolynomial::ZqPolynomial(const char data[], int dataLength) {
-    NTRU_N  N = NTRUparameters.get_N();
-    const int log2q = log2(zq.get_q());
-    const int q = zq.get_q();
-    const int64_t q_1    = q - 1;                                               // -Essentially, the first log2q bits are 1's
-    const int64_t qdiv2  = q >> 1;
-    const int64_t negq_1 = ~q_1;
     int bitsOcupiedInBuff = 0;
     int i , j, dataByteIndex;
     int offset = 0;
     int64_to_char aux;
     uint64_t buff = 0;
 
-    this->coefficients = new int64_t[N];
+    this->coefficients = new int64_t[_N_];
 
-    for(i = 0, dataByteIndex = 0; dataByteIndex < dataLength && i < N ;) {
+    for(i = 0, dataByteIndex = 0; dataByteIndex < dataLength && i < _N_ ;) {
         aux.int64 = 0;
         for(j = 0; bitsOcupiedInBuff <= 56 && dataByteIndex < dataLength; bitsOcupiedInBuff += 8) {// -If we are using at most 56 bits of the buffer, we can
             aux.chars[j++] = data[dataByteIndex++];                             //  still allocate one more byte
@@ -664,54 +637,50 @@ ZqPolynomial::ZqPolynomial(const char data[], int dataLength) {
         buff |= (uint64_t)aux.int64 << offset;
         for(; bitsOcupiedInBuff >= log2q; bitsOcupiedInBuff -= log2q, i++) {
             this->coefficients[i] = (int64_t)buff & q_1;                        // -Taking the first log2q bits of buff. The result will be positive
-            if(this->coefficients[i] >= qdiv2) this->coefficients[i] |= negq_1; // This is equivalent to r - this->q when r < q
+            if(this->coefficients[i] >= q_div_2) this->coefficients[i] |= negq_1; // This is equivalent to r - this->q when r < q
             buff >>= log2q;
         }
         offset = bitsOcupiedInBuff;
     }
     if(bitsOcupiedInBuff > 0) {
-        if(i < N) {
+        if(i < _N_) {
             this->coefficients[i] = (int64_t)buff & q_1;                        // -Taking the first log2q bits of buff. The result will be positive
-            if(this->coefficients[i] >= qdiv2) this->coefficients[i] |= negq_1; // This is equivalent to r - this->q when r < q
+            if(this->coefficients[i] >= q_div_2) this->coefficients[i] |= negq_1; // This is equivalent to r - this->q when r < q
             buff >>= log2q;
             i++;
         }
     }
-    for(;i < N; i++) this->coefficients[i] = 0;                                 // -Padding the rest of the polynomial with zeros
+    for(;i < _N_; i++) this->coefficients[i] = 0;                                 // -Padding the rest of the polynomial with zeros
 }
 
 ZqPolynomial& ZqPolynomial::operator = (const ZqPolynomial& P) {
 	if(this != &P) {														    // Guarding against self assignment
-	    const NTRU_N N = NTRUparameters.get_N();
 		if(this->coefficients != NULL) delete[] this->coefficients;
-		this->coefficients = new int64_t[N];
-		for(int i = 0; i < N; i++) this->coefficients[i] = P.coefficients[i];
+		this->coefficients = new int64_t[_N_];
+		for(int i = 0; i < _N_; i++) this->coefficients[i] = P.coefficients[i];
 	}
 	return *this;
 }
 
 int64_t ZqPolynomial::operator [] (int i) const{
-    const NTRU_N N = NTRUparameters.get_N();
 	if(i < 0) i = -i;
-	if(i > N) i %= N;
+	if(i > _N_) i %= _N_;
 	return this->coefficients[i];
 }
 
 ZqPolynomial ZqPolynomial::operator + (const ZqPolynomial& P) const{
-    const NTRU_N N = NTRUparameters.get_N();
     ZqPolynomial r;                                                             // -Initializing with the zero polynomial
-    for(int i = 0; i < N; i++)
-        r.coefficients[i] = zq.add(this->coefficients[i],P.coefficients[i]);    // -Addition element by element till the smallest degree of the arguments
+    for(int i = 0; i < _N_; i++)
+        r.coefficients[i] = modq(this->coefficients[i] + P.coefficients[i]);          // -Addition element by element till the smallest degree of the arguments
     return r;
 }
 
 ZqPolynomial ZqPolynomial::operator * (const ZqPolynomial& P) const{
-    const NTRU_N N = NTRUparameters.get_N();
     ZqPolynomial r;
     int i, j, k;
 
-	for(i = 0; i < N; i++) {
-		k = N - i;
+	for(i = 0; i < _N_; i++) {
+		k = _N_ - i;
 	    for(j = 0; j < k; j++)                                                  // Ensuring we do not get out of the polynomial
 		    r.coefficients[i+j] += this->coefficients[i] * P.coefficients[j];
 	    for(k = 0; k < i; j++, k++)                                             // Using the definition of convolution polynomial ring
@@ -722,17 +691,15 @@ ZqPolynomial ZqPolynomial::operator * (const ZqPolynomial& P) const{
 }
 
 ZqPolynomial NTRU::operator - (int64_t t, const ZqPolynomial& P) {
-    const NTRU_N N = NTRUparameters.get_N();
     ZqPolynomial r;
-    r.coefficients[0] = zq.subtract(t, P.coefficients[0]);
-    for(int i = 1; i < N; i++) r.coefficients[i] = -P.coefficients[i];          //zq.mod_q(-P.coefficients[i]);
+    r.coefficients[0] = modq(t - P.coefficients[0]);
+    for(int i = 1; i < _N_; i++) r.coefficients[i] = -P.coefficients[i];
     return r;
 }
 
 ZpPolynomial NTRU::mods_p(ZqPolynomial P) {
-    const NTRU_N N = NTRUparameters.get_N();
     ZpPolynomial r;
-    for(int i = 0, buff = 0; i < N; i++) {
+    for(int i = 0, buff = 0; i < _N_; i++) {
         buff = P[i] % 3;
         if(buff == -2 || buff == 1) r.coefficients[i] = ZpPolynomial::_1_;
         if(buff == -1 || buff == 2) r.coefficients[i] = ZpPolynomial::_2_;
@@ -741,13 +708,12 @@ ZpPolynomial NTRU::mods_p(ZqPolynomial P) {
 }
 
 ZqPolynomial NTRU::convolutionZq(const Z2Polynomial& z2P, const ZpPolynomial& zpP) {
-    const NTRU_N N = NTRUparameters.get_N();
     ZqPolynomial r;
     int i, j, k;
 
-    for(i = 0; i < N; i++) {
+    for(i = 0; i < _N_; i++) {
         if(z2P.coefficients[i] != Z2Polynomial::Z2::_0_) {
-            k = N - i;
+            k = _N_ - i;
 		    for(j = 0; j < k; j++)
 		        if(zpP.coefficients[j] != 0) {
 		            if(zpP.coefficients[j] == 1) ++r.coefficients[i+j];
@@ -765,13 +731,12 @@ ZqPolynomial NTRU::convolutionZq(const Z2Polynomial& z2P, const ZpPolynomial& zp
 }
 
 ZqPolynomial NTRU::convolutionZq(const Z2Polynomial& z2P, const ZqPolynomial& zqP) {
-    const NTRU_N N = NTRUparameters.get_N();
     ZqPolynomial r;
     int i, j, k;
 
-    for(i = 0; i < N; i++) {
+    for(i = 0; i < _N_; i++) {
         if(z2P.coefficients[i] != Z2Polynomial::Z2::_0_) {
-            k = N - i;
+            k = _N_ - i;
 		    for(j = 0; j < k; j++)
 		        r.coefficients[i+j] += zqP.coefficients[j];
 		    for(k = 0; k < i; j++, k++)
@@ -783,20 +748,19 @@ ZqPolynomial NTRU::convolutionZq(const Z2Polynomial& z2P, const ZqPolynomial& zq
 }
 
 ZqPolynomial NTRU::convolutionZq(const ZpPolynomial& p1, const ZqPolynomial& p2) {
-    const NTRU_N N = NTRUparameters.get_N();
     ZqPolynomial r;
     int i, j, k;
 
-	for(i = 0; i < N; i++) {
+	for(i = 0; i < _N_; i++) {
 		if(p1.coefficients[i] != ZpPolynomial::_0_) {                           // -Taking advantage this polynomials have a big proportion of zeros
 		    if(p1.coefficients[i] == ZpPolynomial::_1_) {                       // -The other two cases are one, as in this line is showed
-		        k = N - i;
+		        k = _N_ - i;
 		        for(j = 0; j < k; j++)
 		            r.coefficients[i+j] += p2.coefficients[j];
 		        for(k = 0; k < i; j++, k++)
 		            r.coefficients[k] += p2.coefficients[j];
 		    } else {                                                            // -The only other case is two, which is interpreted as -1
-		        k = N - i;
+		        k = _N_ - i;
 		        for(j = 0; j < k; j++)
 		            r.coefficients[i+j] -= p2.coefficients[j];
 		        for(k = 0; k < i; j++, k++)
@@ -809,19 +773,23 @@ ZqPolynomial NTRU::convolutionZq(const ZpPolynomial& p1, const ZqPolynomial& p2)
 }
 
 int ZqPolynomial::degree() const{											    // -Returns degree of polynomial
-	int deg = NTRUparameters.get_N();
+	int deg = _N_;
 	while(this->coefficients[--deg] == 0 && deg > 0) {}
 	return deg;
 }
 
+bool ZqPolynomial::equalsOne() const{
+    if(this->coefficients[0] != 1) return false;
+    for(size_t i = 1; i < _N_; i++) if(this->coefficients[i] != 0) return false;
+    return true;
+}
+
 void ZqPolynomial::mod_q() const{
-    const NTRU_N N = NTRUparameters.get_N();
-    for(int i = 0; i < N; i++) this->coefficients[i] = zq.mod_q(this->coefficients[i]);
+    for(int i = 0; i < _N_; i++) this->coefficients[i] = modq(this->coefficients[i]);
 }
 
 void ZqPolynomial::mods_q() const{
-    const NTRU_N N = NTRUparameters.get_N();
-    for(int i = 0; i < N; i++) this->coefficients[i] = zq.mods_q(this->coefficients[i]);
+    for(int i = 0; i < _N_; i++) this->coefficients[i] = modsq(this->coefficients[i]);
 }
 
 int ZqPolynomial::log2(NTRU_q q) {                                              // -Returns logarithm base 2 of a NTRU_q value
@@ -831,18 +799,17 @@ int ZqPolynomial::log2(NTRU_q q) {                                              
 }
 
 int ZqPolynomial::lengthInBytes() const{
-    return NTRUparameters.get_N()*log2(zq.get_q())/8 + 1;
+    return _N_*log2q/8 + 1;
 }
 
 ZqPolynomial ZqPolynomial::getNTRUpublicKey() {                                 // -Returns public key provided this ZqPolynomial object is the inverse mod q in
-    const NTRU_N N = NTRUparameters.get_N();                                    //  Z[x]/X^N-1 of the private key
-    ZqPolynomial publicKey;
-    int* randTernary = new int[N];
-    const int d_ = N/3;
+    ZqPolynomial publicKey;                                                     //  Z[x]/X^N-1 of the private key
+    int* randTernary = new int[_N_];
+    const int d_ = _N_/3;
     int _d_ = d_;
     int i, j, k;
 
-    for(i = 0; i < N; i++) randTernary[i] = 0;
+    for(i = 0; i < _N_; i++) randTernary[i] = 0;
 
     while(_d_ > 0) {                                                            // -Building ternary polynomial multiplied by p
         i = randomIntegersN();                                                  // -Filling with p
@@ -853,8 +820,8 @@ ZqPolynomial ZqPolynomial::getNTRUpublicKey() {                                 
         i = randomIntegersN();                                                  // -Filling with negative p
         if(randTernary[i] == 0) {randTernary[i] = -1; _d_--;}                   // ...
     }
-	for(i = 0; i < N; i++) {                                                    // -Convolution process
-	    k = N - i;
+	for(i = 0; i < _N_; i++) {                                                    // -Convolution process
+	    k = _N_ - i;
 	    if(randTernary[i] != 0) {
 	        if(randTernary[i] == 1) {
 	            for(j = 0; j < k; j++)                                          // Ensuring we do not get out of the polynomial
@@ -876,33 +843,28 @@ ZqPolynomial ZqPolynomial::getNTRUpublicKey() {                                 
 
 ZqPolynomial NTRU::ZqPolynomial::timesThree(const ZpPolynomial& p){
     ZqPolynomial r;
-    const NTRU_N N = NTRUparameters.get_N();
-    for(int i = 0; i < N; i++){
+    for(int i = 0; i < _N_; i++){
         if(p[i] != 0) r.coefficients[i] = multiplyBy_3(p[i]);                   // -Getting 3p
     }
     return r;
 }
 
 void ZqPolynomial::toBytes(char dest[]) const{                                  // -Supposing dest is pointing to a suitable memory location
-    const NTRU_N N = NTRUparameters.get_N();
     const int buffBitsSize = 64;
-    const int q = zq.get_q();
-    int i = 0, j = 0, log2q = log2(zq.get_q());                                 // -log2q will hold the logarithm base two of q. Here we are assuming q < 2^32)
+    int i = 0, j = 0;                                                           // -log2q will hold the logarithm base two of q. Here we are assuming q < 2^32)
     int bitsAllocInBuff = 0;                                                    // -Amount of bits allocated (copied from coefficients array) in buffer
     int bytesAllocInDest = 0;
     int64_to_char buffer = {0};                                                 // -buffer will do the cast from int to char[]
     int64_t aux;
-
     //std::cout << "ZqPolynomial::toBytes(char dest[]) const: log2q = " << log2q << '\n'; // -Debugging purposes
-
-    for(bitsAllocInBuff = 0, aux = 0; i < N;) {
+    for(bitsAllocInBuff = 0, aux = 0; i < _N_;) {
         buffer.int64 >>= (bytesAllocInDest << 3);                               // -l*8; Ruling out the bits allocated in the last cycle
         while(bitsAllocInBuff < buffBitsSize - log2q) {                         // -Allocating bits from coefficients to buffer
             aux = this->coefficients[i++];
-            if(aux < 0) aux += q;
+            if(aux < 0) aux += _q_;
             buffer.int64 |= aux << bitsAllocInBuff;                             // -Allocating log2q bits in buffer._int_;
             bitsAllocInBuff += log2q;                                           // -increasing amount of bits allocated in buffer
-            if(i >= N) break;
+            if(i >= _N_) break;
         }
         for(bytesAllocInDest = 0; bitsAllocInBuff >= 8; bytesAllocInDest++, bitsAllocInBuff -= 8)
             dest[j++] = buffer.chars[bytesAllocInDest];                         // -Writing buffer in destination (as long there are at least 8 bits in buffer)
@@ -911,7 +873,7 @@ void ZqPolynomial::toBytes(char dest[]) const{                                  
 }
 
 void ZqPolynomial::print(const char* name,const char* tail) const{
-    unsigned len_q = lengthDecimalInt(zq.get_q());
+    unsigned len_q = lengthDecimalInt(_q_);
     int coeffAmount = this->degree() + 1;                                       // -This three lines is a "casting" from int64_t array to int array
     int* array = new int[coeffAmount], i;                                       // ...
     for(i = 0; i < coeffAmount; i++) array[i] = (int)this->coefficients[i];     // ...
@@ -924,10 +886,7 @@ void ZqPolynomial::println(const char* name) const{
 }
 
 void ZqPolynomial::save(const char* name, bool saveAsText) const{
-    const NTRU_N N = NTRUparameters.get_N();
-    const short q = zq.get_q();
-    int log2q = log2(zq.get_q());
-    int byteArrSize = N*log2q/8 + 1;                                            // -For values 8 < log2q < 16, this expression is valid
+    int byteArrSize = _N_*log2q/8 + 1;                                            // -For values 8 < log2q < 16, this expression is valid
     char* byteArr = NULL;
     const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a Zq NTRU (NTRU) polynomial
 
@@ -941,8 +900,8 @@ void ZqPolynomial::save(const char* name, bool saveAsText) const{
     }
     if(file.is_open()) {
         file.write(ntruq, 5);
-        file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial
-        file.write((char*)&q, 2);                                               // -A short int for the q value
+        file.write((char*)_N_, 2);                                               // -A short int for the degree of the polynomial
+        file.write((char*)_q_, 2);                                               // -A short int for the q value
         byteArr = new char[byteArrSize];
         this->toBytes(byteArr);
         file.write(byteArr, byteArrSize);
@@ -954,8 +913,7 @@ void ZqPolynomial::save(const char* name, bool saveAsText) const{
 }
 
 ZqPolynomial& ZqPolynomial::timesThree(){
-    const NTRU_N N = NTRUparameters.get_N();
-    for(int i = 0; i < N; i++){
+    for(int i = 0; i < _N_; i++){
         this->coefficients[i] = multiplyBy_3(this->coefficients[i]);            // -Getting 3p
     }
     return *this;
@@ -965,13 +923,18 @@ ZqPolynomial& ZqPolynomial::timesThree(){
 
 // ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Encryption ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-Encryption::Encryption(): N(_509_), q(_2048_) {                                 // -Just for type declaration. Should not be used just like this
-    setNTRUparameters(this->N, this->q);
-    this->privatKey = ZpPolynomial();
-    this->publicKey = ZqPolynomial();
+Encryption::Encryption() {                                                      // -Just for type declaration. Should not be used just like this
+    try {
+	    this->setKeys();
+	}catch(const std::runtime_error&) {
+	    this->validPrivateKey = false;
+	    cerrMessageBeforeReThrow("Encryption::Encryption()");
+	    throw;
+	}
+	this->validPrivateKey = true;
 }
 
-Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
+/*Encryption::Encryption(NTRU_N n, NTRU_q Q) {
     setNTRUparameters(this->N, this->q);
 	try {
 	    this->setKeys();
@@ -981,9 +944,9 @@ Encryption::Encryption(NTRU_N n, NTRU_q Q): N(n), q(Q) {
 	    throw;
 	}
 	this->validPrivateKey = true;
-}
+}*/
 
-Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
+Encryption::Encryption(const char* NTRUkeyFile) {
     const char thisFunc[] = "Encryption::Encryption(const char* NTRUkeyFile)";
     const char NTRUpublicKey[] = "NTRUpublicKey";                               // -This will indicate the binary file is saving a NTRU public key
     const char NTRUprivatKey[] = "NTRUprivatKey";                               // -This will indicate the binary file is saving a NTRU private key
@@ -991,6 +954,8 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
     char* fileHeader = NULL;
     int   sz = 0, headerSz = lengthString("NTRUpublicKey");                     // -Notice how "NTRUpublicKey" and "NTRUprivatKey" strings have the same length
     bool  isPrivateKey = false;
+    NTRU_N n;
+    NTRU_q Q;
     std::ifstream file;
     file.open(NTRUkeyFile, std::ios::binary);
     if(file.is_open()) {
@@ -998,10 +963,14 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
         file.read(fileHeader, headerSz);                                        // -Reading the firsts bytes hoping "NTRUpublicKey" or "NTRUprivatKey" apears
         fileHeader[headerSz] = 0;                                               // -End of string
         if(compareStrings(fileHeader, NTRUprivatKey) || compareStrings(fileHeader, NTRUpublicKey)) { // -Testing if file saves a NTRU private key
-            file.read((char*)&this->N, 2);
-            file.read((char*)&this->q, 2);
-            //std::cout << "N = " << this->N << ", q = " << this->q << "\n";    // -Debugging purposes
-            setNTRUparameters(this->N, this->q);
+            file.read((char*)&n, 2);
+            file.read((char*)&Q, 2);
+            if(n != _N_ || Q != _q_) {
+                delete[] fileHeader; fileHeader = NULL;
+                cerrMessageBeforeThrow(thisFunc, "Parameters retreaved from file do not match with this program parameters");
+                std::cout << "From file: N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << Q << '\n';
+                throw std::runtime_error("Could not agree on parameters");
+            }
             if(compareStrings(fileHeader, NTRUprivatKey)) {
                 isPrivateKey = true;
                 sz = this->privateKeySizeInBytes();
@@ -1038,18 +1007,13 @@ Encryption::Encryption(const char* NTRUkeyFile): N(_1499_), q(_8192_) {
     this->validPrivateKey = isPrivateKey;                                       // -Only encryption if we got just the public key
 }
 
-size_t Encryption::plainTextMaxSizeInBytes() const{ return size_t(this->N/6); }
-size_t Encryption::cipherTextSizeInBytes()   const{ return size_t(this->N*ZqPolynomial::log2(this->q)/8 + 1); }
-size_t Encryption::privateKeySizeInBytes()   const{ return size_t(this->N/5 + 1); }
-size_t Encryption::publicKeySizeInBytes()    const{ return size_t(this->N*ZqPolynomial::log2(this->q)/8 + 1); }
+size_t Encryption::plainTextMaxSizeInBytes() const{ return size_t(_N_/6); }
+size_t Encryption::cipherTextSizeInBytes()   const{ return size_t(_N_*log2q/8 + 1); }
+size_t Encryption::privateKeySizeInBytes()   const{ return size_t(_N_/5 + 1); }
+size_t Encryption::publicKeySizeInBytes()    const{ return size_t(_N_*log2q/8 + 1); }
 
 void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const{
     const char thisFunc[] = "void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const";
-    if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
-        setNTRUparameters(this->N, this->q);
-    }
-    NTRU_N N = NTRUparameters.get_N();
-    NTRU_q q = zq.get_q();
     int publicKeySize  = this->publicKeySizeInBytes();
     int privateKeySize = this->privateKeySizeInBytes();
     char* publicKeyBytes  = NULL;
@@ -1061,8 +1025,8 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
     else                      file.open(publicKeyName, std::ios::binary);
     if(file.is_open()) {
         file.write((char*)NTRUpublicKey, lengthString(NTRUpublicKey));          // -Initiating the file with the string "NTRUpublicKey"
-        file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial
-        file.write((char*)&q, 2);                                               // -A short int for the degree of the polynomial
+        file.write((char*)_N_, 2);                                               // -A short int for the degree of the polynomial
+        file.write((char*)_q_, 2);                                               // -A short int for the degree of the polynomial
         publicKeyBytes = new char[publicKeySize];                               // -The following bytes are for the polynomials coefficients
         this->publicKey.toBytes(publicKeyBytes);
         file.write(publicKeyBytes, publicKeySize);
@@ -1078,8 +1042,8 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
         else                       file.open(privateKeyName, std::ios::binary);
         if(file.is_open()) {
             file.write((char*)NTRUprivateKey, lengthString(NTRUprivateKey));    // -Initiating the file with the string "NTRUprivateKey"
-            file.write((char*)&N, 2);                                           // -A short int for the degree of the polynomial
-            file.write((char*)&q, 2);                                           // -A short int for the degree of the polynomial
+            file.write((char*)_N_, 2);                                           // -A short int for the degree of the polynomial
+            file.write((char*)_q_, 2);                                           // -A short int for the degree of the polynomial
             privateKeyBytes = new char[privateKeySize];                         // -The following bytes are for the polynomials coefficients
             this->privatKey.toBytes(privateKeyBytes);
             file.write(privateKeyBytes, privateKeySize);
@@ -1102,15 +1066,12 @@ ZqPolynomial Encryption::productByPrivatKey(const ZqPolynomial& P) const{
 
 ZqPolynomial Encryption::productByPrivatKey(const Z2Polynomial& P) const{
     ZqPolynomial r = convolutionZq(P, this->privatKey).timesThree();            // Private key f has the form 1+p·F0, so f*P = P+p(P*F0)
-    for(int i = 0; i < this->N; i++) if(P.coefficients[i] != 0) r.coefficients[i]++;
+    for(int i = 0; i < _N_; i++) if(P.coefficients[i] != 0) r.coefficients[i]++;
     return r;
 }
 
 void Encryption::setKeys() {
     const char thisFunc[] = "void Encryption::setKeys()";
-    if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {            // -Making sure the uniqueness of the NTRU parameters
-        setNTRUparameters(this->N, this->q);
-    }
 	Z2Polynomial Z2_privateKeyInv;
 	Z2Polynomial Z2_gcdXNmns1;
 	this->privatKey = NTRU::ZpPolynomial::randomTernary();
@@ -1143,13 +1104,14 @@ void Encryption::setKeys() {
     // -This hole section can be optimized by making it a function like lift R2-Rq for private key
     this->publicKey = convolutionZq(Z2_privateKeyInv, 2 - Encryption::productByPrivatKey(Z2_privateKeyInv));
     k <<= l; l <<= 1;
-	while(k < this->q) {
+	while(k < _q_) {
         this->publicKey = this->publicKey*(2 - Encryption::productByPrivatKey(publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
-    /*ZqPolynomial t = productByPrivatKey(this->publicKey);                     // -Testing the if the statement above is true (Debugging purposes)
-    t.mods_q();
-    if(t != 1) {
+    ZqPolynomial t = productByPrivatKey(this->publicKey);                     // -Testing the if the statement above is true (Debugging purposes)
+    /*t.mods_q();
+    if(!t.equalsOne()) {
+        std::cout << thisFunc << "::Parameters: N = "<< _N_ << ", q = " << _q_ << " --------------" << std::endl;
         t.println("this->publicKey*this->privateKey");
         cerrMessageBeforeThrow(thisFunc,"Public key inverse in Zq[x]/x^N-1 finding failed");
         throw std::runtime_error("Exception in public key inverse creation");
@@ -1160,9 +1122,6 @@ void Encryption::setKeys() {
 
 void Encryption::setKeysFromPrivKey() {                                         // -In this function we're supposing we already have a valid private key.
     const char thisFunc[] = "void Encryption::setKeysFromPrivKey()";
-    if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
-        setNTRUparameters(this->N, this->q);
-    }
     Z2Polynomial Z2_privateKey(this->privatKey);
     Z2Polynomial Z2_privateKeyInv;
     Z2Polynomial Z2_gcdXNmns1;
@@ -1177,7 +1136,7 @@ void Encryption::setKeysFromPrivKey() {                                         
     // -This hole section can be optimized by making it a function like lift R2-Rq for private key
     this->publicKey = convolutionZq(Z2_privateKeyInv, 2 - Encryption::productByPrivatKey(Z2_privateKeyInv));
     k <<= l; l <<= 1;
-	while(k < this->q) {
+	while(k < _q_) {
         this->publicKey = this->publicKey*(2 - Encryption::productByPrivatKey(publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
@@ -1195,16 +1154,12 @@ void Encryption::setKeysFromPrivKey() {                                         
 // ____________________________________________________________________ Encryption keys ___________________________________________________________________________
 
 ZqPolynomial Encryption::encrypt(const char bytes[], int size) const{
-    if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
-        setNTRUparameters(this->N, this->q);
-    }
     ZpPolynomial msg(bytes, size, true);
     ZqPolynomial encryptedMsg = msg.encrypt(this->publicKey);
     return encryptedMsg;
 }
 
 ZqPolynomial Encryption::encrypt(const ZpPolynomial& msg) const{
-    if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) setNTRUparameters(this->N, this->q);
     ZqPolynomial encryptedMsg = msg.encrypt(publicKey);
     return encryptedMsg;
 }
@@ -1213,9 +1168,6 @@ ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg) const{
     if(!this->validPrivateKey) {
         std::cerr << "\nThis object has no valid private key, therefore is only capable of encryption. Returning zero ZpPolynomial.\n";
         return ZpPolynomial();
-    }
-    if(this->N != NTRUparameters.get_N() || this->q != zq.get_q()) {
-        setNTRUparameters(this->N, this->q);
     }
     ZqPolynomial msg_ = productByPrivatKey(e_msg);
     msg_.mods_q();
@@ -1226,6 +1178,9 @@ ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg) const{
 ZpPolynomial Encryption::decrypt(const char bytes[], int size) const{
     return this->decrypt(ZqPolynomial(bytes, size));
 }
+
+NTRU_N Encryption::get_N() const { return (NTRU_N)_N_; }
+NTRU_q Encryption::get_q() const { return (NTRU_q)_q_; }
 
 /************************************************************************* Statistics ****************************************************************************/
 
@@ -1277,17 +1232,18 @@ double Encryption::Statistics::Time::avrAbsDev(const uint64_t time_data[], size_
     return aad;
 }
 
-Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(NTRU_N N,NTRU_q q){
+Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(){
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
     /*uint64_t begin;
     uint64_t end;*/
 	uint64_t times[NUMBEROFROUNDS], i;
-	Encryption e(N, q);
+	Encryption e;
 
+    std::cout << "Encryption::Statistics::Time::keyGeneration::Parameters: N = "<< _N_ << ", q = " << _q_ << " --------------" << std::endl;
 	for(i = 0; i < NUMBEROFROUNDS; i++, e.privatKey = ZpPolynomial::getPosiblePrivateKey()){
-        if((i&31)==0)std::cout<<"Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(): Round " << i << std::endl;
-	    begin= std::chrono::steady_clock::now();
+        if((i & 31) == 0) std::cout<<"Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(): Round "<<i<<std::endl;
+	    begin = std::chrono::steady_clock::now();
 	    e.setKeys();
 	    end  = std::chrono::steady_clock::now();
 	    times[i] = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
@@ -1298,18 +1254,19 @@ Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(NTRU_N 
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
 }
 
-Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(NTRU_N N,NTRU_q q){
+Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(){
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
     /*uint64_t begin;
     uint64_t end;*/
-    Encryption e(N, q);
+    Encryption e;
     size_t dummy_sz = e.plainTextMaxSizeInBytes(), i;
     uint64_t times[NUMBEROFROUNDS];
     char* dummy = new char[dummy_sz];
 
     for(i = 0; i < dummy_sz; i++) dummy[i] = (char)i;
 
+    std::cout << "Encryption::Statistics::Time::ciphering::Parameters: N = "<< _N_ << ", q = " << _q_ << " --------------" << std::endl;
     for(i = 0; i < NUMBEROFROUNDS; i++){
         if((i&63) == 0) std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(): Round " << i << std::endl;
         begin= std::chrono::steady_clock::now();
@@ -1325,20 +1282,22 @@ Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(NTRU_N N,NT
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
 }
 
-Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(NTRU_N N,NTRU_q q){
+Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(){
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
     /*uint64_t begin;
     uint64_t end;*/
-    Encryption e(N, q);
+    Encryption e;
     size_t dummy_sz = e.cipherTextSizeInBytes(), i;
     uint64_t times[NUMBEROFROUNDS];
     char* dummy = new char[dummy_sz];
 
     for(i = 0; i < dummy_sz; i++) dummy[i] = (char)i;
 
+    std::cout << "Encryption::Statistics::Time::deciphering::Parameters: N = "<< _N_ << ", q = " << _q_ << " --------------" << std::endl;
     for(i = 0; i < NUMBEROFROUNDS; i++){
-        if((i&63) == 0) std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(): Round " << i << std::endl;
+        if((i & 63) == 0)
+            std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(): Round " << i << std::endl;
         begin= std::chrono::steady_clock::now();
 	    e.decrypt(dummy, dummy_sz);
 	    end  = std::chrono::steady_clock::now();
@@ -1425,14 +1384,15 @@ static void printHex(const char a[], size_t size, const char front[] = "", const
     std::cout << back;
 }
 
-
-Encryption::Statistics::Data Encryption::Statistics::Data::encryption(NTRU_N N,NTRU_q q){   // plainTextSize = N/5, cipherTextSize = N*log2(q)/8
-    Encryption e(N, q);                                                         // cipherTextSize/plainTextSize = 5*log2(q)/8
-    const size_t blockSize      = e.plainTextMaxSizeInBytes();                  // cipherTextSize = plainTextSize*5*log2(q)/8
+Encryption::Statistics::Data Encryption::Statistics::Data::encryption(){        // plainTextSize = N/5, cipherTextSize = N*log2(q)/8
+    Encryption e;                                                               // cipherTextSize/plainTextSize = 5*log2(q)/8
+    size_t blockSize = e.plainTextMaxSizeInBytes();                             // cipherTextSize = plainTextSize*5*log2(q)/8
     const size_t cipherBlockSize= e.cipherTextSizeInBytes();                    // cipherTextSize*numberOfRounds = 512*512*3 (size of a 256x256 pixel image)
-    const size_t numberOfRounds = 8*3*512*512/(5*blockSize*(size_t)ZqPolynomial::log2(q));// (plainTextSize*5*log2(q)/8)*numberOfRounds = 512*512*3
-    const size_t dummyEncLen  = cipherBlockSize*(numberOfRounds);               // dummyLen = plainTextSize*numberOfRounds = 512*512*3*8/[5*log2(q)]
-    char* dummy       = new char[blockSize];                                    // numberOfRounds = dummyLen/plainTextSize
+    const size_t numberOfRounds = 8*3*512*512/(5*blockSize*(size_t)log2q);      // (plainTextSize*5*log2(q)/8)*numberOfRounds = 512*512*3
+    const size_t dummyEncLen = cipherBlockSize*(numberOfRounds);                // dummyLen = plainTextSize*numberOfRounds = 512*512*3*8/[5*log2(q)]
+                                                                                // numberOfRounds = dummyLen/plainTextSize
+    blockSize++;                                                                // -A byte more for blocks.
+    char* dummy       = new char[blockSize];
     char* dummy_enc   = new char[dummyEncLen];
     char* dummy_dec   = new char[blockSize];
     ZqPolynomial enc;
@@ -1440,12 +1400,13 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(NTRU_N N,N
     size_t i, j, k, l, r;
     int    a = 0;
 
-    std::cout << "Encryption::Statistics::Data::encryption::Parameters: N = "<< NTRUparameters.get_N() << ", q = " << zq.get_q() << " --------------" << std::endl;
+    std::cout << "Encryption::Statistics::Data::encryption::Parameters: N = "<< _N_ << ", q = " << _q_ << " ---------------------------------------" << std::endl;
 
     for(i = 0; i < blockSize; i++)   dummy[i]     = 0;
     for(i = 0; i < dummyEncLen; i++) dummy_enc[i] = 0;
-    for(i = 0; i < blockSize+1; i++) dummy_dec[i] = 0;
+    for(i = 0; i < blockSize; i++)   dummy_dec[i] = 0;
 
+    blockSize--;                                                                // -A byte more for blocks.
     std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Data::encryption(): "
                  "Input length = " << blockSize*numberOfRounds << ". Encrypted input length = " << dummyEncLen << ". Block size = " << blockSize << '\n';
 
@@ -1455,7 +1416,7 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(NTRU_N N,N
         enc.toBytes(dummy_enc + j);
         enc = ZqPolynomial(dummy_enc + j, cipherBlockSize);
         dec = e.decrypt(enc);
-        dec.toBytes(dummy_dec);
+        dec.toBytes(dummy_dec, true);                                           // -Second parameter isPlainText = true
         for(l = 0; l < blockSize; l++){
             if(dummy[l] != dummy_dec[l]) {
                 a = (int)l*2 - 4;
@@ -1480,7 +1441,7 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(NTRU_N N,N
                 break;
             }
         }
-        if(dummy[i] == (char)243) i++;
+        if(dummy[i] == (char)255) i++;
         else dummy[i]++;
     }
     std::cout << "Total amount of rounds: " <<  numberOfRounds << '\n';
