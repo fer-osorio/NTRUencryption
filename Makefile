@@ -14,7 +14,7 @@ NTRUdecryption.exe: Makefile $(HEADERS) $(SOURCE) Apps/decryption.cpp
 	$(CXX) -o Apps/Executables/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/decryption.cpp $(SOURCE)
 
 Statistics.exe: Makefile Source/*.hpp Source/*.cpp Apps/Statistics.cpp
-	$(CXX) -o Apps/Executables/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/Statistics.cpp Source/*.cpp
+	$(CXX) -o Apps/Executables/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/Statistics.cpp Source/*.cpp -lgmpxx -lgmp
 
 clean:
 	rm -f Apps/Executables/*.exe
