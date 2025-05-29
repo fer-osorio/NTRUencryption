@@ -1,5 +1,6 @@
 #include<iostream>
 #include<cstdint>
+#include<gmpxx.h>
 
 #ifndef _NTRUENCRYPTION_HPP_
 #define _NTRUENCRYPTION_HPP_
@@ -49,6 +50,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 
 	size_t sizeInBytes(bool isPlainText) const;				// The polynomial represents: plain text-->N/6  or a private key-->N/5
 	void toBytes(char dest[], bool isPlainText = false) const;
+	mpz_class toNumber() const;						// Interprests the coefficientes as a bese 3 number.
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
 

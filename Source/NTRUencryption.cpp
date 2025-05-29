@@ -5,6 +5,7 @@
 #include<cstring>
 #include<exception>
 #include"NTRUencryption.hpp"
+
 /*#ifdef _MSC_VER
 # include <intrin.h>
 #else
@@ -365,6 +366,14 @@ void ZpPolynomial::toBytes(char dest[], bool isPlainText) const{
     }
     for(k = N_mod_m-1, buff = 0; k >= 0; k--) buff = buff*3 + this->coefficients[i+k];// Supposing the numbers in base 3 are in big endian notation
     dest[j] = (char)buff;
+}
+
+mpz_class ZpPolynomial::toNumber() const{                                       // -Interprets this->coefficients as a number in base 3
+    NTRU_N N = NTRUparameters.get_N();
+    mpz_class r = 0;
+    mpz_class base = 3;
+    for(int i = 0; i >= 0; i--) r = r*base + this->coefficients[i];             // -Horner's algorithm
+    return r;
 }
 
 void ZpPolynomial::print(const char* name, const char* tail) const{
