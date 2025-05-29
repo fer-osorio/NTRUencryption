@@ -88,7 +88,7 @@ static void printArray(int* array, unsigned arrlen, unsigned columnlen, const ch
 
     startLen = lengthString(name);
     if(startLen > 0) {
-        std::cout << name << " = [ ";
+        std::cout << name << " = [";
         startLen += 4;
     }
     else {
@@ -122,19 +122,10 @@ static bool compareStrings(const char* str1, const char* str2) {
 
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| NTRU Parameters |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-/*struct NTRU_Parameters {                                                        // -The intention of this structure is to protect the NTRU parameters against
-    private: NTRU_N N = _1499_;                                                 //  not intentional modifications.
-    private: NTRU_p p = _3_;
-    public:  NTRU_N get_N() const{ return this->N; }
-    public:  NTRU_p get_p() const{ return this->p; }*/
-//    class Zq {																// Representation of the group of integers modulus q: Zq
 static int64_t q_1     = (int64_t)_q_-1;										// Will hold q-1, this will help with mod q operation
 static int64_t negq_1  = ~q_1;													// This will help in the centering process. Set as ~q_1
 static int64_t q_div_2 = _q_>>1;
 static int     log2q   = NTRU::ZqPolynomial::log2((NTRU_q)_q_);
-
-		//public: Zq(NTRU_q _q_): q(_q_), q_1((int64_t)_q_-1), negq_1(~q_1), q_div_2(q>>1) {}
-//		public: NTRU_q get_q() const{ return q; }
 
 static int64_t modq(int64_t t) {											// operation t % q
     if(t >= 0)	return t & q_1;									// Equivalent to t % q since q is a power of 2
@@ -147,24 +138,6 @@ static int64_t modsq(int64_t a) {
     if(r < q_div_2) return r;										// At this point we know 0 <= r < q
     else return r | negq_1;										// This is equivalent to r - this->q when r < q
 }
-/*int64_t add(int64_t a, int64_t b) {
-	return this->mod_q(a+b);
-		}
-		void addEqual(int64_t& a, int64_t b) const{
-			a = this->mod_q(a+b);
-		}
-		int64_t subtract(int64_t a, int64_t b) const{
-			return this->mod_q(a-b);
-		}
-		int64_t product(int64_t a, int64_t b) const{
-			return this->mod_q(a*b);
-		}*/
-	//};
-//};
-
-//static NTRU_Parameters NTRUparameters;                                          // -This unique instance puts every polynomial "inside the same polynomial ring"
-//static NTRU_Parameters::Zq zq(_2048_);                                          // -Arithmetic for the operation modulo q
-//static Zq zq();                                                                 // -Arithmetic for the operation modulo q
 
 class RandInt {                                                                 // Little class for random integers. Taken from The C++ Programming Language 4th
     static unsigned _seed_;
@@ -178,17 +151,6 @@ class RandInt {                                                                 
 };
 unsigned RandInt::_seed_ = (unsigned)time(NULL);
 static RandInt randomIntegersN(0, _N_ - 1);
-//static RandInt randomIntegersN(0, NTRUparameters.get_N() - 1);                  // -Random integers from 0 to N-1.
-
-
-/*void setNTRUparameters(NTRU_N N, NTRU_q q) {
-    NTRUparameters.N = N;
-    zq = NTRU_Parameters::Zq(q);
-    randomIntegersN = RandInt(0,N - 1);
-}*/
-
-/*static NTRU_N N_backup = NTRUparameters.get_N();							    // -In case of encrypting or decrypting using keys from an external file, this
-static NTRU_q q_backup = zq.get_q();                                            //  files will save the original internal values*/
 
 // ____________________________________________________________________ NTRU Parameters ___________________________________________________________________________
 
@@ -1313,7 +1275,6 @@ Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(){
 
 //________________________________________________________________________ Encryption _____________________________________________________________________________
 
-
 void Encryption::Statistics::Data::setbyteValueFrequence(const char data[], size_t size){
     if(!this->byteValueFrequenceStablisched) {
         for(size_t i = 0; i < size; i++) this->byteValueFrequence[(uint8_t)data[i]]++;
@@ -1391,14 +1352,14 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(){        
     const size_t numberOfRounds = 8*3*512*512/(5*blockSize*(size_t)log2q);      // (plainTextSize*5*log2(q)/8)*numberOfRounds = 512*512*3
     const size_t dummyEncLen = cipherBlockSize*(numberOfRounds);                // dummyLen = plainTextSize*numberOfRounds = 512*512*3*8/[5*log2(q)]
                                                                                 // numberOfRounds = dummyLen/plainTextSize
-    blockSize++;                                                                // -A byte more for blocks.
-    char* dummy       = new char[blockSize];
-    char* dummy_enc   = new char[dummyEncLen];
-    char* dummy_dec   = new char[blockSize];
-    ZqPolynomial enc;
-    ZpPolynomial dec;
+    blockSize++;                                                                // -A byte more for blocks to avoid <<out of range>> error.
+    char dummy[_1499_];
+    char dummy_dec[_1499_];
+    char* dummy_enc = new char[dummyEncLen];
     size_t i, j, k, l, r;
     int    a = 0;
+    ZqPolynomial enc;
+    ZpPolynomial dec;
 
     std::cout << "Encryption::Statistics::Data::encryption::Parameters: N = "<< _N_ << ", q = " << _q_ << " ---------------------------------------" << std::endl;
 
@@ -1406,7 +1367,7 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(){        
     for(i = 0; i < dummyEncLen; i++) dummy_enc[i] = 0;
     for(i = 0; i < blockSize; i++)   dummy_dec[i] = 0;
 
-    blockSize--;                                                                // -A byte more for blocks.
+    blockSize--;                                                                // -Comming back to original size.
     std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Data::encryption(): "
                  "Input length = " << blockSize*numberOfRounds << ". Encrypted input length = " << dummyEncLen << ". Block size = " << blockSize << '\n';
 
@@ -1419,7 +1380,7 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(){        
         dec.toBytes(dummy_dec, true);                                           // -Second parameter isPlainText = true
         for(l = 0; l < blockSize; l++){
             if(dummy[l] != dummy_dec[l]) {
-                a = (int)l*2 - 4;
+                a = int(l<<1) - 4;
                 std::cout << "At block " << k << ": Decryption failure in byte number " << "l = " << l << std::endl; // -Showing firs decryption failure
                 if(l < 8) {
                     printHex(dummy,    16, "Block[0,16]           = ", "\n");
@@ -1432,8 +1393,8 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(){        
                     if(a > 0) for(; a > 0; a--) std::cout << ' ';
                     std::cout <<                      "       First occurrence here ~~^" << std::endl;
                 } else{
-                    printHex(dummy+(l-8),    17, "Block[l-8,l+8]           = ", "\n");
-                    printHex(dummy_dec+(l-8),17, "Dec(Enc(Block))[l-8,l+8] = ", "\n");
+                    printHex(dummy+(l-8),    16, "Block[l-8,l+8]           = ", "\n");
+                    printHex(dummy_dec+(l-8),16, "Dec(Enc(Block))[l-8,l+8] = ", "\n");
                     for(a = 0; a <16; a++) std::cout << ' ';
                     std::cout <<                 "    First occurrence here ~~^" << std::endl;
                 }
@@ -1445,11 +1406,10 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(){        
         else dummy[i]++;
     }
     std::cout << "Total amount of rounds: " <<  numberOfRounds << '\n';
-    std::cout << "Total amount of decryption failures: " << r << std::endl;
+    std::cout << "Total amount of decryption failures: " << r;
     Encryption::Statistics::Data stats(dummy_enc, dummyEncLen);
-    delete[] dummy;
+    //delete[] dummy;
     delete[] dummy_enc;
-    std::cout << "Source/NTRUencryption->Encryption::Statistics::Data::Data(const char data[], size_t size); line 1717" << std::endl;
-    delete[] dummy_dec;
+    //delete[] dummy_dec;*/
     return stats;
 }

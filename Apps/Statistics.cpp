@@ -88,10 +88,10 @@ int main(int argc, const char* argv[]){
     }
 
     //std::cout << "Parameters:: N = "<< N << ", q = " << q << " ------------------------------------" << std::endl;
-    std::cout << std::fixed << std::setprecision(5) <<std::endl;
+    std::cout << std::fixed << std::setprecision(5) << std::endl;
 
     if(opt_C == 0 || opt_C == 2 || opt_C == 4){
-        std::cout << "Key Generation time statistics:" << std::endl;
+        std::cout << "\nKey Generation time statistics:" << std::endl;
         std::cout << "Maximum: " << kg.getMaximum() << '\n';
         std::cout << "Minimum: " << kg.getMinimum() << '\n';
         std::cout << "Average: " << kg.getAverage() << '\n';
@@ -121,6 +121,12 @@ int main(int argc, const char* argv[]){
         std::cout << "Correlation: " << dt.getCorrelation() << '\n';
         std::cout << "XiSquare: " << dt.getXiSquare() << '\n' << std::endl;
     }
+
+    std::cout << "\nAppendix: From ZpPolynomial to number.\n\n";
+    NTRU::ZpPolynomial r = NTRU::ZpPolynomial::randomTernary();
+    r.println("r polynomial form");
+    mpz_class num_r = r.toNumber();
+    std::cout << "\nr in number == " << num_r << '\n' << std::endl;
 
     return 0;
 }
