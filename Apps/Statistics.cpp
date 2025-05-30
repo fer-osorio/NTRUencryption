@@ -123,10 +123,12 @@ int main(int argc, const char* argv[]){
     }
 
     std::cout << "\nAppendix: From ZpPolynomial to number.\n\n";
-    NTRU::ZpPolynomial r = NTRU::ZpPolynomial::randomTernary();
-    r.println("r polynomial form");
-    mpz_class num_r = r.toNumber();
-    std::cout << "\nr in number == " << num_r << '\n' << std::endl;
+    for(int i = 0; i < 5; i++){
+        NTRU::ZpPolynomial r = NTRU::ZpPolynomial::randomTernary();
+        r.println("r polynomial form");
+        mpz_class num_r = r.toNumber();
+        std::cout << "\nr in number == " << num_r << '\n' << std::endl;
+    }
 
     return 0;
 }
