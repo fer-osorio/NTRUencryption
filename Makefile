@@ -1,4 +1,4 @@
-all: NTRUencryption.exe NTRUdecryption.exe Testing
+all: NTRUencryption NTRUdecryption Testing
 
 WARNINGS = -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors
 DEBUG    = -ggdb -fno-omit-frame-pointer
@@ -8,11 +8,11 @@ SOURCE   = Source/*.cpp Apps/Settings.cpp
 HEADERS  = Source/*.hpp Apps/Settings.hpp
 Q2048    = q2048
 
-NTRUencryption.exe: Makefile $(HEADERS) $(SOURCE) Apps/encryption.cpp
-	$(CXX) -o Apps/Executables/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/encryption.cpp $(SOURCE)
+NTRUencryption: Makefile $(HEADERS) $(SOURCE) Apps/encryption.cpp
+	$(CXX) -o Apps/Executables/EncryptionDecryption/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/encryption.cpp $(SOURCE)
 
-NTRUdecryption.exe: Makefile $(HEADERS) $(SOURCE) Apps/decryption.cpp
-	$(CXX) -o Apps/Executables/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/decryption.cpp $(SOURCE)
+NTRUdecryption: Makefile $(HEADERS) $(SOURCE) Apps/decryption.cpp
+	$(CXX) -o Apps/Executables/EncryptionDecryption/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/decryption.cpp $(SOURCE)
 
 Testing: Makefile Source/*.hpp Source/*.cpp Apps/Statistics.cpp
 	for N in 509 677; do \
@@ -34,10 +34,10 @@ install:
 	echo "Installing is not supported"
 
 run_encryption:
-	Apps/Executables/NTRUencryption.exe
+	Apps/Executables/EncryptionDecryption/NTRUencryption
 
 run_decryption:
-	Apps/Executables/NTRUdecryption.exe
+	Apps/Executables/EncryptionDecryption/NTRUdecryption
 
 run_test:
-	Apps/Executables/Testing$(q)$(N)
+	Apps/Executables/Testing/Testing$(q)$(N)

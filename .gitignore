@@ -27,11 +27,10 @@
 *.lib
 
 # Executables
-*.exe
-*.out
-*.app
 *.txt
-Testing*
+
+# Directory contents
+Apps/Executables/Testing/*
 
 # Others
 Tests.cpp
