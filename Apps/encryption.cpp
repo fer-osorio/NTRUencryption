@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
         try {
             setEncryptionObjectFromFile(argv[1]);
         } catch(std::runtime_error& exp) {
-            std::cout << "Could not create AES::Cipher object.\n" << exp.what() << '\n';
+            std::cout << "Could not create NTRU::Encryption object.\n" << exp.what() << '\n';
             return EXIT_FAILURE;
         }
         for(int i = 2; i < argc; i++) encryptFile(argv[i]);
