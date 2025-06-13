@@ -6,10 +6,21 @@ OPTIMIZE = -O2
 STANDARD = -std=c++2a
 SOURCE   = Source/*.cpp Apps/Settings.cpp
 HEADERS  = Source/*.hpp Apps/Settings.hpp
-Q2048    = q2048
+NVALS	 := 701 821 1087 1171 1499
+QVALS	 := 4096 8192
+N ?= 701
+q ?= 4096
 
 NTRUencryption: Makefile $(HEADERS) $(SOURCE) Apps/encryption.cpp
-	$(CXX) -o Apps/Executables/EncryptionDecryption/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/encryption.cpp $(SOURCE)
+ifneq ($(filter $(N),$(NVALS)),)
+ifneq ($(filter $(q),$(QVALS)),)
+	$(CXX) -o Apps/Executables/EncryptionDecryption/$@$(N)$(q) $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) -D_q_=$(q) -D_N_=$(N) Apps/encryption.cpp $(SOURCE) -lgmpxx -lgmp
+else
+	echo "q parameter not supported"
+endif
+else
+	echo "N parameter not supported"
+endif
 
 NTRUdecryption: Makefile $(HEADERS) $(SOURCE) Apps/decryption.cpp
 	$(CXX) -o Apps/Executables/EncryptionDecryption/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/decryption.cpp $(SOURCE)
