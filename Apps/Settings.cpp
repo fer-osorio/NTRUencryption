@@ -531,7 +531,8 @@ namespace CLI {                                                                 
 };
 
 static int  subStringDelimitedBySpacesOrQuotation(const char* source, const int start, char* destination);
-static void setEncryptionObject(NTRU_N _N_, NTRU_q _q_);
+static void setEncryptionObject();
+void setEncryptionObjectFromFile(const char fname[]);
 static void cipherObjectOverFile(const Options::Cipher_object, const char fname[]);// -Encrypts or decrypts file of second argument accordingly to the first argument
 static void runProgram(const Options::Cipher_object op);
 
@@ -589,8 +590,8 @@ int subStringDelimitedBySpacesOrQuotation(const char* source, const int startAt,
     return i;
 }
 
-void setEncryptionObject(NTRU_N _N_, NTRU_q _q_) {
-    try { NTRUencryption = NTRU::Encryption(_N_, _q_); }
+void setEncryptionObject() {
+    try { NTRUencryption = NTRU::Encryption(); }
     catch(const std::runtime_error&) {
         cerrMessageBeforeReThrow("void setEncryptionObject(NTRU_N _N_, NTRU_q _q_)");
         throw;
@@ -774,19 +775,13 @@ void CLI::retreaveTexAndEncrypt() {
     if(aux != NULL)          delete[] aux;
 }
 
-static bool NTRU_N_validOpt(int opt) { return opt >= 0 && opt < (int)NTRU_N_amount;}
-static bool NTRU_q_validOpt(int opt) { return opt >= 0 && opt < (int)NTRU_q_amount;}
-
 void CLI::retreaveKey(Options::Key_retreaving Kr, const char addedMsg[]) {      // -Retrieving key accordingly to the user's input
-    int opt_N, opt_q;
     switch(Kr) {
         case Options::RetrieveFromFile:
             CLI::getLineAndRetreaveKeyFromFile(addedMsg);
             break;
         case Options::CreateNew:
-            opt_N = CLI::retreaveValidOption(selectNTRU_N, NTRU_N_validOpt);
-            opt_q = CLI::retreaveValidOption(selectNTRU_q, NTRU_q_validOpt);
-            setEncryptionObject(NTRU_N_values[opt_N], NTRU_q_values[opt_q]);
+            setEncryptionObject();
         break;
     }
 }
