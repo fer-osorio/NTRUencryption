@@ -51,8 +51,8 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	size_t sizeInBytes(bool isPlainText) const;				// The polynomial represents: plain text-->N/6  or a private key-->N/5
 	void toBytes(char dest[], bool isPlainText = false) const;
 	mpz_class toNumber() const;						// Interprests the coefficientes as a bese 3 number.
-	void print(const char* name = "", const char* tail = "") const;
-	void println(const char* name = "") const;
+	void print(const char* name = "", bool centered = true, const char* tail = "") const;
+	void println(const char* name = "", bool centered = true) const;
 
 	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZpPolynomial in a file.
 };
@@ -173,12 +173,9 @@ class Encryption {
 	ZpPolynomial privatKey	= ZpPolynomial();				// -Private key has the form p·F0+1, we are saving just F0
 	bool validPrivateKey	= false;					// -Flag; tells us if current object can only encrypt (only have a valid publickKey)
 										// -or also is capable of decryption (has a valid private key).
-	/*NTRU_N N;
-	NTRU_q q;*/
 
 	public:
 	Encryption();
-	//Encryption(NTRU_N, NTRU_q);
 	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file
 
 	ZqPolynomial encrypt(const char bytes[] ,int size) const;		// -Encryption of char array

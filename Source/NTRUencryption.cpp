@@ -20,7 +20,7 @@ static uint64_t readTSC() {
     return tsc;
 }*/
 
-#define DECIMAL_BASE 10
+#define HEXADECIMAL_BASE 16
 #define NUMBEROFROUNDS 16384                                                    // 2^14
 #ifndef _N_
     #define _N_ 701
@@ -51,9 +51,9 @@ static int intToString(int n, char* dest) {                                     
     char buff = 0;
     if(n < 0) {	dest[i++] = '-'; n = -n; j = 1; }
     do {
-        buff = (char)(n % DECIMAL_BASE);                                        // Taking last current digit
+        buff = (char)(n % HEXADECIMAL_BASE);                                        // Taking last current digit
         dest[i++] = buff + 48;                                                  // Saving last current digit
-        n -= (int)buff; n /= DECIMAL_BASE;                                 		// Taking out last current digit from the number n
+        n -= (int)buff; n /= HEXADECIMAL_BASE;                                 		// Taking out last current digit from the number n
     } while(n > 0);
     l = i;
     dest[i--] = 0;                                                              // Putting a zero at the end and returning one place
@@ -73,9 +73,9 @@ static int lengthString(const char* str) {										// Length of a string
 	while(str[++l] != 0) {}
 	return l;
 }
-static unsigned lengthDecimalInt(int a) {                                       // -Returns the number of decimal characters for the number a
+static unsigned lengthHexadecimalInt(int a) {                                   // -Returns the number of decimal characters for the number a
     unsigned l = 0;
-    do { a /= DECIMAL_BASE; l++;
+    do { a /= HEXADECIMAL_BASE; l++;
     }while(a > 0);
     return l;
 }
@@ -332,16 +332,17 @@ mpz_class ZpPolynomial::toNumber() const{                                       
     return r;
 }
 
-void ZpPolynomial::print(const char* name, const char* tail) const{
+void ZpPolynomial::print(const char* name, bool centered, const char* tail) const{
     int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
     int* array = new int[coeffAmount], i;                                       // ...
     for(i = 0; i < coeffAmount; i++) array[i] = (int)this->coefficients[i];     // ...
-    printArray(array, (unsigned)coeffAmount, 2, name, tail);
+    if(centered) for(i = 0; i < coeffAmount; i++) if(array[i] == 2) array[i] = -1; // Printing the polynomials with coefficient in {-1, 0, 1}
+    printArray(array, (unsigned)coeffAmount, 3, name, tail);
     delete[] array;
 }
 
-void ZpPolynomial::println(const char* name) const{
-	this->print(name, "\n");
+void ZpPolynomial::println(const char* name, bool centered) const{
+	this->print(name, centered, "\n");
 }
 
 void ZpPolynomial::save(const char* name, bool saveAsText) const{
@@ -835,7 +836,7 @@ void ZqPolynomial::toBytes(char dest[]) const{                                  
 }
 
 void ZqPolynomial::print(const char* name,const char* tail) const{
-    unsigned len_q = lengthDecimalInt(_q_);
+    unsigned len_q = lengthHexadecimalInt(_q_);
     int coeffAmount = this->degree() + 1;                                       // -This three lines is a "casting" from int64_t array to int array
     int* array = new int[coeffAmount], i;                                       // ...
     for(i = 0; i < coeffAmount; i++) array[i] = (int)this->coefficients[i];     // ...
@@ -895,18 +896,6 @@ Encryption::Encryption() {                                                      
 	}
 	this->validPrivateKey = true;
 }
-
-/*Encryption::Encryption(NTRU_N n, NTRU_q Q) {
-    setNTRUparameters(this->N, this->q);
-	try {
-	    this->setKeys();
-	}catch(const std::runtime_error&) {
-	    this->validPrivateKey = false;
-	    cerrMessageBeforeReThrow("Encryption::Encryption(NTRU_N n, NTRU_q Q)");
-	    throw;
-	}
-	this->validPrivateKey = true;
-}*/
 
 Encryption::Encryption(const char* NTRUkeyFile) {
     const char thisFunc[] = "Encryption::Encryption(const char* NTRUkeyFile)";
@@ -978,6 +967,7 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
     const char thisFunc[] = "void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const";
     int publicKeySize  = this->publicKeySizeInBytes();
     int privateKeySize = this->privateKeySizeInBytes();
+    short N = _N_, q = _q_;
     char* publicKeyBytes  = NULL;
     char* privateKeyBytes = NULL;
     const char NTRUpublicKey[]  = "NTRUpublicKey";                              // -This will indicate the binary file is saving a NTRU public key
@@ -987,8 +977,8 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
     else                      file.open(publicKeyName, std::ios::binary);
     if(file.is_open()) {
         file.write((char*)NTRUpublicKey, lengthString(NTRUpublicKey));          // -Initiating the file with the string "NTRUpublicKey"
-        file.write((char*)_N_, 2);                                               // -A short int for the degree of the polynomial
-        file.write((char*)_q_, 2);                                               // -A short int for the degree of the polynomial
+        file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial
+        file.write((char*)&q, 2);                                               // -A short int for the degree of the polynomial
         publicKeyBytes = new char[publicKeySize];                               // -The following bytes are for the polynomials coefficients
         this->publicKey.toBytes(publicKeyBytes);
         file.write(publicKeyBytes, publicKeySize);
@@ -1004,10 +994,10 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
         else                       file.open(privateKeyName, std::ios::binary);
         if(file.is_open()) {
             file.write((char*)NTRUprivateKey, lengthString(NTRUprivateKey));    // -Initiating the file with the string "NTRUprivateKey"
-            file.write((char*)_N_, 2);                                           // -A short int for the degree of the polynomial
-            file.write((char*)_q_, 2);                                           // -A short int for the degree of the polynomial
+            file.write((char*)&N, 2);                                          // -A short int for the degree of the polynomial
+            file.write((char*)&N, 2);                                          // -A short int for the degree of the polynomial
             privateKeyBytes = new char[privateKeySize];                         // -The following bytes are for the polynomials coefficients
-            this->privatKey.toBytes(privateKeyBytes);
+            this->privatKey.toBytes(privateKeyBytes, false);
             file.write(privateKeyBytes, privateKeySize);
             delete[] privateKeyBytes;
             privateKeyBytes = NULL;
@@ -1219,8 +1209,7 @@ Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(){
 Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(){
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
-    /*uint64_t begin;
-    uint64_t end;*/
+    /*uint64_t begin; uint64_t end;*/
     Encryption e;
     size_t dummy_sz = e.plainTextMaxSizeInBytes(), i;
     uint64_t times[NUMBEROFROUNDS];
