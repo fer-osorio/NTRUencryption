@@ -23,7 +23,15 @@ else
 endif
 
 NTRUdecryption: Makefile $(HEADERS) $(SOURCE) Apps/decryption.cpp
-	$(CXX) -o Apps/Executables/EncryptionDecryption/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/decryption.cpp $(SOURCE)
+ifneq ($(filter $(N),$(NVALS)),)
+ifneq ($(filter $(q),$(QVALS)),)
+	$(CXX) -o Apps/Executables/EncryptionDecryption/$@$(N)$(q) $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) -D_q_=$(q) -D_N_=$(N) Apps/decryption.cpp $(SOURCE) -lgmpxx -lgmp
+else
+	echo "q parameter not supported"
+endif
+else
+	echo "N parameter not supported"
+endif
 
 Testing: Makefile Source/*.hpp Source/*.cpp Apps/Statistics.cpp
 	for N in 509 677; do \

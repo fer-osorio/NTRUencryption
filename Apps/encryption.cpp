@@ -20,11 +20,8 @@
 
 #include"Settings.hpp"
 
-#define NAME_MAX_LEN 256
-#define BYTES_FOR_FILE_SIZE 2                                                   // -Size of the information we will append to the data we intend to encrypt. Now
-#define FILE_TYPE_ID_SIZE   3                                                   //  it correspond to 3 bytes for the type of file, and tow bytes for the file size
-
 int main(int argc, char* argv[]) {
+    showParameters();
     if(argc > 1) {                                                              // -Handling arguments from console
         try {
             setEncryptionObjectFromFile(argv[1]);
@@ -36,7 +33,7 @@ int main(int argc, char* argv[]) {
         return EXIT_SUCCESS;
     }
     std::cout <<
-    "Hi! I am a program which is particularly good at encrypting binary and text files (as long as they are not too big!!). Feel\n"
+    "\nHi! I am a program which is particularly good at encrypting binary and text files (as long as they are not too big!!). Feel\n"
     "free to use me to encrypt any .txt or .bin file you desire. At any moment you can stop me by pressing the keys 'CTRL+C'.\n"
     "Before anything...\n\n";
     runEncryptionProgram();
