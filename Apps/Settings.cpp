@@ -39,6 +39,12 @@ const size_t NTRU_q_amount      = sizeof(NTRU_q_values)/sizeof(NTRU_q_values[0])
 
 const NTRU_p NTRU_p_values[]    = {_3_};
 
+void showParameters(){
+  printf("\t----------------------------------------\n");
+  printf("\t| NTRU parmeters: N = %d, q = %d\t|\n", NTRU::get_N(), NTRU::get_q());
+  printf("\t----------------------------------------\n");
+}
+
 /*
 Valid file name or path grammar
 
