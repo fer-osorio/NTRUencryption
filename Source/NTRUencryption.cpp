@@ -46,14 +46,15 @@ inline static int max(int a, int b) {
 	if(a < b) return b;
 	return a;
 }
-static int intToString(int n, char* dest) {                                     // String representation of unsigned integer it returns the length of the string
+static int intToHexString(int n, char* dest) {                                  // String representation of unsigned integer it returns the length of the string
     int i = 0, j = 0, l = 0;
     char buff = 0;
     if(n < 0) {	dest[i++] = '-'; n = -n; j = 1; }
     do {
-        buff = (char)(n % HEXADECIMAL_BASE);                                        // Taking last current digit
-        dest[i++] = buff + 48;                                                  // Saving last current digit
-        n -= (int)buff; n /= HEXADECIMAL_BASE;                                 		// Taking out last current digit from the number n
+        buff = (char)(n % HEXADECIMAL_BASE);                                    // Taking last current digit
+        if(buff < 10) dest[i++] = buff + 48;                                    // Saving last current digit
+        else dest[i++] = buff + 55;
+        n -= (int)buff; n /= HEXADECIMAL_BASE;                                  // Taking out last current digit from the number n
     } while(n > 0);
     l = i;
     dest[i--] = 0;                                                              // Putting a zero at the end and returning one place
@@ -99,12 +100,12 @@ static void printArray(int* array, unsigned arrlen, unsigned columnlen, const ch
         if(i != 0 && (i & 15) == 0) {                                           // Since 2^4 = 16, then i&15 = i % 16
             std::cout << '\n'; j++;                                             // New row; increasing number of rows
             if(i != lastIndex) {
-                strLen = intToString(j, buff);
+                strLen = intToHexString(j, buff);
                 std::cout << buff;                                              // Printing current coefficient
                 printSpaces((unsigned)max(startLen - strLen,0));                // Padding with spaces
             }
         }
-        strLen = intToString(array[i], buff);                                   // Optimize by returning the length of the string
+        strLen = intToHexString(array[i], buff);                                   // Optimize by returning the length of the string
         printSpaces((unsigned)max((int)columnlen - strLen + 1,0));              // Padding with spaces. The +1 is for alignment with negative numbers
         std::cout << buff;                                                      // Printing current coefficient
         if(i < lastIndex) std::cout << ',';
@@ -153,6 +154,9 @@ unsigned RandInt::_seed_ = (unsigned)time(NULL);
 static RandInt randomIntegersN(0, _N_ - 1);
 
 // ____________________________________________________________________ NTRU Parameters ___________________________________________________________________________
+
+int NTRU::get_N(){ return _N_; }
+int NTRU::get_q(){ return _q_; }
 
 using namespace NTRU;
 
@@ -349,6 +353,7 @@ void ZpPolynomial::save(const char* name, bool saveAsText) const{
     int byteArrSize = _N_ / 5 + 1;                                                // -_N_ is necessarily prime, so _N_ % 5 > 0 holds true
     char* byteArr = NULL;
     const char ntrup[] = "NTRUp";                                               // -This will indicate the binary file is saving a NTRU (NTRU) polynomial with
+    short N = _N_, q = _q_;
     std::ofstream file;                                                         //  coefficients in Zp (p)
     if(name == NULL) {
         if(saveAsText)  file.open("ZpPolynomial.ntrup");
@@ -359,8 +364,8 @@ void ZpPolynomial::save(const char* name, bool saveAsText) const{
     }
     if(file.is_open()) {
         file.write(ntrup, 5);                                                   // -The first five bytes are for the letters 'N' 'T' 'R' 'U' 'p'
-        file.write((char*)_N_, 2);                                               // -A short int for the degree of the polynomial
-        file.write((char*)_q_, 2);                                               // -A short int for the degree of the polynomial
+        file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial
+        file.write((char*)&q, 2);                                               // -A short int for the degree of the polynomial
         byteArr = new char[byteArrSize];                                        // -The following bytes are for the polynomials coefficients
         this->toBytes(byteArr);
         file.write(byteArr, byteArrSize);
@@ -849,9 +854,10 @@ void ZqPolynomial::println(const char* name) const{
 }
 
 void ZqPolynomial::save(const char* name, bool saveAsText) const{
-    int byteArrSize = _N_*log2q/8 + 1;                                            // -For values 8 < log2q < 16, this expression is valid
+    int byteArrSize = _N_*log2q/8 + 1;                                          // -For values 8 < log2q < 16, this expression is valid
     char* byteArr = NULL;
     const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a Zq NTRU (NTRU) polynomial
+    short N = _N_, q = _q_;
 
     std::ofstream file;                                                         //  coefficients in Zp (p)
     if(name == NULL) {
@@ -863,8 +869,8 @@ void ZqPolynomial::save(const char* name, bool saveAsText) const{
     }
     if(file.is_open()) {
         file.write(ntruq, 5);
-        file.write((char*)_N_, 2);                                               // -A short int for the degree of the polynomial
-        file.write((char*)_q_, 2);                                               // -A short int for the q value
+        file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial
+        file.write((char*)&q, 2);                                               // -A short int for the q value
         byteArr = new char[byteArrSize];
         this->toBytes(byteArr);
         file.write(byteArr, byteArrSize);
@@ -905,8 +911,8 @@ Encryption::Encryption(const char* NTRUkeyFile) {
     char* fileHeader = NULL;
     int   sz = 0, headerSz = lengthString("NTRUpublicKey");                     // -Notice how "NTRUpublicKey" and "NTRUprivatKey" strings have the same length
     bool  isPrivateKey = false;
-    NTRU_N n;
-    NTRU_q Q;
+    short n;
+    short Q;
     std::ifstream file;
     file.open(NTRUkeyFile, std::ios::binary);
     if(file.is_open()) {
@@ -919,7 +925,7 @@ Encryption::Encryption(const char* NTRUkeyFile) {
             if(n != _N_ || Q != _q_) {
                 delete[] fileHeader; fileHeader = NULL;
                 cerrMessageBeforeThrow(thisFunc, "Parameters retreaved from file do not match with this program parameters");
-                std::cout << "From file: N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << Q << '\n';
+                std::cout << "From file: N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << '\n';
                 throw std::runtime_error("Could not agree on parameters");
             }
             if(compareStrings(fileHeader, NTRUprivatKey)) {
@@ -995,7 +1001,7 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
         if(file.is_open()) {
             file.write((char*)NTRUprivateKey, lengthString(NTRUprivateKey));    // -Initiating the file with the string "NTRUprivateKey"
             file.write((char*)&N, 2);                                          // -A short int for the degree of the polynomial
-            file.write((char*)&N, 2);                                          // -A short int for the degree of the polynomial
+            file.write((char*)&q, 2);                                          // -A short int for the degree of the polynomial
             privateKeyBytes = new char[privateKeySize];                         // -The following bytes are for the polynomials coefficients
             this->privatKey.toBytes(privateKeyBytes, false);
             file.write(privateKeyBytes, privateKeySize);

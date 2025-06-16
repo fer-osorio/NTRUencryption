@@ -21,6 +21,9 @@ ZqPolynomial convolutionZq(const Z2Polynomial&, const ZqPolynomial&);
 ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&);
 ZpPolynomial mods_p(ZqPolynomial);
 
+int get_N();
+int get_q();
+
 struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N-1)
 	enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};					// -ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
 	private:
