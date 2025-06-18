@@ -27,10 +27,11 @@
 *.lib
 
 # Executables
-*.exe
-*.out
-*.app
 *.txt
+
+# Directory contents
+Apps/Executables/Testing/*
+Apps/Executables/EncryptionDecryption/*
 
 # Others
 Tests.cpp

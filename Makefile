@@ -1,4 +1,4 @@
-all: NTRUencryption.exe NTRUdecryption.exe Statistics.exe
+all: NTRUencryption NTRUdecryption Test
 
 WARNINGS = -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors
 DEBUG    = -ggdb -fno-omit-frame-pointer
@@ -6,30 +6,64 @@ OPTIMIZE = -O2
 STANDARD = -std=c++2a
 SOURCE   = Source/*.cpp Apps/Settings.cpp
 HEADERS  = Source/*.hpp Apps/Settings.hpp
+EXE_ENCDEC_PATH = Apps/Executables/EncryptionDecryption
+EXE_TESTS_PATH  = Apps/Executables/Testing
 
-NTRUencryption.exe: Makefile $(HEADERS) $(SOURCE) Apps/encryption.cpp
-	$(CXX) -o Apps/Executables/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/encryption.cpp $(SOURCE)
+NVALS	 = 701 821 1087 1171 1499
+QVALS	 = 4096 8192
+N ?= 701
+q ?= 4096
 
-NTRUdecryption.exe: Makefile $(HEADERS) $(SOURCE) Apps/decryption.cpp
-	$(CXX) -o Apps/Executables/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/decryption.cpp $(SOURCE)
+QEXPMSG = @echo "q parameter not supported. Valid values are $(QVALS)"
+NEXPMSG = @echo "N parameter not supported. Valid values are $(NVALS)"
 
-Statistics.exe: Makefile Source/*.hpp Source/*.cpp Apps/Statistics.cpp
-	$(CXX) -o Apps/Executables/$@ $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) Apps/Statistics.cpp Source/*.cpp
+NTRUencryption: Makefile $(HEADERS) $(SOURCE) Apps/encryption.cpp
+ifneq ($(filter $(N),$(NVALS)),)
+ifneq ($(filter $(q),$(QVALS)),)
+	$(CXX) -o $(EXE_ENCDEC_PATH)/$@$(N)$(q) $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) -D_q_=$(q) -D_N_=$(N) Apps/encryption.cpp $(SOURCE) -lgmpxx -lgmp
+else
+	$(QEXPMSG)
+endif
+else
+	$(NEXPMSG)
+endif
 
-clean:
-	rm -f Apps/Executables/*.exe
+NTRUdecryption: Makefile $(HEADERS) $(SOURCE) Apps/decryption.cpp
+ifneq ($(filter $(N),$(NVALS)),)
+ifneq ($(filter $(q),$(QVALS)),)
+	$(CXX) -o $(EXE_ENCDEC_PATH)/$@$(N)$(q) $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) -D_q_=$(q) -D_N_=$(N) Apps/decryption.cpp $(SOURCE) -lgmpxx -lgmp
+else
+	$(QEXPMSG)
+endif
+else
+	$(NEXPMSG)
+endif
 
-clean_all:
-	rm -f Apps/Executables/*.exe Apps/Executables/*.ntru*
+Test: Makefile Source/*.hpp Source/*.cpp Apps/Statistics.cpp
+ifneq ($(filter $(N),$(NVALS)),)
+ifneq ($(filter $(q),$(QVALS)),)
+	$(CXX) -o $(EXE_TESTS_PATH)/N$(N)q$(q)/$@$(N)$(q) $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) -D_q_=$(q) -D_N_=$(N) Apps/Statistics.cpp Source/*.cpp -lgmpxx -lgmp
+else
+	$(QEXPMSG)
+endif
+else
+	$(NEXPMSG)
+endif
 
-install:
-	echo "Installing is not supported"
+#clean:
+#	rm -f Apps/Executables/*.exe
+
+#clean_all:
+#	rm -f Apps/Executables/*.exe Apps/Executables/*.ntru*
+
+#install:
+#	@echo "Installing is not supported"
 
 run_encryption:
-	Apps/Executables/NTRUencryption.exe
+	$(EXE_ENCDEC_PATH)/NTRUencryption$(q)$(N)
 
 run_decryption:
-	Apps/Executables/NTRUdecryption.exe
+	$(EXE_ENCDEC_PATH)/NTRUdecryption$(q)$(N)
 
-run_statistics:
-	Apps/Executables/Statistics.exe
+run_test:
+	$(EXE_TESTS_PATH)/N$(N)q$(q)/Test$(q)$(N)

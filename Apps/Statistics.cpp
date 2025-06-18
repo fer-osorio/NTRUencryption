@@ -3,20 +3,6 @@
 #include<limits>
 #include"../Source/NTRUencryption.hpp"
 
-static const NTRU_N NTRU_N_values[]    = {    _509_,     _677_ ,    _701_,     _821_,     _1087_,     _1171_,     _1499_};// -All the possible values for the N
-static const char NTRU_N_valuesList[]  = "(0) _509_, (1) _677_, (2) _701_, (3) _821_, (4) _1087_, (5) _1171_, (6) _1499_";// -Useful for CLI
-static const size_t NTRU_N_amount      = sizeof(NTRU_N_values)/sizeof(NTRU_N_values[0]);
-
-static const NTRU_q NTRU_q_values[]    = {    _2048_,     _4096_ ,     _8192_};        // -All the possible values for the q
-static const char NTRU_q_valuesList[]  = "(0) _2048_, (1) _4096_ , (2) _8192_";        // -Useful for CLI
-static const size_t NTRU_q_amount      = sizeof(NTRU_q_values)/sizeof(NTRU_q_values[0]);
-
-static std::string selectNTRU_N =
-std::string("Select NTRU_N parameter:\n") + NTRU_N_valuesList + "\n";
-
-static std::string selectNTRU_q =
-std::string("Select NTRU_q parameter:\n") + NTRU_q_valuesList + "\n";
-
 static std::string statsCategory =
 "What statistics do you want to get?\n(0) Key Generation time \n(1) Ciphering and deciphering time\n(2) Key Generation time, ciphering and deciphering time \n(3) Encrypted data\n(4) All\n";
 
@@ -46,73 +32,90 @@ static int retreaveValidOption(std::string optionsString, bool (validOptionCrite
     return option;
 }
 
-static bool NTRU_N_validOpt(int opt) { return opt >= 0 && opt < (int)NTRU_N_amount; }
-static bool NTRU_q_validOpt(int opt) { return opt >= 0 && opt < (int)NTRU_q_amount; }
 static bool statisticCategory(int opt) { return opt >= 0 && opt < 5; }
 
 int main(int argc, const char* argv[]){
-    if(argc > 1) {
-        std::cout << "Executable does not support arguments," << std::endl;
-        std::cout << "I will ignore: ";
-        for(int i = 1; i < argc; i++) std::cout << argv[i] << ' ';
-        std::cout  << std::endl;
-    }
-    int opt_N = retreaveValidOption(selectNTRU_N, NTRU_N_validOpt);
-    int opt_q = retreaveValidOption(selectNTRU_q, NTRU_q_validOpt);
-    int opt_C = retreaveValidOption(statsCategory, statisticCategory);
-
-    NTRU_N N = NTRU_N_values[opt_N];
-    NTRU_q q = NTRU_q_values[opt_q];
-
+    NTRU::Encryption* ptr_e = NULL;
     NTRU::Encryption::Statistics::Time kg;
     NTRU::Encryption::Statistics::Time ch, dc;
     NTRU::Encryption::Statistics::Data dt;
+    int opt_C = retreaveValidOption(statsCategory, statisticCategory);
+    switch(argc) {                                                              // -Accept one parameter, intended for the private key
+        case 1:
+            if(opt_C != 0){                                                     // -If no argument passed and if not just key creation statistics
+                try {                                                           //  needed,the program will generate a encryption object
+                    ptr_e = new NTRU::Encryption();
+                } catch(const std::runtime_error& exp){
+                    std::cerr << "Could not create NTRU::Encryption object.\n" << exp.what() << '\n';
+                    return EXIT_FAILURE;
+                }
+            }
+            break;
+        case 2:
+            try{
+                ptr_e = new NTRU::Encryption(argv[1]);                          // -Creating encryption object from (supposedly) private key file
+            } catch(const std::runtime_error& exp){
+                std::cerr << "\nCould not create NTRU::Encryption object from file.\n\n" << exp.what() << '\n';
+                return EXIT_FAILURE;
+            }
+            if(!ptr_e->validPrivateKeyAvailable()){                             // -Validating polynomial passed as private key.
+                std::cerr << "\n\nExecutable argument must refer to a valid private key. Terminating the program with FAILURE status.\n\n";
+                return EXIT_FAILURE;
+            }
+            break;
+        default:
+            std::cerr << "\n\nExecutable accept one and just one argument. Termination the program with FAILURE status.\n\n";
+            return EXIT_FAILURE;
+    }
 
-    std::cout << '\n';
+    if(ptr_e != NULL) {
+        std::cout << "Running test with:" << '\n';
+        ptr_e->printKeys("Public key","Private key");
+        std::cout << std::endl;
+    }
 
     switch(opt_C){
         case 0:
-            std::cout << "Computing Statistics::Time::keyGeneration(" << N << ", " << q << ")\n";
-            kg = NTRU::Encryption::Statistics::Time::keyGeneration(N,q);
+            std::cout << "Computing Statistics::Time::keyGeneration()\n";
+            kg = NTRU::Encryption::Statistics::Time::keyGeneration();
             std::cout << std::endl;
             break;
         case 1:
-            std::cout << "Computing Statistics::Time::ciphering(" << N << ", " << q << ")\n";
-            std::cout << "Computing Statistics::Time::deciphering(" << N << ", " << q << ")\n";
-            ch = NTRU::Encryption::Statistics::Time::ciphering(N,q);
-            dc = NTRU::Encryption::Statistics::Time::deciphering(N,q);
+            std::cout << "Computing Statistics::Time::ciphering()\n";
+            std::cout << "Computing Statistics::Time::deciphering()\n";
+            ch = NTRU::Encryption::Statistics::Time::ciphering(ptr_e);
+            dc = NTRU::Encryption::Statistics::Time::deciphering(ptr_e);
             std::cout << std::endl;
             break;
         case 2:
-            std::cout << "Computing Statistics::Time::keyGeneration(" << N << ", " << q << ")\n";
-            std::cout << "Computing Statistics::Time::ciphering(" << N << ", " << q << ")\n";
-            std::cout << "Computing Statistics::Time::deciphering(" << N << ", " << q << ")\n";
-            kg = NTRU::Encryption::Statistics::Time::keyGeneration(N,q);
-            ch = NTRU::Encryption::Statistics::Time::ciphering(N,q);
-            dc = NTRU::Encryption::Statistics::Time::deciphering(N,q);
+            std::cout << "Computing Statistics::Time::keyGeneration()\n";
+            std::cout << "Computing Statistics::Time::ciphering()\n";
+            std::cout << "Computing Statistics::Time::deciphering()\n";
+            kg = NTRU::Encryption::Statistics::Time::keyGeneration();
+            ch = NTRU::Encryption::Statistics::Time::ciphering(ptr_e);
+            dc = NTRU::Encryption::Statistics::Time::deciphering(ptr_e);
             std::cout << std::endl;
             break;
         case 3:
-            std::cout << "Computing Statistics::Data::encryption(" << N << ", " << q << ")\n";
-            dt = NTRU::Encryption::Statistics::Data::encryption(N,q);
+            std::cout << "Computing Statistics::Data::encryption()\n";
+            dt = NTRU::Encryption::Statistics::Data::encryption(ptr_e);
             std::cout << std::endl;
             break;
         default:
-            std::cout << "Computing Statistics::Time::keyGeneration(" << N << ", " << q << ")\n";
-            std::cout << "Computing Statistics::Time::ciphering(" << N << ", " << q << ")\n";
-            std::cout << "Computing Statistics::Data::encryption(" << N << ", " << q << ")\n";
-            kg = NTRU::Encryption::Statistics::Time::keyGeneration(N,q);
-            ch = NTRU::Encryption::Statistics::Time::ciphering(N,q);
-            dc = NTRU::Encryption::Statistics::Time::deciphering(N,q);
-            dt = NTRU::Encryption::Statistics::Data::encryption(N,q);
+            std::cout << "Computing Statistics::Time::keyGeneration()\n";
+            std::cout << "Computing Statistics::Time::ciphering()\n";
+            std::cout << "Computing Statistics::Data::encryption()\n";
+            std::cout << "Computing Statistics::Time::deciphering()\n";
+            kg = NTRU::Encryption::Statistics::Time::keyGeneration();
+            ch = NTRU::Encryption::Statistics::Time::ciphering(ptr_e);
+            dc = NTRU::Encryption::Statistics::Time::deciphering(ptr_e);
+            dt = NTRU::Encryption::Statistics::Data::encryption(ptr_e);
             break;
     }
-
-    std::cout << "Parameters:: N = "<< N << ", q = " << q << " ------------------------------------" << std::endl;
-    std::cout << std::fixed << std::setprecision(5) <<std::endl;
-
+    if(ptr_e != NULL) { delete ptr_e; ptr_e = NULL; }                           // Encryption object not usefull anymore.
+    std::cout << std::fixed << std::setprecision(5) << std::endl;
     if(opt_C == 0 || opt_C == 2 || opt_C == 4){
-        std::cout << "Key Generation time statistics:" << std::endl;
+        std::cout << "\nKey Generation time statistics (microseconds):" << std::endl;
         std::cout << "Maximum: " << kg.getMaximum() << '\n';
         std::cout << "Minimum: " << kg.getMinimum() << '\n';
         std::cout << "Average: " << kg.getAverage() << '\n';
@@ -121,14 +124,14 @@ int main(int argc, const char* argv[]){
     }
 
     if(opt_C == 1 || opt_C == 2 || opt_C == 4){
-        std::cout << "Encryption time statistics:" << std::endl;
+        std::cout << "Encryption time statistics (microseconds):" << std::endl;
         std::cout << "Maximum: " << ch.getMaximum() << '\n';
         std::cout << "Minimum: " << ch.getMinimum() << '\n';
         std::cout << "Average: " << ch.getAverage() << '\n';
         std::cout << "Standard deviation: " << sqrt(ch.getVariance()) << '\n';
         std::cout << "Average Absolute Deviation: " << ch.getAAD() << '\n' << std::endl;
 
-        std::cout << "Decryption time statistics:" << std::endl;
+        std::cout << "Decryption time statistics (microseconds):" << std::endl;
         std::cout << "Maximum: " << dc.getMaximum() << '\n';
         std::cout << "Minimum: " << dc.getMinimum() << '\n';
         std::cout << "Average: " << dc.getAverage() << '\n';
@@ -141,6 +144,14 @@ int main(int argc, const char* argv[]){
         std::cout << "Entropy: " << dt.getEntropy() << '\n';
         std::cout << "Correlation: " << dt.getCorrelation() << '\n';
         std::cout << "XiSquare: " << dt.getXiSquare() << '\n' << std::endl;
+    }
+
+    std::cout << "\nAppendix: From ZpPolynomial to number.\n\n";
+    for(int i = 0; i < 5; i++){
+        NTRU::ZpPolynomial r = NTRU::ZpPolynomial::randomTernary();
+        r.println("r polynomial form");
+        mpz_class num_r = r.toNumber();
+        std::cout << "\nr in number == " << num_r << '\n' << std::endl;
     }
 
     return 0;
