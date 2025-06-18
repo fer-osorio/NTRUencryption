@@ -84,12 +84,17 @@ static void printArray(int* array, unsigned arrlen, unsigned columnlen, const ch
     char buff[10];                                                              // Buffer necessary for the int -> string conversion
     int strLen = 0;                                                             // Start length in characters
     int i=0,j=0;
-    int startLen;                                                               // Length of the starting string
+    int startLen = lengthString(name);                                          // Length of the starting string
     int lastIndex = (int)arrlen - 1;
 
-    startLen = lengthString(name);
     if(startLen > 0) {
-        std::cout << name << " = [";
+        printSpaces((unsigned)max(startLen + 4 - strLen,0));                    // Padding with spaces
+        for(i = 0; i < 16; i++) {                                               // Printing the column number
+            strLen = intToHexString(i, buff);                                   // Optimize by returning the length of the string
+            printSpaces((unsigned)max((int)columnlen - strLen + 1,0));          // Padding with spaces. The +1 is for alignment with negative numbers
+            std::cout << buff << ' ';                                                  // Printing current coefficient
+        }
+        std::cout << '\n' << name << " = [";
         startLen += 4;
     }
     else {
@@ -105,7 +110,7 @@ static void printArray(int* array, unsigned arrlen, unsigned columnlen, const ch
                 printSpaces((unsigned)max(startLen - strLen,0));                // Padding with spaces
             }
         }
-        strLen = intToHexString(array[i], buff);                                   // Optimize by returning the length of the string
+        strLen = intToHexString(array[i], buff);                                // Optimize by returning the length of the string
         printSpaces((unsigned)max((int)columnlen - strLen + 1,0));              // Padding with spaces. The +1 is for alignment with negative numbers
         std::cout << buff;                                                      // Printing current coefficient
         if(i < lastIndex) std::cout << ',';
@@ -1016,6 +1021,12 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
     if(privateKeyBytes != NULL) delete[] privateKeyBytes;
 }
 
+void Encryption::printKeys(const char publicKeyName[], const char privateKeyName[]) const{
+    this->publicKey.println(publicKeyName);
+    std::cout << '\n';
+    this->privatKey.println(privateKeyName);
+}
+
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Encryption keys |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 ZqPolynomial Encryption::productByPrivatKey(const ZqPolynomial& P) const{
@@ -1078,8 +1089,8 @@ void Encryption::setKeys() {
     this->publicKey.mods_q();
 }
 
-void Encryption::setKeysFromPrivKey() {                                         // -In this function we're supposing we already have a valid private key.
-    const char thisFunc[] = "void Encryption::setKeysFromPrivKey()";
+void Encryption::setKeysFromPrivKey() {                                         // -In this function we're assuming we already have a valid private key,
+    const char thisFunc[] = "void Encryption::setKeysFromPrivKey()";            //  this is, a privatKey with inverse mod 2.
     Z2Polynomial Z2_privateKey(this->privatKey);
     Z2Polynomial Z2_privateKeyInv;
     Z2Polynomial Z2_gcdXNmns1;
@@ -1212,12 +1223,11 @@ Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(){
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
 }
 
-Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(){
+Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(const NTRU::Encryption* ptr_e){
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
     /*uint64_t begin; uint64_t end;*/
-    Encryption e;
-    size_t dummy_sz = e.plainTextMaxSizeInBytes(), i;
+    size_t dummy_sz = ptr_e->plainTextMaxSizeInBytes(), i;
     uint64_t times[NUMBEROFROUNDS];
     char* dummy = new char[dummy_sz];
 
@@ -1227,11 +1237,11 @@ Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(){
     for(i = 0; i < NUMBEROFROUNDS; i++){
         if((i&63) == 0) std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(): Round " << i << std::endl;
         begin= std::chrono::steady_clock::now();
-	    e.encrypt(dummy, dummy_sz);
+	    ptr_e->encrypt(dummy, dummy_sz);
 	    end  = std::chrono::steady_clock::now();
 	    times[i] = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
 	    /*begin = readTSC();
-	    e.encrypt(dummy, dummy_sz);
+	    ptr_e->encrypt(dummy, dummy_sz);
 	    end    = readTSC();
 	    times[i] = end-begin;*/
     }
@@ -1239,13 +1249,12 @@ Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(){
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
 }
 
-Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(){
+Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(const NTRU::Encryption* ptr_e){
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
     /*uint64_t begin;
     uint64_t end;*/
-    Encryption e;
-    size_t dummy_sz = e.cipherTextSizeInBytes(), i;
+    size_t dummy_sz = ptr_e->cipherTextSizeInBytes(), i;
     uint64_t times[NUMBEROFROUNDS];
     char* dummy = new char[dummy_sz];
 
@@ -1256,11 +1265,11 @@ Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(){
         if((i & 63) == 0)
             std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(): Round " << i << std::endl;
         begin= std::chrono::steady_clock::now();
-	    e.decrypt(dummy, dummy_sz);
+	    ptr_e->decrypt(dummy, dummy_sz);
 	    end  = std::chrono::steady_clock::now();
 	    times[i] = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
 	    /*begin = readTSC();
-	    e.encrypt(dummy, dummy_sz);
+	    ptr_e->encrypt(dummy, dummy_sz);
 	    end    = readTSC();
 	    times[i] = end-begin;*/
     }
@@ -1340,15 +1349,14 @@ static void printHex(const char a[], size_t size, const char front[] = "", const
     std::cout << back;
 }
 
-Encryption::Statistics::Data Encryption::Statistics::Data::encryption(){        // plainTextSize = N/5, cipherTextSize = N*log2(q)/8
-    Encryption e;                                                               // cipherTextSize/plainTextSize = 5*log2(q)/8
-    size_t blockSize = e.plainTextMaxSizeInBytes();                             // cipherTextSize = plainTextSize*5*log2(q)/8
-    const size_t cipherBlockSize= e.cipherTextSizeInBytes();                    // cipherTextSize*numberOfRounds = 512*512*3 (size of a 256x256 pixel image)
-    const size_t numberOfRounds = 8*3*512*512/(5*blockSize*(size_t)log2q);      // (plainTextSize*5*log2(q)/8)*numberOfRounds = 512*512*3
-    const size_t dummyEncLen = cipherBlockSize*(numberOfRounds);                // dummyLen = plainTextSize*numberOfRounds = 512*512*3*8/[5*log2(q)]
-                                                                                // numberOfRounds = dummyLen/plainTextSize
-    blockSize++;                                                                // -A byte more for blocks to avoid <<out of range>> error.
-    char dummy[_1499_];
+Encryption::Statistics::Data Encryption::Statistics::Data::encryption(const NTRU::Encryption* ptr_e){ // plainTextSize = N/5, cipherTextSize = N*log2(q)/8
+    size_t blockSize = ptr_e->plainTextMaxSizeInBytes();                        // cipherTextSize/plainTextSize = 5*log2(q)/8
+    const size_t cipherBlockSize= ptr_e->cipherTextSizeInBytes();               // cipherTextSize = plainTextSize*5*log2(q)/8
+    const size_t numberOfRounds = 8*3*512*512/(5*blockSize*(size_t)log2q);      // cipherTextSize*numberOfRounds = 512*512*3 (size of a 256x256 pixel image)
+    const size_t dummyEncLen = cipherBlockSize*(numberOfRounds);                // (plainTextSize*5*log2(q)/8)*numberOfRounds = 512*512*3
+                                                                                // dummyLen = plainTextSize*numberOfRounds = 512*512*3*8/[5*log2(q)]
+    blockSize++;                                                                // numberOfRounds = dummyLen/plainTextSize
+    char dummy[_1499_];                                                         // -A byte more for blocks to avoid <<out of range>> error.
     char dummy_dec[_1499_];
     char* dummy_enc = new char[dummyEncLen];
     size_t i, j, k, l, r;
@@ -1368,10 +1376,10 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(){        
 
     for(j = 0, k = 0, r = 0; k < numberOfRounds; j += cipherBlockSize, k++) {
         if((k&7)==0) std::cout << "Encryption::Statistics::Data::encryption(): Round " << k << std::endl;
-        enc = e.encrypt(dummy, blockSize);
+        enc = ptr_e->encrypt(dummy, blockSize);
         enc.toBytes(dummy_enc + j);
         enc = ZqPolynomial(dummy_enc + j, cipherBlockSize);
-        dec = e.decrypt(enc);
+        dec = ptr_e->decrypt(enc);
         dec.toBytes(dummy_dec, true);                                           // -Second parameter isPlainText = true
         for(l = 0; l < blockSize; l++){
             if(dummy[l] != dummy_dec[l]) {
@@ -1403,8 +1411,6 @@ Encryption::Statistics::Data Encryption::Statistics::Data::encryption(){        
     std::cout << "Total amount of rounds: " <<  numberOfRounds << '\n';
     std::cout << "Total amount of decryption failures: " << r;
     Encryption::Statistics::Data stats(dummy_enc, dummyEncLen);
-    //delete[] dummy;
     delete[] dummy_enc;
-    //delete[] dummy_dec;*/
     return stats;
 }

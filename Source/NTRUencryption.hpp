@@ -176,10 +176,9 @@ class Encryption {
 	ZpPolynomial privatKey	= ZpPolynomial();				// -Private key has the form p·F0+1, we are saving just F0
 	bool validPrivateKey	= false;					// -Flag; tells us if current object can only encrypt (only have a valid publickKey)
 										// -or also is capable of decryption (has a valid private key).
-
 	public:
-	Encryption();
-	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file
+	Encryption();								// -Trows: const std::runtime_error&
+	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file. Trows: const std::runtime_error&
 
 	ZqPolynomial encrypt(const char bytes[] ,int size) const;		// -Encryption of char array
 	ZqPolynomial encrypt(const ZpPolynomial&) const;			// -Encrypts ZpPolynomial
@@ -196,6 +195,7 @@ class Encryption {
 	size_t publicKeySizeInBytes()    const;
 
 	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
+	void printKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
 
 	private:
 	ZqPolynomial productByPrivatKey(const ZqPolynomial& P) const;
@@ -229,8 +229,8 @@ class Encryption {
 			double getAAD()     const{ return this->AvrAbsDev; }
 
 			static Time keyGeneration();
-			static Time ciphering();
-			static Time deciphering();
+			static Time ciphering(const NTRU::Encryption* ptr_e);	// Taking average of encryption time
+			static Time deciphering(const NTRU::Encryption* ptr_e);	// Taking average of decryption time
 		};
 		struct Data{
 			private:
@@ -270,7 +270,7 @@ class Encryption {
 			double getEntropy() const{ return this->Entropy; }
 			double getCorrelation() const { return this->Correlation; }
 			double getXiSquare() const{ return this->XiSquare; }
-			static Data encryption();
+			static Data encryption(const NTRU::Encryption* ptr_e);
 		};
 	};
 };
