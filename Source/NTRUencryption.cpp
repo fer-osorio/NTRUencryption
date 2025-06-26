@@ -381,6 +381,44 @@ void ZpPolynomial::save(const char* name, bool saveAsText) const{
     if(byteArr != NULL) delete[] byteArr;
 }
 
+ZpPolynomial ZpPolynomial::fromFile(const char* fileName){
+    const char thisFunc[] = "ZpPolynomial ZpPolynomial::fromFile(const char* fileName)";
+    const char ntrup[] = "NTRUp";                                               // -This will indicate the binary file is saving a NTRU (NTRU) polynomial with
+    int byteArrSize = _N_ / 5 + 1, ntrupsz = strlen(ntrup);                     // -_N_ is necessarily prime, so _N_ % 5 > 0 holds true
+    char* byteArr = NULL;
+    short n = _N_, Q = _q_;
+    ZpPolynomial out;
+    std::ifstream file = std::ifstream();
+    file.open(fileName, std::ios::binary);
+    if(!file.is_open()){
+        cerrMessageBeforeThrow(thisFunc, "Error opening file for polynomial creation");
+        throw std::runtime_error("File opening failed");
+    }
+    byteArr = new char[ntrupsz+1];
+    file.read(byteArr, ntrupsz);                                                // -Reading the firsts bytes hoping "NTRUpublicKey" or "NTRUprivatKey" apears
+    byteArr[ntrupsz] = 0;                                                       // -End of string
+    if(compareStrings(byteArr, ntrup)) {                                        // -Testing if file saves a NTRU private key
+        delete[] byteArr; byteArr = NULL;
+        file.read((char*)&n, 2);
+        file.read((char*)&Q, 2);
+        if(n != _N_ || Q != _q_) {
+            delete[] byteArr; byteArr = NULL;
+            cerrMessageBeforeThrow(thisFunc, "Parameters retreaved from file do not match with this program parameters");
+            std::cout << "From file: N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << '\n';
+            throw std::runtime_error("Could not agree on parameters");
+        }
+        byteArr = new char[byteArrSize];
+        file.read(byteArr, byteArrSize);                                        // -Reading the coefficients of the polynomial
+        file.close();
+        out = ZpPolynomial(byteArr, byteArrSize);
+        delete[] byteArr; byteArr = NULL;
+    } else{
+        cerrMessageBeforeThrow(thisFunc, "Not a valid NTRU::ZpPolynomial file.");
+        throw std::runtime_error("Not valid input file.");
+    }
+    return out;
+}
+
 //_______________________________________________________________________ ZpPolynomial ____________________________________________________________________________
 
 //||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Z2Polynomial ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -1223,57 +1261,82 @@ Encryption::Statistics::Time Encryption::Statistics::Time::keyGeneration(){
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
 }
 
-Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(const NTRU::Encryption* ptr_e){
+Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(const NTRU::Encryption* e, const NTRU::ZpPolynomial* msg){
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
     /*uint64_t begin; uint64_t end;*/
-    size_t dummy_sz = ptr_e->plainTextMaxSizeInBytes(), i;
     uint64_t times[NUMBEROFROUNDS];
-    char* dummy = new char[dummy_sz];
-
-    for(i = 0; i < dummy_sz; i++) dummy[i] = (char)i;
+    const NTRU::Encryption* ptr_e = NULL;
+    const NTRU::ZpPolynomial* ptr_msg = NULL;
+    if(e == NULL){                                                              // If NULL reference, creating our own encryption object
+        std::cout << "Warning: In File NTRUencryption, function NTRU::Encryption::Statistics::Time Encryption::Statistics::Time::ciphering"
+        "(const NTRU::Encryption*, const NTRU::ZpPolynomial*). >>const NTRU::Encryption*<< argument is NULL; I will proceed to create my own.\n";
+        ptr_e = new NTRU::Encryption();
+    } else {
+        ptr_e = e;
+    }
+    if(msg == NULL){
+        std::cout << "Warning: In File NTRUencryption, function NTRU::Encryption::Statistics::Time Encryption::Statistics::Time::ciphering"
+        "(const NTRU::Encryption*, const NTRU::ZpPolynomial*). >>const NTRU::ZpPolynomial*<< argument is NULL; I will proceed to create my own.\n";
+        ptr_msg = new NTRU::ZpPolynomial();
+    } else {
+        ptr_msg = msg;
+    }
 
     std::cout << "Encryption::Statistics::Time::ciphering::Parameters: N = "<< _N_ << ", q = " << _q_ << " --------------" << std::endl;
-    for(i = 0; i < NUMBEROFROUNDS; i++){
+    for(size_t i = 0; i < NUMBEROFROUNDS; i++){
         if((i&63) == 0) std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::ciphering(): Round " << i << std::endl;
         begin= std::chrono::steady_clock::now();
-	    ptr_e->encrypt(dummy, dummy_sz);
+	    ptr_e->encrypt(*ptr_msg);
 	    end  = std::chrono::steady_clock::now();
 	    times[i] = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
-	    /*begin = readTSC();
-	    ptr_e->encrypt(dummy, dummy_sz);
-	    end    = readTSC();
-	    times[i] = end-begin;*/
+	    /*begin = readTSC(); ptr_e->encrypt(dummy, dummy_sz); end = readTSC(); times[i] = end-begin;*/
     }
-    delete[] dummy;
+    if(e == NULL) delete[] ptr_e;                                               // If e is NULL, then ptr_e was created inside this function with the new operator
+    if(msg == NULL) delete[] ptr_msg;                                           // If msg is NULL, then ptr_msg was created inside this function with the new operator
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
 }
 
-Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(const NTRU::Encryption* ptr_e){
+Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(const NTRU::Encryption* e, const NTRU::ZqPolynomial* emsg){
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
-    /*uint64_t begin;
-    uint64_t end;*/
-    size_t dummy_sz = ptr_e->cipherTextSizeInBytes(), i;
+    /*uint64_t begin; uint64_t end;*/
     uint64_t times[NUMBEROFROUNDS];
-    char* dummy = new char[dummy_sz];
-
-    for(i = 0; i < dummy_sz; i++) dummy[i] = (char)i;
+    const NTRU::Encryption* ptr_e = NULL;
+    const NTRU::ZqPolynomial* ptr_emsg = NULL;
+    if(e == NULL){                                                              // If NULL reference, creating our own encryption object
+        std::cout << "Warning: In File:\n"
+                        "\tNTRUencryption.cpp\n"
+                     "Function\n"
+                        "\tNTRU::Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(const NTRU::Encryption*, const NTRU::ZqPolynomial*)\n"
+                     ">>const NTRU::Encryption*<< argument is NULL; I will proceed to create my own.\n";
+        ptr_e = new NTRU::Encryption();
+    } else {
+        ptr_e = e;
+    }
+    if(emsg == NULL){
+        std::cout << "Warning: In File:\n"
+                        "\tNTRUencryption.cpp\n"
+                     "Function\n"
+                        "\tNTRU::Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(const NTRU::Encryption*, const NTRU::ZqPolynomial*)\n"
+                     ">>const NTRU::ZqPolynomial*<< argument is NULL; I will proceed to create my own.\n";
+        ptr_emsg = new NTRU::ZqPolynomial();
+    } else {
+        ptr_emsg = emsg;
+    }
 
     std::cout << "Encryption::Statistics::Time::deciphering::Parameters: N = "<< _N_ << ", q = " << _q_ << " --------------" << std::endl;
-    for(i = 0; i < NUMBEROFROUNDS; i++){
+    for(size_t i = 0; i < NUMBEROFROUNDS; i++){
         if((i & 63) == 0)
             std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(): Round " << i << std::endl;
         begin= std::chrono::steady_clock::now();
-	    ptr_e->decrypt(dummy, dummy_sz);
+	    ptr_e->decrypt(*ptr_emsg);
 	    end  = std::chrono::steady_clock::now();
 	    times[i] = (uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count();
-	    /*begin = readTSC();
-	    ptr_e->encrypt(dummy, dummy_sz);
-	    end    = readTSC();
-	    times[i] = end-begin;*/
+	    /*begin = readTSC(); ptr_e->encrypt(dummy, dummy_sz); end = readTSC(); times[i] = end-begin;*/
     }
-    delete[] dummy;
+    if(e == NULL) delete ptr_e;                                                 // If e is NULL, then ptr_e was created inside this function with the new operator
+    if(emsg == NULL) delete ptr_emsg;                                           // If emsg is NULL, then ptr_emsg was created inside this function with the new operator
     return Encryption::Statistics::Time(times, NUMBEROFROUNDS);
 }
 

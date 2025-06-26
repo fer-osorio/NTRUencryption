@@ -58,6 +58,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	void println(const char* name = "", bool centered = true) const;
 
 	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZpPolynomial in a file.
+	static ZpPolynomial fromFile(const char* fileName);
 };
 
 struct Z2Polynomial {								// Representation of the polynomials in Z2[x]/(x^N-1)
@@ -229,8 +230,8 @@ class Encryption {
 			double getAAD()     const{ return this->AvrAbsDev; }
 
 			static Time keyGeneration();
-			static Time ciphering(const NTRU::Encryption* ptr_e);	// Taking average of encryption time
-			static Time deciphering(const NTRU::Encryption* ptr_e);	// Taking average of decryption time
+			static Time ciphering(const NTRU::Encryption* e, const NTRU::ZpPolynomial* msg);// Taking average of encryption time
+			static Time deciphering(const NTRU::Encryption* e, const NTRU::ZqPolynomial* emsg);// Taking average of decryption time
 		};
 		struct Data{
 			private:
