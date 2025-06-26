@@ -328,7 +328,7 @@ FileHandling::InputFile::InputFile(const char fname[]): ext(Extension::getExtens
 }
 
 void FileHandling::encryptf(const char fname[]) {
-    const char      thisFunc[] = "static void cipherbinFile(const char fname[])";
+    const char      thisFunc[] = "void FileHandling::encryptf(const char fname[])";
     std::streampos  fileSize;
     const size_t    plainTextMaxSize = NTRUencryption.plainTextMaxSizeInBytes();
     unsigned short  fileSzPlusBytesForSz;

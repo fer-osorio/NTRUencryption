@@ -36,11 +36,13 @@ static bool statisticCategory(int opt) { return opt >= 0 && opt < 5; }
 
 int main(int argc, const char* argv[]){
     NTRU::Encryption* ptr_e = NULL;
+    NTRU::ZpPolynomial* ptr_msg = NULL;
+    //NTRU::ZqPolynomial* ptr_emsg = NULL;
     NTRU::Encryption::Statistics::Time kg;
     NTRU::Encryption::Statistics::Time ch, dc;
     NTRU::Encryption::Statistics::Data dt;
     int opt_C = retreaveValidOption(statsCategory, statisticCategory);
-    switch(argc) {                                                              // -Accept one parameter, intended for the private key
+    switch(argc) {                                                              // -Accept two parametera, intended for the private key and message
         case 1:
             if(opt_C != 0){                                                     // -If no argument passed and if not just key creation statistics
                 try {                                                           //  needed,the program will generate a encryption object
@@ -50,6 +52,7 @@ int main(int argc, const char* argv[]){
                     return EXIT_FAILURE;
                 }
             }
+            ptr_msg = new NTRU::ZpPolynomial(NTRU::ZpPolynomial::randomTernary());
             break;
         case 2:
             try{
@@ -62,15 +65,57 @@ int main(int argc, const char* argv[]){
                 std::cerr << "\n\nExecutable argument must refer to a valid private key. Terminating the program with FAILURE status.\n\n";
                 return EXIT_FAILURE;
             }
+            ptr_msg = new NTRU::ZpPolynomial(NTRU::ZpPolynomial::randomTernary());
+            ptr_msg->save("msg");
             break;
+        case 3:
+            try{
+                ptr_e = new NTRU::Encryption(argv[1]);                          // -Creating encryption object from (supposedly) private key file
+            } catch(const std::runtime_error& exp){
+                std::cerr << "\nCould not create NTRU::Encryption object from file.\n\n" << exp.what() << '\n';
+                return EXIT_FAILURE;
+            }
+            if(!ptr_e->validPrivateKeyAvailable()){                             // -Validating polynomial passed as private key.
+                std::cerr << "\n\nExecutable argument must refer to a valid private key. Terminating the program with FAILURE status.\n\n";
+                return EXIT_FAILURE;
+            }
+            try{
+                ptr_msg = new NTRU::ZpPolynomial(NTRU::ZpPolynomial::fromFile(argv[2])); // -Trying to create a ZpPolynomial from file
+            } catch(const std::runtime_error& exp){
+                std::cerr << "\nCould not create NTRU::ZpPolynomial object from file.\n\n" << exp.what() << '\n';
+                return EXIT_FAILURE;
+            }
+            break;
+        /*case 4:
+            try{
+                ptr_e = new NTRU::Encryption(argv[1]);                          // -Creating encryption object from (supposedly) private key file
+            } catch(const std::runtime_error& exp){
+                std::cerr << "\nCould not create NTRU::Encryption object from file.\n\n" << exp.what() << '\n';
+                return EXIT_FAILURE;
+            }
+            if(!ptr_e->validPrivateKeyAvailable()){                             // -Validating polynomial passed as private key.
+                std::cerr << "\n\nExecutable argument must refer to a valid private key. Terminating the program with FAILURE status.\n\n";
+                return EXIT_FAILURE;
+            }
+            try{
+                ptr_msg = new NTRU::ZpPolynomial();                             // -Trying to create a ZpPolynomial from file
+            } catch(const std::runtime_error& exp){
+                std::cerr << "\nCould not create NTRU::ZpPolynomial object from file.\n\n" << exp.what() << '\n';
+                return EXIT_FAILURE;
+            }
+            break;*/
         default:
-            std::cerr << "\n\nExecutable accept one and just one argument. Termination the program with FAILURE status.\n\n";
+            std::cerr << "\n\nExecutable accept one or two arguments. Termination the program with FAILURE status.\n\n";
             return EXIT_FAILURE;
     }
 
     if(ptr_e != NULL) {
         std::cout << "Running test with:" << '\n';
         ptr_e->printKeys("Public key","Private key");
+        std::cout << std::endl;
+    }
+    if(ptr_msg != NULL){
+        ptr_msg->println("Message");
         std::cout << std::endl;
     }
 
@@ -83,8 +128,8 @@ int main(int argc, const char* argv[]){
         case 1:
             std::cout << "Computing Statistics::Time::ciphering()\n";
             std::cout << "Computing Statistics::Time::deciphering()\n";
-            ch = NTRU::Encryption::Statistics::Time::ciphering(ptr_e);
-            dc = NTRU::Encryption::Statistics::Time::deciphering(ptr_e);
+            ch = NTRU::Encryption::Statistics::Time::ciphering(ptr_e, ptr_msg);
+            dc = NTRU::Encryption::Statistics::Time::deciphering(ptr_e, NULL);
             std::cout << std::endl;
             break;
         case 2:
@@ -92,8 +137,8 @@ int main(int argc, const char* argv[]){
             std::cout << "Computing Statistics::Time::ciphering()\n";
             std::cout << "Computing Statistics::Time::deciphering()\n";
             kg = NTRU::Encryption::Statistics::Time::keyGeneration();
-            ch = NTRU::Encryption::Statistics::Time::ciphering(ptr_e);
-            dc = NTRU::Encryption::Statistics::Time::deciphering(ptr_e);
+            ch = NTRU::Encryption::Statistics::Time::ciphering(ptr_e, ptr_msg);
+            dc = NTRU::Encryption::Statistics::Time::deciphering(ptr_e, NULL);
             std::cout << std::endl;
             break;
         case 3:
@@ -107,12 +152,15 @@ int main(int argc, const char* argv[]){
             std::cout << "Computing Statistics::Data::encryption()\n";
             std::cout << "Computing Statistics::Time::deciphering()\n";
             kg = NTRU::Encryption::Statistics::Time::keyGeneration();
-            ch = NTRU::Encryption::Statistics::Time::ciphering(ptr_e);
-            dc = NTRU::Encryption::Statistics::Time::deciphering(ptr_e);
+            ch = NTRU::Encryption::Statistics::Time::ciphering(ptr_e, ptr_msg);
+            dc = NTRU::Encryption::Statistics::Time::deciphering(ptr_e, NULL);
             dt = NTRU::Encryption::Statistics::Data::encryption(ptr_e);
             break;
     }
+
     if(ptr_e != NULL) { delete ptr_e; ptr_e = NULL; }                           // Encryption object not usefull anymore.
+    if(ptr_msg != NULL) { delete ptr_msg; ptr_msg = NULL;}                      // Message object is not usefull anymore.
+
     std::cout << std::fixed << std::setprecision(5) << std::endl;
     if(opt_C == 0 || opt_C == 2 || opt_C == 4){
         std::cout << "\nKey Generation time statistics (microseconds):" << std::endl;
