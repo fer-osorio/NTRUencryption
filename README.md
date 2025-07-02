@@ -103,6 +103,11 @@ the necessary requirements for a NTRU key.
 sudo apt-get install libgmp-dev libgmpxx4ldbl
 ```
 
+**Fedora**
+```bash
+sudo dnf install gmp gmp-devel
+```
+
 **macOS (Homebrew):**
 ```bash
 brew install gmp
