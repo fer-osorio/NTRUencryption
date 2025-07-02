@@ -14,56 +14,107 @@ QVALS	 = 4096 8192
 N ?= 701
 q ?= 4096
 
-QEXPMSG = @echo "q parameter not supported. Valid values are $(QVALS)"
-NEXPMSG = @echo "N parameter not supported. Valid values are $(NVALS)"
+# Validation function
+PARAMS_VALID = $(and $(filter $(N),$(NVALS)),$(filter $(q),$(QVALS)))
+
+# Common compilation flags
+COMPILE_FLAGS = $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) -D_q_=$(q) -D_N_=$(N)
+LINK_FLAGS = -lgmpxx -lgmp
+
+.PHONY: all clean clean_all install run_encryption run_decryption run_test
 
 NTRUencryption: Makefile $(HEADERS) $(SOURCE) Apps/encryption.cpp
-ifneq ($(filter $(N),$(NVALS)),)
-ifneq ($(filter $(q),$(QVALS)),)
-	$(CXX) -o $(EXE_ENCDEC_PATH)/$@$(N)$(q) $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) -D_q_=$(q) -D_N_=$(N) Apps/encryption.cpp $(SOURCE) -lgmpxx -lgmp
+ifneq ($(PARAMS_VALID),)
+	@mkdir -p $(dir $(EXE_ENCDEC_PATH)/$@$(N)$(q))
+	$(CXX) -o $(EXE_ENCDEC_PATH)/$@$(N)$(q) $(COMPILE_FLAGS) Apps/encryption.cpp $(SOURCE) $(LINK_FLAGS)
 else
-	$(QEXPMSG)
-endif
-else
-	$(NEXPMSG)
+	@echo "Invalid parameters. N must be one of: $(NVALS), q must be one of: $(QVALS)"
+	@echo "Current values: N=$(N), q=$(q)"
+	@false
 endif
 
 NTRUdecryption: Makefile $(HEADERS) $(SOURCE) Apps/decryption.cpp
-ifneq ($(filter $(N),$(NVALS)),)
-ifneq ($(filter $(q),$(QVALS)),)
-	$(CXX) -o $(EXE_ENCDEC_PATH)/$@$(N)$(q) $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) -D_q_=$(q) -D_N_=$(N) Apps/decryption.cpp $(SOURCE) -lgmpxx -lgmp
+ifneq ($(PARAMS_VALID),)
+	@mkdir -p $(dir $(EXE_ENCDEC_PATH)/$@$(N)$(q))
+	$(CXX) -o $(EXE_ENCDEC_PATH)/$@$(N)$(q) $(COMPILE_FLAGS) Apps/decryption.cpp $(SOURCE) $(LINK_FLAGS)
 else
-	$(QEXPMSG)
-endif
-else
-	$(NEXPMSG)
-endif
-
-Test: Makefile Source/*.hpp Source/*.cpp Apps/Statistics.cpp
-ifneq ($(filter $(N),$(NVALS)),)
-ifneq ($(filter $(q),$(QVALS)),)
-	$(CXX) -o $(EXE_TESTS_PATH)/N$(N)q$(q)/$@$(N)$(q) $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD) -D_q_=$(q) -D_N_=$(N) Apps/Statistics.cpp Source/*.cpp -lgmpxx -lgmp
-else
-	$(QEXPMSG)
-endif
-else
-	$(NEXPMSG)
+	@echo "Invalid parameters. N must be one of: $(NVALS), q must be one of: $(QVALS)"
+	@echo "Current values: N=$(N), q=$(q)"
+	@false
 endif
 
-#clean:
-#	rm -f Apps/Executables/*.exe
+Test: Makefile $(HEADERS) $(SOURCE) Apps/Statistics.cpp
+ifneq ($(PARAMS_VALID),)
+	@mkdir -p $(dir $(EXE_TESTS_PATH)/N$(N)q$(q)/Test$(N)$(q))
+	$(CXX) -o $(EXE_TESTS_PATH)/N$(N)q$(q)/Test$(N)$(q) $(COMPILE_FLAGS) Apps/Statistics.cpp $(SOURCE) $(LINK_FLAGS)
+else
+	@echo "Invalid parameters. N must be one of: $(NVALS), q must be one of: $(QVALS)"
+	@echo "Current values: N=$(N), q=$(q)"
+	@false
+endif
 
-#clean_all:
-#	rm -f Apps/Executables/*.exe Apps/Executables/*.ntru*
+clean:
+	@echo "Cleaning executables..."
+	-rm -f $(EXE_ENCDEC_PATH)/*
+	-rm -f $(EXE_TESTS_PATH)/*/*
 
-#install:
-#	@echo "Installing is not supported"
+clean_all: clean
+	@echo "Cleaning all generated files..."
+	-find Apps/Executables -name "*.ntru*" -delete
 
+install:
+	@echo "Installing is not supported"
+
+# Safer run targets with existence checks
 run_encryption:
-	$(EXE_ENCDEC_PATH)/NTRUencryption$(q)$(N)
+	@if [ -f "$(EXE_ENCDEC_PATH)/NTRUencryption$(N)$(q)" ]; then \
+		$(EXE_ENCDEC_PATH)/NTRUencryption$(N)$(q); \
+	else \
+		echo "Executable not found. Run 'make NTRUencryption' first."; \
+		false; \
+	fi
 
 run_decryption:
-	$(EXE_ENCDEC_PATH)/NTRUdecryption$(q)$(N)
+	@if [ -f "$(EXE_ENCDEC_PATH)/NTRUdecryption$(N)$(q)" ]; then \
+		$(EXE_ENCDEC_PATH)/NTRUdecryption$(N)$(q); \
+	else \
+		echo "Executable not found. Run 'make NTRUdecryption' first."; \
+		false; \
+	fi
 
 run_test:
-	$(EXE_TESTS_PATH)/N$(N)q$(q)/Test$(q)$(N)
+	@if [ -f "$(EXE_TESTS_PATH)/N$(N)q$(q)/Test$(N)$(q)" ]; then \
+		$(EXE_TESTS_PATH)/N$(N)q$(q)/Test$(N)$(q); \
+	else \
+		echo "Test executable not found. Run 'make Test' first."; \
+		false; \
+	fi
+
+# Utility targets
+show-config:
+	@echo "Current configuration:"
+	@echo "  N = $(N) (valid: $(NVALS))"
+	@echo "  q = $(q) (valid: $(QVALS))"
+	@echo "  Valid parameters: $(if $(PARAMS_VALID),YES,NO)"
+
+help:
+	@echo "Available targets:"
+	@echo "  all              - Build all executables"
+	@echo "  NTRUencryption   - Build encryption executable"
+	@echo "  NTRUdecryption   - Build decryption executable"
+	@echo "  Test             - Build test executable"
+	@echo "  clean            - Remove executables"
+	@echo "  clean_all        - Remove all generated files"
+	@echo "  run_encryption   - Run encryption program"
+	@echo "  run_decryption   - Run decryption program"
+	@echo "  run_test         - Run test program"
+	@echo "  show-config      - Show current parameter values"
+	@echo "  help             - Show this help"
+	@echo ""
+	@echo "Parameters:"
+	@echo "  N=$(N) (valid: $(NVALS))"
+	@echo "  q=$(q) (valid: $(QVALS))"
+	@echo ""
+	@echo "Usage examples:"
+	@echo "  make N=821 q=8192"
+	@echo "  make clean && make N=1171"
