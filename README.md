@@ -1,47 +1,67 @@
-# NTRUencryption
+# NTRU Encryption Library
 
-NTRU (Nth-degree Truncated Polynomial Ring Unit) implementation in C++, applied to the encryption of text files and
-binary files.
-
+A C++ implementation of the NTRU lattice-based cryptographic algorithm, providing quantum-resistant encryption capabilities.
 Mail me at aosorios1502@alumno.ipn.mx and alexis.fernando.osorio.sarabio@gmail.com for questions and comments.
 
 # Overview
 
-Implementation of the NTRU, a public-key lattice-based cryptosystem resistant to attacks using Shor's alrithm. Due to
-this and other reasons, NTRU became a finalist in the third round of [NIST's Post-Quantum Cryptography Standardization
-](https://csrc.nist.gov/projects/post-quantum-cryptography/post-quantum-cryptography-standardization)
-project.
+NTRU (Number Theory Research Unit) is a lattice-based public-key cryptographic system resistant to attacks using Shor's alrithm. This library provides a complete implementation with support for multiple parameter sets and comprenhensive polynomial arithmetic operations.
 
-Its first appereance can be found in the article [NTRU: A Ring Based Public Key Cryptosystem
-](https://web.archive.org/web/20071021011338/http://www.ntru.com/cryptolab/pdf/ANTS97.pdf), but better resources can
-be found in [ntru.org](https://ntru.org/). For a depper understanding of this cryptosystem, I strongly recomend the to
-look at the books listed below:
+## Features
 
-- [An Introduction to Mathematical Cryptography](https://link.springer.com/book/10.1007/978-1-4939-1711-2)
-- [Cryptography: Theory and Practice
-  ](https://www.google.com.mx/books/edition/Cryptography/cJuDDwAAQBAJ?hl=en&gbpv=1&printsec=frontcover)
-- [Criptografía. Temas selectos](https://www.alfaomegaeditor.com.mx/default/criptografia-temas-selectos-10825.html)
+- **Multiple Parameter Sets**: At the moment (1, july of 2025) this library supports for N values (509, 677, 701, 821, 1087, 1171, 1499) and q values (2048, 4096, 8192)
+- **Polynomial Arithmetic**: Operations in Zp, Zq, and Z2 polynomial rings
+- **Key Generation**: Automated generation of public/private key pairs with proper error handling
+- **Encryption/Decryption**: Full encrypt/decrypt functionality
+- **Performance Analysis**: Built-in timing and statistical analysis tools
+- **File I/O**: Save and load keys and data in binary or text format
+- **Memory Management**: Proper RAII with automatic cleanup
 
-At the moment (31, october of 2024), the parameter accepted by this library are
 
-- For **N**: <pre>    509;  677;  701;  821;  1087;  1171;  1499.  </pre>
-- For **q**: <pre>    2048,  4096,  8192.  </pre>
-- For **p**: <pre>    3.  </pre>
+## Quick Start
+### Basic Usage
 
-## Important notes
+```cpp
+#include "NTRUencryption.hpp"
 
-At this moment (31, october of 2024):
+// Create an encryption instance (generates keys automatically)
+NTRU::Encryption ntru;
 
-- No attempt is made to generate secure cryptographic keys.
-- Paddgin process consist just in fillig with zeros.
-- If the input data exceeds the maximum size for plaint text, then the intput is truncated prior to processing
+// Encrypt a message
+const char* message = "Hello world!";
+NTRU::ZqPolynomial ciphertext = ntru.encrypt(message, strlen(message));
+
+// Decrypt the message
+NTRU::ZpPolynomial decrypted = ntru.decrypt(ciphertext);
+
+// Convert back to bytes for your application
+char result[1024];
+decrypted.toBytes(result, true);
+```
+
+### Working with Keys
+
+```cpp
+// Save keys to files
+ntru.saveKeys("public.key", "private.key");
+
+// Load from existing key file
+NTRU::Encryption ntru_from_file("private.key");
+
+// Check if private key is available
+if (ntru.validPrivateKeyAvailable()) {
+    // Can encrypt and decrypt
+} else {
+    // Can only encrypt
+}
+```
 
 # Usage
 
 ## Encryption object
 To create one instance of NTRU::Encryption, two options are available:
 
-1. Use ``Encryption(NTRU_N, NTRU_q)``; this will set **N** and **q** and will create valid private and public keys.
+1. Use ``Encryption()``; this will set **N** and **q** and will create valid private and public keys.
 2. Use ``Encryption(const char* NTRUkeyFile)``; this will retrieve **N**, **q** and keys from a binary file.
    1. If ``NTRUkeyFile`` represents a public key, the object will be created just with encryption capabilities.
    2. If ``NTRUkeyFile`` represents a private key, the object will have encryption and decryption capabilities.
@@ -71,65 +91,34 @@ criptographic keys. Formats for the key files are:
 The idea under this format and ``saveKeys`` function is to ensure the key reatrived from any of this files fulfils all
 the necessary requirements for a NTRU key.
 
-### In a nutshell, to create a Encryption object
+## Dependencies
 
-1. First option: Passing parameters you desire to implement to the constructor ``Encryption(NTRU_N, NTRU_q)``.
-2. Second option: (Having a NTRUkeyFile) passing the name of the file to ``Encryption(const char* NTRUkeyFile)``.
+- **GMP (GNU Multiple Precision Arithmetic Library)**: Required for arbitrary precision arithmetic
+- **C++11 or later**: Uses modern C++ features
 
-**Important note:** The default constructor for Encryption class, ``Encryption()``, sets each coefficient of the keys
-as zero, so is mandatory to not use this constructor for nothing more than type declaration.
+### Installing Dependencies
 
-## Encryption and decryption
-
-Once we have a Encryption object, for encryption of an array named ``data`` with ``size`` bytes it is only necessary to
-invoke the member function 
-
-```
-ZqPolynomial encrypt(const char bytes[] ,int size, bool showEncryptionTime = false) const;
-```
-Similarly with decryption process,
-
-```
-ZpPolynomial decrypt(const char bytes[] ,int size, bool showEncryptionTime = false) const;
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install libgmp-dev libgmpxx4ldbl
 ```
 
-Encryption and decryption process will succeed if and only if the Encryption objects used in each end have the
-identical public and private keys.
+**macOS (Homebrew):**
+```bash
+brew install gmp
+```
 
-#  Compilation
+**Windows (vcpkg):**
+```bash
+vcpkg install gmp:x64-windows
+```
 
-### Before doing anything, I am assuming:
+#  Building
+
+## Before doing anything, I am assuming:
 
 1. You have installed GNU ``g++`` compiler.
 2. The command-line interface software GNU ``Make`` is installed in your computer.
-
-In order to check if you have ``g++`` available you can run:
-
-- For Windows:
-    - Open command prompt; one way to do this is searching *cmd* in Start menu.
-    - Type ``g++ --version`` and press enter.
-
-- For macOS and Linux:
-    - Open terminal application.
-    - Type ``g++ --version`` and press enter.
-
-If you do not have this compiler installed, I strongly recommend you to install the GNU compiler collection (GCC). Installation
-instructions can be found here:
-[Linux](https://www.geeksforgeeks.org/how-to-install-gcc-compiler-on-linux/), 
-[MacOS](https://cs.millersville.edu/~gzoppetti/InstallingGccMac.html),
-[Windows](https://www.ibm.com/docs/en/devops-test-embedded/9.0.0?topic=overview-installing-recommended-gnu-compiler-windows).
-
-To verify if you hame GNU ``make`` installed:
-
-- For Linux and macOS:
-    - Open terminal application.
-    - Type ``make --version``
-
-To install GNU ``make``, you can follow the instructions of the following links:
-[Windows](https://stackoverflow.com/a/57042516), 
-[MacOS](https://ipv6.rs/tutorial/macOS/GNU_Make/)
-
-**Important**: From this point I am assuming you are in the inside the ``Executables`` directory.
 
 ## Use make commands
 
@@ -169,3 +158,88 @@ These last two commands are convenient if you do not have ``make`` installed.
 
 The executables are located in [Executables](Apps/Executables) directory. Instructions for passing arguments to them can be found
 [here](Apps/Executables/README.md)
+
+## API Reference
+
+### Core Classes
+
+#### `NTRU::Encryption`
+The main encryption class that handles key generation, encryption, and decryption.
+
+**Constructors:**
+- `Encryption()` - Creates new instance with auto-generated keys
+- `Encryption(const char* keyFile)` - Loads from existing key file
+
+**Methods:**
+- `ZqPolynomial encrypt(const char bytes[], int size)` - Encrypt byte array
+- `ZpPolynomial decrypt(const ZqPolynomial& cipher)` - Decrypt ciphertext
+- `void saveKeys(const char* pubKey, const char* privKey)` - Save keys to files
+- `size_t plainTextMaxSizeInBytes()` - Maximum plaintext size
+- `size_t cipherTextSizeInBytes()` - Ciphertext size
+
+#### `NTRU::ZpPolynomial`
+Represents polynomials in Zp[x]/(x^N-1) with coefficients in {-1, 0, 1}.
+
+#### `NTRU::ZqPolynomial`
+Represents polynomials in Zq[x]/(x^N-1) for ciphertext operations.
+
+#### `NTRU::Z2Polynomial`
+Represents polynomials in Z2[x]/(x^N-1) for internal computations.
+
+### Parameter Configuration
+
+The library supports these parameter combinations:
+
+| N    | q    | Security Level |
+|------|------|----------------|
+| 509  | 2048 | ~112 bits      |
+| 677  | 2048 | ~128 bits      |
+| 701  | 8192 | ~192 bits      |
+| 821  | 4096 | ~256 bits      |
+
+## Performance Analysis
+
+The library includes built-in performance measurement tools:
+
+```cpp
+// Measure key generation time
+auto keyGenStats = NTRU::Encryption::Statistics::Time::keyGeneration();
+std::cout << "Key generation average: " << keyGenStats.getAverage() << " ms" << std::endl;
+
+// Analyze ciphertext entropy
+auto dataStats = NTRU::Encryption::Statistics::Data::encryption(&ntru);
+std::cout << "Ciphertext entropy: " << dataStats.getEntropy() << std::endl;
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## Security Considerations
+
+At this moment (1, july of 2025):
+
+- **Parameter Selection**: Use recommended parameter sets for your security requirements
+- **Key Storage**: Store private keys securely and never transmit them
+- **Random Number Generation**: This implementation uses `C++` standard library for random number generation
+- **Side-Channel Attacks**: This implementation may be vulnerable to timing attacks in hostile environments
+- **Padding process**: Paddgin process consist just in fillig with zeros.
+- **Truncated data**: If the input data exceeds the maximum size for plaint text, then the intput is truncated prior to processing
+
+## References
+
+The first appereance of this cryptographic system can be found in the article [NTRU: A Ring Based Public Key Cryptosystem
+](https://web.archive.org/web/20071021011338/http://www.ntru.com/cryptolab/pdf/ANTS97.pdf), but better resources can
+be found in [ntru.org](https://ntru.org/). It is worth mentioning that NTRU became a finalist in the third round of [NIST's Post-Quantum Cryptography Standardization
+](https://csrc.nist.gov/projects/post-quantum-cryptography/post-quantum-cryptography-standardization)
+project. For a depper understanding of this cryptosystem, I strongly recomend the to
+look at the books listed below:
+
+- [An Introduction to Mathematical Cryptography](https://link.springer.com/book/10.1007/978-1-4939-1711-2)
+- [Cryptography: Theory and Practice
+  ](https://www.google.com.mx/books/edition/Cryptography/cJuDDwAAQBAJ?hl=en&gbpv=1&printsec=frontcover)
+- [Criptografía. Temas selectos](https://www.alfaomegaeditor.com.mx/default/criptografia-temas-selectos-10825.html)
