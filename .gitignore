@@ -31,7 +31,8 @@
 
 # Directory contents
 Apps/Executables/Testing/*
-Apps/Executables/EncryptionDecryption/*
+Apps/Executables/basic_examples/*
+Apps/Executables/encryption_decryption/*
 
 # Others
 Tests.cpp
