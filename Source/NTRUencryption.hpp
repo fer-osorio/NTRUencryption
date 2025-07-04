@@ -32,7 +32,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	public:
 	ZpPolynomial();								// -Default constructor; initializes the polynomial with zeros
 	ZpPolynomial(const ZpPolynomial& P);
-	ZpPolynomial(const char data[], int dataLength, bool isPlainText=false);// -Initializing with string of bytes
+	ZpPolynomial(const char data[], int dataLength, bool isPlainText);	// -Initializing with string of bytes
 	~ZpPolynomial() {
 		if(this->coefficients != NULL) delete [] this->coefficients;
 	}

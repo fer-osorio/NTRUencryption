@@ -410,7 +410,7 @@ ZpPolynomial ZpPolynomial::fromFile(const char* fileName){
         byteArr = new char[byteArrSize];
         file.read(byteArr, byteArrSize);                                        // -Reading the coefficients of the polynomial
         file.close();
-        out = ZpPolynomial(byteArr, byteArrSize);
+        out = ZpPolynomial(byteArr, byteArrSize, true);                         // -Building polynomials in plintext mode
         delete[] byteArr; byteArr = NULL;
     } else{
         cerrMessageBeforeThrow(thisFunc, "Not a valid NTRU::ZpPolynomial file.");
@@ -976,7 +976,7 @@ Encryption::Encryption(const char* NTRUkeyFile) {
                 sz = this->privateKeySizeInBytes();
                 coeffBytes = new char[sz];
                 file.read(coeffBytes, sz);                                      // -Reading the coefficients of the polynomial
-                this->privatKey = ZpPolynomial(coeffBytes, sz);
+                this->privatKey = ZpPolynomial(coeffBytes, sz, false);          // -Create ZpPolynomial as in private key mode
                 try {
                     this->setKeysFromPrivKey();
                 } catch(const std::runtime_error&) {
