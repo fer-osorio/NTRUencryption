@@ -29,14 +29,7 @@ ECHO_CURRPARAM= @echo "Current values: N=$(N), q=$(q)"
 .PHONY: all clean clean_all install run_encryption run_decryption run_test
 
 basic_example: Makefile $(HEADERS) $(SOURCE) Apps/basic_example.cpp
-ifneq ($(PARAMS_VALID),)
-	@mkdir -p $(dir $(EXE_EXAMP_PATH)/$@$(N)$(q))
-	$(CXX) -o $(EXE_EXAMP_PATH)/$@N$(N)q$(q) $(COMPILE_FLAGS) Apps/basic_example.cpp $(SOURCE) $(LINK_FLAGS)
-else
-	$(ECHO_INVPARAM)
-	$(ECHO_CURRPARAM)
-	@false
-endif
+	$(CXX) -o Apps/Executables/$@ $(COMPILE_FLAGS) Apps/basic_example.cpp $(SOURCE) $(LINK_FLAGS)
 
 NTRUencryption: Makefile $(HEADERS) $(SOURCE) Apps/encryption.cpp
 ifneq ($(PARAMS_VALID),)
@@ -81,6 +74,14 @@ install:
 	@echo "Installing is not supported"
 
 # Run targets with existence checks
+run_basic_example:
+	@if [ -f 'Apps/Executables/basic_example' ]; then \
+		'Apps/Executables/basic_example'; \
+	else \
+		echo "Basic example executable not found. Run 'make basic_example' first."; \
+		false; \
+	fi
+
 run_encryption:
 	@if [ -f "$(EXE_ENCDEC_PATH)/NTRUencryption$(N)$(q)" ]; then \
 		$(EXE_ENCDEC_PATH)/NTRUencryption$(N)$(q); \
