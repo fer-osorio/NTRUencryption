@@ -27,14 +27,14 @@
 *.lib
 
 # Executables
-*.txt
+Apps/Executables/basic_example
 
 # Directory contents
 Apps/Executables/Testing/*
-Apps/Executables/basic_examples/*
 Apps/Executables/encryption_decryption/*
 
 # Others
+*.txt
 Tests.cpp
 tests.cpp
 *.ntru
