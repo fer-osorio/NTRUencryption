@@ -31,7 +31,7 @@ Apps/Executables/basic_example
 
 # Directory contents
 Apps/Executables/Testing/*
-Apps/Executables/encryption_decryption/*
+Apps/Executables/encryption/*
 
 # Others
 *.txt

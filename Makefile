@@ -6,8 +6,7 @@ OPTIMIZE = -O2
 STANDARD = -std=c++2a
 SOURCE   = Source/*.cpp Apps/Settings.cpp
 HEADERS  = Source/*.hpp Apps/Settings.hpp
-EXE_EXAMP_PATH = Apps/Executables/basic_examples
-EXE_ENCDEC_PATH = Apps/Executables/encryption_decryption
+EXE_ENC_PATH = Apps/Executables/encryption
 EXE_TESTS_PATH  = Apps/Executables/Testing
 
 NVALS	 = 701 821 1087 1171 1499
@@ -33,8 +32,8 @@ basic_example: Makefile $(HEADERS) $(SOURCE) Apps/basic_example.cpp
 
 NTRUencryption: Makefile $(HEADERS) $(SOURCE) Apps/encryption.cpp
 ifneq ($(PARAMS_VALID),)
-	@mkdir -p $(dir $(EXE_ENCDEC_PATH)/$@$(N)$(q))
-	$(CXX) -o $(EXE_ENCDEC_PATH)/$@$(N)$(q) $(COMPILE_FLAGS) Apps/encryption.cpp $(SOURCE) $(LINK_FLAGS)
+	@mkdir -p $(dir $(EXE_ENC_PATH)/$@$(N)$(q))
+	$(CXX) -o $(EXE_ENC_PATH)/$@N$(N)q$(q) $(COMPILE_FLAGS) Apps/encryption.cpp $(SOURCE) $(LINK_FLAGS)
 else
 	$(ECHO_INVPARAM)
 	$(ECHO_CURRPARAM)
@@ -43,8 +42,8 @@ endif
 
 NTRUdecryption: Makefile $(HEADERS) $(SOURCE) Apps/decryption.cpp
 ifneq ($(PARAMS_VALID),)
-	@mkdir -p $(dir $(EXE_ENCDEC_PATH)/$@$(N)$(q))
-	$(CXX) -o $(EXE_ENCDEC_PATH)/$@$(N)$(q) $(COMPILE_FLAGS) Apps/decryption.cpp $(SOURCE) $(LINK_FLAGS)
+	@mkdir -p $(dir $(EXE_ENC_PATH)/$@$(N)$(q))
+	$(CXX) -o $(EXE_ENC_PATH)/$@$(N)$(q) $(COMPILE_FLAGS) Apps/decryption.cpp $(SOURCE) $(LINK_FLAGS)
 else
 	$(ECHO_INVPARAM)
 	$(ECHO_CURRPARAM)
@@ -63,7 +62,7 @@ endif
 
 clean:
 	@echo "Cleaning executables..."
-	-rm -f $(EXE_ENCDEC_PATH)/*
+	-rm -f $(EXE_ENC_PATH)/*
 	-rm -f $(EXE_TESTS_PATH)/*/*
 
 clean_all: clean
@@ -83,16 +82,16 @@ run_basic_example:
 	fi
 
 run_encryption:
-	@if [ -f "$(EXE_ENCDEC_PATH)/NTRUencryption$(N)$(q)" ]; then \
-		$(EXE_ENCDEC_PATH)/NTRUencryption$(N)$(q); \
+	@if [ -f "$(EXE_ENC_PATH)/NTRUencryption$(N)$(q)" ]; then \
+		$(EXE_ENC_PATH)/NTRUencryption$(N)$(q); \
 	else \
 		echo "Executable not found. Run 'make NTRUencryption' first."; \
 		false; \
 	fi
 
 run_decryption:
-	@if [ -f "$(EXE_ENCDEC_PATH)/NTRUdecryption$(N)$(q)" ]; then \
-		$(EXE_ENCDEC_PATH)/NTRUdecryption$(N)$(q); \
+	@if [ -f "$(EXE_ENC_PATH)/NTRUdecryption$(N)$(q)" ]; then \
+		$(EXE_ENC_PATH)/NTRUdecryption$(N)$(q); \
 	else \
 		echo "Executable not found. Run 'make NTRUdecryption' first."; \
 		false; \
