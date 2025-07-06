@@ -23,6 +23,8 @@ ZpPolynomial mods_p(ZqPolynomial);
 
 int get_N();
 int get_q();
+size_t inputPlainTextMaxSizeBytes();
+size_t cipherTextSizeBytes();
 
 struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N-1)
 	enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};					// -ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
@@ -58,7 +60,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	void println(const char* name = "", bool centered = true) const;
 
 	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZpPolynomial in a file.
-	static ZpPolynomial fromFile(const char* fileName);
+	static ZpPolynomial fromFile(const char* fileName);			// -Building a ZpPolynomial from file. Throws std::runtime_error()
 };
 
 struct Z2Polynomial {								// Representation of the polynomials in Z2[x]/(x^N-1)
@@ -165,7 +167,8 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 										//  negative, +=q is applied in order to write a positive number
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
-	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZqPolynomial in a Binary file.
+	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZqPolynomial in a Binary file. Throws std::runtime_error
+	static ZqPolynomial fromFile(const char* fileName);			// -Building a ZqPolynomial from file. Throws std::runtime_error()
 
 	private:
 	ZqPolynomial& timesThree();						// -Gets a ZpPolynomial via the operations 3p + 1

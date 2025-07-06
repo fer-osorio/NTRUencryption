@@ -162,6 +162,8 @@ static RandInt randomIntegersN(0, _N_ - 1);
 
 int NTRU::get_N(){ return _N_; }
 int NTRU::get_q(){ return _q_; }
+size_t NTRU::inputPlainTextMaxSizeBytes() { return _N_/6; }
+size_t NTRU::cipherTextSizeBytes(){ return size_t(_N_*log2q/8+1); }                     // -For values 8 < log2q < 16, this expression is valid
 
 using namespace NTRU;
 
@@ -184,10 +186,9 @@ ZpPolynomial::ZpPolynomial(const char data[], int dataLength, bool isPlainText) 
     if(dataLength <= 0) return;                                                 // -Guarding against negative or null dataLength
     isPlainText == true ? m = 6 : m = 5;
 
-
-    for(i = 0, j = 0; i < dataLength && j < _N_; i++) {                           // -i will run through data, j through coefficients
+    for(i = 0, j = 0; i < dataLength && j < _N_; i++) {                         // -i will run through data, j through coefficients
         l = (int)(unsigned char)data[i];
-        for(k = 0; k < m && j < _N_; k++, l/=3) {                                 // -Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
+        for(k = 0; k < m && j < _N_; k++, l/=3) {                               // -Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
             switch(l%3) {                                                       //  in big endian notation. Notice that the maximum value allowed is 242
                 case  1:                                                        // -One idea to solve this issue is to have a "flag" value, say 242. Suppose b is
                     this->coefficients[j++] = _1_;                              //  a byte such that b >= 242; then we can write b = 242 + (b - 242). The
@@ -383,8 +384,8 @@ void ZpPolynomial::save(const char* name, bool saveAsText) const{
 
 ZpPolynomial ZpPolynomial::fromFile(const char* fileName){
     const char thisFunc[] = "ZpPolynomial ZpPolynomial::fromFile(const char* fileName)";
-    const char ntrup[] = "NTRUp";                                               // -This will indicate the binary file is saving a NTRU (NTRU) polynomial with
-    int byteArrSize = _N_ / 5 + 1, ntrupsz = strlen(ntrup);                     // -_N_ is necessarily prime, so _N_ % 5 > 0 holds true
+    const char ntrup[] = "NTRUp";                                               // -This will indicate the binary file is saving a NTRU (NTRU) ZpPolynomial
+    int byteArrSize = inputPlainTextMaxSizeBytes() + 1, ntrupsz = strlen(ntrup);// -_N_ is necessarily prime, so _N_ % 5 > 0 holds true
     char* byteArr = NULL;
     short n = _N_, Q = _q_;
     ZpPolynomial out;
@@ -897,7 +898,7 @@ void ZqPolynomial::println(const char* name) const{
 }
 
 void ZqPolynomial::save(const char* name, bool saveAsText) const{
-    int byteArrSize = _N_*log2q/8 + 1;                                          // -For values 8 < log2q < 16, this expression is valid
+    int byteArrSize = cipherTextSizeBytes();
     char* byteArr = NULL;
     const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a Zq NTRU (NTRU) polynomial
     short N = _N_, q = _q_;
@@ -922,6 +923,44 @@ void ZqPolynomial::save(const char* name, bool saveAsText) const{
         throw std::runtime_error("File writing failed.");
     }
     if(byteArr != NULL) delete[] byteArr;
+}
+
+ZqPolynomial ZqPolynomial::fromFile(const char* fileName){
+    const char thisFunc[] = "ZqPolynomial ZqPolynomial::fromFile(const char* fileName)";
+    const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a NTRU (NTRU) ZqPolynomial
+    int byteArrSize = cipherTextSizeBytes(), ntruqsz = strlen(ntruq);
+    char* byteArr = NULL;
+    short n = _N_, Q = _q_;
+    ZqPolynomial out;
+    std::ifstream file = std::ifstream();
+    file.open(fileName, std::ios::binary);
+    if(!file.is_open()){
+        cerrMessageBeforeThrow(thisFunc, "Error opening file for polynomial creation");
+        throw std::runtime_error("File opening failed");
+    }
+    byteArr = new char[ntruqsz+1];
+    file.read(byteArr, ntruqsz);                                                // -Reading the firsts bytes hoping "NTRUpublicKey" or "NTRUprivatKey" apears
+    byteArr[ntruqsz] = 0;                                                       // -End of string
+    if(compareStrings(byteArr, ntruq)) {                                        // -Testing if file saves a NTRU private key
+        delete[] byteArr; byteArr = NULL;
+        file.read((char*)&n, 2);
+        file.read((char*)&Q, 2);
+        if(n != _N_ || Q != _q_) {
+            delete[] byteArr; byteArr = NULL;
+            cerrMessageBeforeThrow(thisFunc, "Parameters retreaved from file do not match with this program parameters");
+            std::cout << "From file: N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << '\n';
+            throw std::runtime_error("Could not agree on parameters");
+        }
+        byteArr = new char[byteArrSize];
+        file.read(byteArr, byteArrSize);                                        // -Reading the coefficients of the polynomial
+        file.close();
+        out = ZqPolynomial(byteArr, byteArrSize);                               // -Building polynomials in plintext mode
+        delete[] byteArr; byteArr = NULL;
+    } else{
+        cerrMessageBeforeThrow(thisFunc, "Not a valid NTRU::ZqPolynomial file.");
+        throw std::runtime_error("Not valid input file.");
+    }
+    return out;
 }
 
 ZqPolynomial& ZqPolynomial::timesThree(){
