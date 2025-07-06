@@ -18,24 +18,105 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#include"Settings.hpp"
+#include"../Source/NTRUencryption.hpp"
+
+static void displayUsage() {                                                    // -Executable with no arguments is equivalent to asking for help.
+    std::cout << "Usage: NTRUencryption <command> [args...]\n";
+    std::cout << "Commands:\n";
+    std::cout << "\tencrypt <public_key> <file>                     - Encrypts <file> using <public_key>.\n";
+    std::cout << "\tdecrypt <private_key> <file>                    - Decrypts <file> using <private_key>.\n";
+    std::cout << "\tbuild_keys <public_key_name> <private_key_name> - Build public-private key, saves them using the provided names." << std::endl;
+}
+
+static void showParameters(){
+  printf("\t----------------------------------------\n");
+  printf("\t| NTRU parmeters: N = %d, q = %d\t|\n", NTRU::get_N(), NTRU::get_q());
+  printf("\t| Plain text maximum size = %lu \t|\n", NTRU::inputPlainTextMaxSizeBytes());
+  printf("\t| Cipher text size = %lu \t\t|",        NTRU::cipherTextSizeBytes());
+  printf("\t----------------------------------------\n");
+}
 
 int main(int argc, char* argv[]) {
+    if(argc < 2) {                                                              // -No argument provided. Displaying usage and returning.
+        displayUsage();                                                         //  ...
+        return 1;                                                               //  ...
+    }
     showParameters();
-    if(argc > 1) {                                                              // -Handling arguments from console
-        try {
-            setEncryptionObjectFromFile(argv[1]);
-        } catch(std::runtime_error& exp) {
-            std::cout << "Could not create NTRU::Encryption object.\n" << exp.what() << '\n';
+    NTRU::Encryption* ptr_e = NULL;
+    std::string command(argv[1]);
+    if(command == "encrypt" || command == "decrypt"){                           // -In either case we need to build an encryption object using the file provided as
+        if(argc != 4){
+            std::cerr << "Command <" << command << "> must be provided of two parameters.\n";
             return EXIT_FAILURE;
         }
-        for(int i = 2; i < argc; i++) encryptFile(argv[i]);
+        try {                                                                   //  second argument.
+            ptr_e = new NTRU::Encryption(argv[2]);
+        } catch(std::runtime_error& exp) {
+            std::cerr << "I could not create NTRU::Encryption object.\n" << exp.what() << '\n';
+            return EXIT_FAILURE;
+        }
+        if(command == "encrypt"){
+            NTRU::ZpPolynomial msg;
+            try{
+                msg = NTRU::ZpPolynomial::fromFile(argv[3]);                    // -Creates message from file
+            }catch(const std::runtime_error& exp){
+                delete ptr_e;
+                std::cerr << "I could not create NTRU::ZpPolynomial object.\n" << exp.what() << '\n';
+                return EXIT_FAILURE;
+            }
+            NTRU::ZqPolynomial encMsg = ptr_e->encrypt(msg);
+            try{
+                std::string encMsgFname = "enc_" + std::string(argv[3]);
+                encMsg.save(encMsgFname.c_str());
+            } catch(const std::runtime_error& exp){
+                delete ptr_e;
+                std::cerr << "I could not save encrypted message.\n" << exp.what() << '\n';
+                return EXIT_FAILURE;
+            }
+        } else{
+            NTRU::ZqPolynomial encMsg;
+            try{
+                encMsg = NTRU::ZqPolynomial::fromFile(argv[3]);                 // -Creates encrypted message from file
+            }catch(const std::runtime_error& exp){
+                delete ptr_e;
+                std::cerr << "I could not create NTRU::ZqPolynomial object.\n" << exp.what() << '\n';
+                return EXIT_FAILURE;
+            }
+            NTRU::ZpPolynomial msg = ptr_e->decrypt(encMsg);
+            try{
+                std::string decMsgFname = "dec_" + std::string(argv[3]);
+                msg.save(decMsgFname.c_str());
+            } catch(const std::runtime_error& exp){
+                delete ptr_e;
+                std::cerr << "I could not save decrypted message.\n" << exp.what() << '\n';
+                return EXIT_FAILURE;
+            }
+        }
         return EXIT_SUCCESS;
+    } else if(command == "build_keys"){
+        if(argc != 4){
+            std::cerr << "Command <" << command << "> must be provided with the names of the keys.\n";
+            return EXIT_FAILURE;
+        }
+        try {
+            ptr_e = new NTRU::Encryption();                                     // -Generating keys automatically.
+        } catch(std::runtime_error& exp) {
+            std::cerr << "I could not create NTRU::Encryption object.\n" << exp.what() << '\n';
+            return EXIT_FAILURE;
+        }
+        try{
+            ptr_e->saveKeys(argv[2],argv[3]);
+        } catch(const std::runtime_error& exp){
+            delete ptr_e;
+            std::cerr << "I could not save public-private key pair.\n" << exp.what() << '\n';
+            return EXIT_FAILURE;
+        }
+        return EXIT_SUCCESS;
+    } else{
+        std::cerr << "Command not supported." << std::endl;
+        return EXIT_FAILURE;
     }
-    std::cout <<
-    "\nHi! I am a program which is particularly good at encrypting binary and text files (as long as they are not too big!!). Feel\n"
-    "free to use me to encrypt any .txt or .bin file you desire. At any moment you can stop me by pressing the keys 'CTRL+C'.\n"
-    "Before anything...\n\n";
-    runEncryptionProgram();
+    if(ptr_e!=NULL) delete ptr_e;
+
     return EXIT_SUCCESS;
 }
