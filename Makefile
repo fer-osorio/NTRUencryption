@@ -32,7 +32,7 @@ basic_example: Makefile $(HEADERS) $(SOURCE) Apps/basic_example.cpp
 
 NTRUencryption: Makefile $(HEADERS) $(SOURCE) Apps/encryption.cpp
 ifneq ($(PARAMS_VALID),)
-	@mkdir -p $(dir $(EXE_ENC_PATH)/$@$(N)$(q))
+	@mkdir -p $(dir $(EXE_ENC_PATH)/$@$(N)$(q))                             # Creates (if they not exist) directories and parents directories of the path EXE_ENC_PATH.
 	$(CXX) -o $(EXE_ENC_PATH)/$@N$(N)q$(q) $(COMPILE_FLAGS) Apps/encryption.cpp $(SOURCE) $(LINK_FLAGS)
 else
 	$(ECHO_INVPARAM)
@@ -52,7 +52,7 @@ endif
 
 Test: Makefile $(HEADERS) $(SOURCE) Apps/Statistics.cpp
 ifneq ($(PARAMS_VALID),)
-	@mkdir -p $(dir $(EXE_TESTS_PATH)/N$(N)q$(q)/Test$(N)$(q))
+	@mkdir -p $(dir $(EXE_TESTS_PATH)/N$(N)q$(q)/Test$(N)$(q))              # Creates (if they not exist) directories and parents directories of the path EXE_ENC_PATH.
 	$(CXX) -o $(EXE_TESTS_PATH)/N$(N)q$(q)/Test$(N)$(q) $(COMPILE_FLAGS) Apps/Statistics.cpp $(SOURCE) $(LINK_FLAGS)
 else
 	$(ECHO_INVPARAM)
