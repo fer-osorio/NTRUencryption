@@ -23,6 +23,7 @@ ZpPolynomial mods_p(ZqPolynomial);
 
 int get_N();
 int get_q();
+size_t ZpPolynomialSizeBytes();
 size_t inputPlainTextMaxSizeBytes();
 size_t cipherTextSizeBytes();
 
@@ -30,6 +31,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};					// -ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
 	private:
 	Z3*  coefficients = NULL;
+	friend Encryption;
 
 	public:
 	ZpPolynomial();								// -Default constructor; initializes the polynomial with zeros
@@ -39,8 +41,11 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 		if(this->coefficients != NULL) delete [] this->coefficients;
 	}
 	static ZpPolynomial randomTernary();
-	void interchangeZeroFor(Z3);
-	void changeZeroForOne();
+
+	private: void interchangeZeroFor(Z3);
+	private: void changeZeroForOne();
+
+	public:
 	static ZpPolynomial getPosiblePrivateKey();				// -Setting d = N/3, returns a polynomial with d -1's and d+1 1's
 
 	ZpPolynomial& operator = (const ZpPolynomial& P);			// Assignment
@@ -53,13 +58,14 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
 	friend ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&);
 
-	size_t sizeInBytes(bool isPlainText) const;				// The polynomial represents: plain text-->N/6  or a private key-->N/5
-	void toBytes(char dest[], bool isPlainText = false) const;
-	mpz_class toNumber() const;						// Interprests the coefficientes as a bese 3 number.
+	size_t sizeInBytes(bool isPlainText) const;				// -The polynomial represents: plain text-->N/6  or a private key-->N/5
+	void toBytes(char dest[], bool isPlainText) const;			// -From polynomials to bytes. If plainText == False, polynomial is interpreted as private key
+	mpz_class toNumber() const;						// -Interprests the coefficientes as a bese 3 number.
 	void print(const char* name = "", bool centered = true, const char* tail = "") const;
 	void println(const char* name = "", bool centered = true) const;
 
 	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZpPolynomial in a file.
+	void writeFile(const char* fileName, bool writeAsText) const;
 	static ZpPolynomial fromFile(const char* fileName);			// -Building a ZpPolynomial from file. Throws std::runtime_error()
 };
 
@@ -186,8 +192,10 @@ class Encryption {
 
 	ZqPolynomial encrypt(const char bytes[] ,int size) const;		// -Encryption of char array
 	ZqPolynomial encrypt(const ZpPolynomial&) const;			// -Encrypts ZpPolynomial
+	ZqPolynomial encryptFile(const char fileName[]) const;			// -Reads file content, writes in array, append a 0x80 at the end and encrypts.
 	ZpPolynomial decrypt(const ZqPolynomial&) const;			// -Decryption of ZqPolynomial
 	ZpPolynomial decrypt(const char bytes[] ,int size) const;		// -Decryption of char array
+
 
 	NTRU_N get_N() const;
 	NTRU_q get_q() const;
@@ -279,4 +287,8 @@ class Encryption {
 	};
 };
 }
+
+// -Helper functions, debugging.
+void printByteArrayBin(const char byteArray[], size_t size);
+void printByteArrayChar(const char byteArray[], size_t size);
 #endif
