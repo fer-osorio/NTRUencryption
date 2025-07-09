@@ -29,11 +29,11 @@ static void displayUsage() {                                                    
 }
 
 static void showParameters(){
-  printf("\t----------------------------------------\n");
-  printf("\t| NTRU parmeters: N = %d, q = %d\t|\n", NTRU::get_N(), NTRU::get_q());
-  printf("\t| Plain text maximum size = %lu \t|\n", NTRU::inputPlainTextMaxSizeBytes());
-  printf("\t| Cipher text size = %lu \t\t|\n",      NTRU::cipherTextSizeBytes());
-  printf("\t----------------------------------------\n");
+    printf("\t----------------------------------------\n");
+    printf("\t| NTRU parmeters: N = %d, q = %d\t|\n", NTRU::get_N(), NTRU::get_q());
+    printf("\t| Plain text maximum size = %lu \t|\n", NTRU::inputPlainTextMaxSizeBytes());
+    printf("\t| Cipher text size = %lu \t\t|\n",      NTRU::cipherTextSizeBytes());
+    printf("\t----------------------------------------\n");
 }
 
 int main(int argc, char* argv[]) {
