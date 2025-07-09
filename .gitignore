@@ -28,10 +28,10 @@
 
 # Executables
 Apps/Executables/basic_example
-
-# Directory contents
+## Directory contents
 Apps/Executables/Testing/*
 Apps/Executables/encryption/*
+!Apps/Executables/encryption/binary_generator.sh
 
 # Others
 *.txt
@@ -44,3 +44,6 @@ tests.cpp
 *.ntruprv
 *.ntruPublicKey
 *.ntruPrivateKey
+
+# Do not ignore these files
+#!Apps/Executables/encryption/binary_generator.sh
