@@ -129,6 +129,7 @@ static bool compareStrings(const char* str1, const char* str2) {
 void printByteArrayBin(const char byteArray[], size_t size){                    // -Printing array of bytes. Useful for debbuging
     uint8_t bit = 0x80;                                                         // -Byte 1000,0000
     size_t i = 0, t = 0, size_1 = size > 0? size-1: 0;
+    printf("[000--015]\t");                                                     // -For the moment (09-07-2025), this "3-digit-format" will work.
     while(i < size){
         for(bit = 0x80; bit != 0; bit >>= 1){                                   // -Checking each byte bit by bit.
             t = bit & uint8_t(byteArray[i]);
@@ -137,20 +138,51 @@ void printByteArrayBin(const char byteArray[], size_t size){                    
         }
         if(i != size_1) std::cout << ',';
         i++;
-        if((i & 7) == 0) std::cout << '\n';
+        if((i & 15) == 0) printf("\n[%03lu--%03lu]\t", i, i+15);                // -Printing labeled lines with 16 elements
     }
 }
 
 void printByteArrayChar(const char byteArray[], size_t size){                   // -Prints each byte of array as a character or hexadecimal value
     size_t i = 0;
     uint8_t b = 0;
+    printf("[000--015]\t");                                                     // -For the moment (09-07-2025), this "3-digit-format" will work.
     while(i < size){
         b = (uint8_t)byteArray[i];
-        if(b > 31 && b < 127) printf("%c", byteArray[i]);                       // -If printable, prints character.
-        else if(b < 16) printf("<0x0%X>", b);                                   // -If not printable, prints hexadecimal value.
-             else printf("<0x%X>", b);
+        if(b < 128) {                                                           // -Is inside the defined ascii code
+            if(b > 32 && b < 127) printf("%c", byteArray[i]);                   // -If printable, prints character.
+            else{
+                printf("\033[0;33m<\033[0m");
+                switch (b) {                                                    // -Handling whitespace characters
+                    case '\t':
+                        printf("\\t");                                        // -Tabulation
+                        break;
+                    case '\n':
+                        printf("\\n");                                        // -New line
+                        break;
+                    case '\v':
+                        printf("\\v");                                        // -Vertical tabulation
+                        break;
+                    case '\r':
+                        printf("\\r");                                        // -Carriage return
+                        break;
+                    case '\f':
+                        printf("\\f");                                        // -Form feed
+                        break;
+                    case ' ':
+                        printf(" ");                                          // -Space
+                        break;
+                    default:
+                        if (b == 2) printf("STX");                            // -Start of text
+                        else if (b == 3)
+                            printf("ETX");                                   // -End of text
+                            else
+                                printf("0x%02X", b);
+                }
+                printf("\033[0;33m>\033[0m");
+            }
+        } else printf("\033[0;33m<\033[0m0x%X\033[0;33m>\033[0m", b);           // -Not an ascii character
         i++;
-        if((i & 15) == 0) std::cout << '\n';
+        if((i & 15) == 0) printf("\n[%03lu--%03lu]\t", i, i+15);                // -Printing labeled lines with 16 elements
     }
 }
 
@@ -1087,7 +1119,7 @@ Encryption::Encryption(const char* NTRUkeyFile) {
                     throw;
                 }
             } else {
-                std::cout << "Setting NTRU::Encryption object in 'encryption only' mode" << std::endl;
+                std::cout << "\tSetting NTRU::Encryption object in 'encryption only' mode" << std::endl;
                 isPrivateKey = false;
                 sz = this->publicKeySizeInBytes();
                 coeffBytes = new char[sz];
@@ -1167,7 +1199,11 @@ void Encryption::printKeys(const char publicKeyName[], const char privateKeyName
     if(this->validPrivateKey) {
         if(privateKeyName != NULL) this->privatKey.println(privateKeyName);
         else this->privatKey.println("Private Key");
-    } else std::cout << "No private key." << std::endl;
+    } else {
+        if(privateKeyName != NULL) std::cout << privateKeyName;
+        else std::cout << "Private Key";
+        std::cout << ": No private key available." << std::endl;
+    }
 }
 
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Encryption keys |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -1305,8 +1341,8 @@ ZqPolynomial Encryption::encryptFile(const char fileName[]) const{              
     inputFile.read(fileInput, fileSize);
     fileInput[fileSize] = (char)0x80;                                           // -Writting 1000,0000 at the end of file content. This will be important at the
                                                                                 //  moment of the decryption.
-    printByteArrayBin(fileInput, fileInputArrSize);std::cout << '\n';           // -Debugging purposes
-    printByteArrayChar(fileInput, fileInputArrSize);std::cout << '\n';          //  ...
+    //printByteArrayBin(fileInput, fileInputArrSize);std::cout << '\n';           // -Debugging purposes
+    //printByteArrayChar(fileInput, fileInputArrSize);std::cout << '\n';          // -Debuggin purposes
     // -End of: Reading input file.
     enc_msg = this->encrypt(fileInput, fileInputArrSize);                       // -Encrypting the bytes from the file and its size
     delete[] fileInput;
