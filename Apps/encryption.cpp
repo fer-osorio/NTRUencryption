@@ -39,9 +39,9 @@ static void showParameters(){
 int main(int argc, char* argv[]) {
     if(argc < 2) {                                                              // -No argument provided. Displaying usage and returning.
         displayUsage();                                                         //  ...
-        return EXIT_SUCCESS;                                                               //  ...
+        return EXIT_SUCCESS;                                                    //  ...
     }
-    showParameters(); std::cout << '\n';
+    std::cout << '\n'; showParameters(); std::cout << '\n';
     NTRU::Encryption* ptr_e = NULL;
     std::string command(argv[1]);
     char aux[1024];
@@ -52,24 +52,27 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "Executing: " << command << ' ' << argv[2] << ' ' << argv[3] << std::endl;
         try {                                                                   //  second argument.
+            std::cout << "\tBuilding encryption object...\n";
             ptr_e = new NTRU::Encryption(argv[2]);
         } catch(std::runtime_error& exp) {
             std::cerr << "I could not create NTRU::Encryption object.\n" << exp.what() << '\n';
             return EXIT_FAILURE;
         }
-        ptr_e->printKeys();
+        std::cout << "\tEncryption object keys (vector form):\n";
+        ptr_e->printKeys(); std::cout << std::endl;
         if(command == "encrypt"){
             NTRU::ZqPolynomial encMsg;
             try{
-                encMsg = ptr_e->encryptFile(argv[3]);        // -Encrypts file
+                std::cout << "\tEncrypting file contents...\n";
+                encMsg = ptr_e->encryptFile(argv[3]);                           // -Encrypts file
             }catch(const std::runtime_error& exp){
                 delete ptr_e;
                 std::cerr << "I could not encrypt " << argv[3] << " file.\n" << exp.what() << '\n';
                 return EXIT_FAILURE;
             }
-            encMsg.println("Encrypted message (vector form)");
+            encMsg.println("Encrypted message vector");
             try{
-                std::string encMsgFname = "enc_" + std::string(argv[3]);
+                std::string encMsgFname = std::string(argv[3]) + ".enc";
                 encMsg.save(encMsgFname.c_str());
             } catch(const std::runtime_error& exp){
                 delete ptr_e;
@@ -85,13 +88,17 @@ int main(int argc, char* argv[]) {
                 std::cerr << "I could not create NTRU::ZqPolynomial object.\n" << exp.what() << '\n';
                 return EXIT_FAILURE;
             }
-            encMsg.println("Encrypted message");
+            encMsg.println("Encrypted message vector");
             NTRU::ZpPolynomial msg = ptr_e->decrypt(encMsg);
-            msg.println();
+            std::cout << std::endl;
+            msg.println("Decrypted message vector");
             msg.toBytes(aux, NTRU::inputPlainTextMaxSizeBytes());
+            std::cout << "\nDecrypted message in bynary form:\n";
+            printByteArrayBin(aux, NTRU::inputPlainTextMaxSizeBytes());std::cout << '\n';
+            std::cout << "\nDecrypted message with ASCII code:\n";
             printByteArrayChar(aux, NTRU::inputPlainTextMaxSizeBytes());std::cout << '\n';
             try{
-                std::string decMsgFname = "dec_" + std::string(argv[3]);
+                std::string decMsgFname = std::string(argv[3]) + ".dec";
                 msg.writeFile(decMsgFname.c_str(), false);                      // -Decrypting, writing as binary file.
             } catch(const std::runtime_error& exp){
                 delete ptr_e;
@@ -106,12 +113,14 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "Executing: " << command << ' ' << argv[2] << ' ' << argv[3] << std::endl;
         try {
+            std::cout << "\tBuilding keys...\n";
             ptr_e = new NTRU::Encryption();                                     // -Generating keys automatically.
         } catch(std::runtime_error& exp) {
             std::cerr << "I could not create NTRU::Encryption object.\n" << exp.what() << '\n';
             return EXIT_FAILURE;
         }
         try{
+            std::cout << "\tSaving...\n";
             ptr_e->saveKeys(argv[2],argv[3]);
         } catch(const std::runtime_error& exp){
             delete ptr_e;
