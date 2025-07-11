@@ -31,8 +31,8 @@ static void displayUsage() {                                                    
 static void showParameters(){
     printf("\t-----------------------------------------\n");
     printf("\t| NTRU parmeters: N = %d, q = %d\t|\n", NTRU::get_N(), NTRU::get_q());
-    printf("\t| Plain text maximum size = %lu \t|\n", NTRU::inputPlainTextMaxSizeBytes());
-    printf("\t| Cipher text size = %lu \t\t|\n",      NTRU::cipherTextSizeBytes());
+    printf("\t| Plain text maximum size = %lu \t|\n", NTRU::Encryption::inputPlainTextMaxSizeInBytes());
+    printf("\t| Cipher text size = %lu \t\t|\n",      NTRU::Encryption::cipherTextSizeInBytes());
     printf("\t-----------------------------------------\n");
 }
 
@@ -97,11 +97,11 @@ int main(int argc, char* argv[]) {
             NTRU::ZpPolynomial msg = ptr_e->decrypt(encMsg);
             std::cout << std::endl;
             msg.println("Decrypted message vector");
-            msg.toBytes(aux, NTRU::inputPlainTextMaxSizeBytes());
+            msg.toBytes(aux, NTRU::Encryption::inputPlainTextMaxSizeInBytes());
             std::cout << "\nDecrypted message in bynary form:";
-            displayByteArrayBin(aux, NTRU::inputPlainTextMaxSizeBytes());std::cout << '\n';
+            displayByteArrayBin(aux, NTRU::Encryption::inputPlainTextMaxSizeInBytes());std::cout << '\n';
             std::cout << "\nDecrypted message with ASCII code:";
-            displayByteArrayChar(aux, NTRU::inputPlainTextMaxSizeBytes());std::cout << '\n';
+            displayByteArrayChar(aux, NTRU::Encryption::inputPlainTextMaxSizeInBytes());std::cout << '\n';
             try{
                 std::string decMsgFname = std::string(argv[3]) + ".dec";
                 msg.writeFile(decMsgFname.c_str(), false);                      // -Decrypting, writing as binary file.
@@ -137,6 +137,6 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
     if(ptr_e!=NULL) delete ptr_e;
-    std::cout << "Fertig! Alles in Ordnung." << std::endl;
+    std::cout << "\nFertig! Alles in Ordnung." << std::endl;
     return EXIT_SUCCESS;
 }
