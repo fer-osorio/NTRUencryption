@@ -31,8 +31,6 @@ Apps/Executables/basic_example
 ## Directory contents
 Apps/Executables/Testing/*
 Apps/Executables/encryption/*
-# Do not ignore these files
-!Apps/Executables/encryption/binary_generator.sh
 
 # ID's files and directories
 .idea/*
