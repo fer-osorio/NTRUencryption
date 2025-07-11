@@ -29,11 +29,11 @@ static void displayUsage() {                                                    
 }
 
 static void showParameters(){
-    printf("\t----------------------------------------\n");
+    printf("\t-----------------------------------------\n");
     printf("\t| NTRU parmeters: N = %d, q = %d\t|\n", NTRU::get_N(), NTRU::get_q());
     printf("\t| Plain text maximum size = %lu \t|\n", NTRU::inputPlainTextMaxSizeBytes());
     printf("\t| Cipher text size = %lu \t\t|\n",      NTRU::cipherTextSizeBytes());
-    printf("\t----------------------------------------\n");
+    printf("\t-----------------------------------------\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -58,8 +58,9 @@ int main(int argc, char* argv[]) {
             std::cerr << "I could not create NTRU::Encryption object.\n" << exp.what() << '\n';
             return EXIT_FAILURE;
         }
-        std::cout << "\tEncryption object keys (vector form):\n";
+        std::cout << "\n\t******** Encryption object keys (vector form): ****************************************************************************************************\n";
         ptr_e->printKeys(); std::cout << std::endl;
+        std::cout << "\t***************************************************************************************************************************************************\n\n";
         if(command == "encrypt"){
             NTRU::ZqPolynomial encMsg;
             try{
@@ -97,9 +98,9 @@ int main(int argc, char* argv[]) {
             std::cout << std::endl;
             msg.println("Decrypted message vector");
             msg.toBytes(aux, NTRU::inputPlainTextMaxSizeBytes());
-            std::cout << "\nDecrypted message in bynary form:\n";
+            std::cout << "\nDecrypted message in bynary form:";
             displayByteArrayBin(aux, NTRU::inputPlainTextMaxSizeBytes());std::cout << '\n';
-            std::cout << "\nDecrypted message with ASCII code:\n";
+            std::cout << "\nDecrypted message with ASCII code:";
             displayByteArrayChar(aux, NTRU::inputPlainTextMaxSizeBytes());std::cout << '\n';
             try{
                 std::string decMsgFname = std::string(argv[3]) + ".dec";
