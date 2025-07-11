@@ -289,6 +289,6 @@ class Encryption {
 }
 
 // -Helper functions, debugging.
-void printByteArrayBin(const char byteArray[], size_t size);					// -Prints bytes using bynari format
-void printByteArrayChar(const char byteArray[], size_t size);					// -Prints each byte as a character, if not printable, it prints its hexadecimal value, if it is a white space, it prints its hexadecimal value
+void displayByteArrayBin(const char byteArray[], size_t size);					// -Prints bytes using bynari format
+void displayByteArrayChar(const char byteArray[], size_t size);					// -Prints each byte as a character, if not printable, it prints its hexadecimal value, if it is a white space, it prints its hexadecimal value
 #endif
