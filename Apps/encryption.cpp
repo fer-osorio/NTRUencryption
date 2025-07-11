@@ -70,7 +70,7 @@ int main(int argc, char* argv[]) {
                 std::cerr << "I could not encrypt " << argv[3] << " file.\n" << exp.what() << '\n';
                 return EXIT_FAILURE;
             }
-            encMsg.println("Encrypted message vector");
+            encMsg.println("Encrypted file vector");
             try{
                 std::string encMsgFname = std::string(argv[3]) + ".enc";
                 encMsg.save(encMsgFname.c_str());
@@ -80,6 +80,10 @@ int main(int argc, char* argv[]) {
                 return EXIT_FAILURE;
             }
         } else{                                                                 // -Decryption process
+            if(!ptr_e->validPrivateKeyAvailable()){
+                std::cerr << "No private key available for decryption process." << std::endl;
+                return EXIT_FAILURE;
+            }
             NTRU::ZqPolynomial encMsg;
             try{
                 encMsg = NTRU::ZqPolynomial::fromFile(argv[3]);                 // -Creates encrypted message from file
@@ -94,9 +98,9 @@ int main(int argc, char* argv[]) {
             msg.println("Decrypted message vector");
             msg.toBytes(aux, NTRU::inputPlainTextMaxSizeBytes());
             std::cout << "\nDecrypted message in bynary form:\n";
-            printByteArrayBin(aux, NTRU::inputPlainTextMaxSizeBytes());std::cout << '\n';
+            displayByteArrayBin(aux, NTRU::inputPlainTextMaxSizeBytes());std::cout << '\n';
             std::cout << "\nDecrypted message with ASCII code:\n";
-            printByteArrayChar(aux, NTRU::inputPlainTextMaxSizeBytes());std::cout << '\n';
+            displayByteArrayChar(aux, NTRU::inputPlainTextMaxSizeBytes());std::cout << '\n';
             try{
                 std::string decMsgFname = std::string(argv[3]) + ".dec";
                 msg.writeFile(decMsgFname.c_str(), false);                      // -Decrypting, writing as binary file.
