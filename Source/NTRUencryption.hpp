@@ -23,9 +23,6 @@ ZpPolynomial mods_p(ZqPolynomial);
 
 int get_N();
 int get_q();
-size_t ZpPolynomialSizeBytes();
-size_t inputPlainTextMaxSizeBytes();
-size_t cipherTextSizeBytes();
 
 struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N-1)
 	enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};					// -ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
@@ -50,7 +47,7 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 
 	ZpPolynomial& operator = (const ZpPolynomial& P);			// Assignment
 	int operator[](int i) const;
-	int  degree() const;							// Returns degree of polynomial
+	int degree() const;							// Returns degree of polynomial
 
 	ZqPolynomial encrypt(ZqPolynomial publicKey) const;			// -Encrypts the polynomial represented by this and return a ZqPolynomial
 
@@ -196,15 +193,13 @@ class Encryption {
 	ZpPolynomial decrypt(const ZqPolynomial&) const;			// -Decryption of ZqPolynomial
 	ZpPolynomial decrypt(const char bytes[] ,int size) const;		// -Decryption of char array
 
-
-	NTRU_N get_N() const;
-	NTRU_q get_q() const;
 	bool validPrivateKeyAvailable() const{ return this->validPrivateKey; }
 
-	size_t plainTextMaxSizeInBytes() const;
-	size_t cipherTextSizeInBytes()   const;
-	size_t privateKeySizeInBytes()   const;
-	size_t publicKeySizeInBytes()    const;
+	static size_t inputPlainTextMaxSizeInBytes();
+	static size_t outputPlainTextMaxSizeInBytes();
+	static size_t cipherTextSizeInBytes();
+	static size_t privateKeySizeInBytes();
+	static size_t publicKeySizeInBytes();
 
 	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
 	void printKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;

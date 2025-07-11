@@ -248,9 +248,6 @@ static RandInt randomIntegersN(0, _N_ - 1);
 
 int NTRU::get_N(){ return _N_; }
 int NTRU::get_q(){ return _q_; }
-size_t NTRU::ZpPolynomialSizeBytes(){ return _N_/5 + 1; }                       // -Bytes required to write a full ZpPolynomial.
-size_t NTRU::inputPlainTextMaxSizeBytes() { return _N_/6; }                     // -Maximum amount of (whole) bytes that can be written in a ZpPolynomial.
-size_t NTRU::cipherTextSizeBytes(){ return size_t(_N_*log2q/8+1); }
 
 using namespace NTRU;
 
@@ -443,7 +440,7 @@ void ZpPolynomial::println(const char* name, bool centered) const{
 }
 
 void ZpPolynomial::save(const char* name, bool saveAsText) const{
-    int byteArrSize = ZpPolynomialSizeBytes();
+    int byteArrSize = Encryption::outputPlainTextMaxSizeInBytes();
     char* byteArr = NULL;
     const char ntrup[] = "NTRUp";                                               // -This will indicate the binary file is saving a NTRU (NTRU) polynomial with
     short N = _N_, q = _q_;
@@ -470,7 +467,7 @@ void ZpPolynomial::save(const char* name, bool saveAsText) const{
 }
 
 void ZpPolynomial::writeFile(const char* fileName, bool writeAsText) const{
-    int byteArrSize = ZpPolynomialSizeBytes();
+    int byteArrSize = Encryption::outputPlainTextMaxSizeInBytes();
     int fileSize = 0;
     char* byteArr = NULL;
     std::ofstream file;
@@ -505,7 +502,7 @@ void ZpPolynomial::writeFile(const char* fileName, bool writeAsText) const{
 ZpPolynomial ZpPolynomial::fromFile(const char* fileName){
     const char thisFunc[] = "ZpPolynomial ZpPolynomial::fromFile(const char* fileName)";
     const char ntrup[] = "NTRUp";                                               // -This will indicate the binary file is saving a NTRU (NTRU) ZpPolynomial
-    int byteArrSize = inputPlainTextMaxSizeBytes() + 1, ntrupsz = strlen(ntrup);// -_N_ is necessarily prime, so _N_ % 5 > 0 holds true
+    int byteArrSize = Encryption::inputPlainTextMaxSizeInBytes() + 1, ntrupsz = strlen(ntrup);// -_N_ is necessarily prime, so _N_ % 5 > 0 holds true
     char* byteArr = NULL;
     short n = _N_, Q = _q_;
     ZpPolynomial out;
@@ -1018,7 +1015,7 @@ void ZqPolynomial::println(const char* name) const{
 }
 
 void ZqPolynomial::save(const char* name, bool saveAsText) const{
-    int byteArrSize = cipherTextSizeBytes();
+    int byteArrSize = Encryption::cipherTextSizeInBytes();
     char* byteArr = NULL;
     const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a Zq NTRU (NTRU) polynomial
     short N = _N_, q = _q_;
@@ -1048,7 +1045,7 @@ void ZqPolynomial::save(const char* name, bool saveAsText) const{
 ZqPolynomial ZqPolynomial::fromFile(const char* fileName){
     const char thisFunc[] = "ZqPolynomial ZqPolynomial::fromFile(const char* fileName)";
     const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a NTRU (NTRU) ZqPolynomial
-    int byteArrSize = cipherTextSizeBytes(), ntruqsz = strlen(ntruq);
+    int byteArrSize = Encryption::cipherTextSizeInBytes(), ntruqsz = strlen(ntruq);
     char* byteArr = NULL;
     short n = _N_, Q = _q_;
     ZqPolynomial out;
@@ -1166,10 +1163,28 @@ Encryption::Encryption(const char* NTRUkeyFile) {
     this->validPrivateKey = isPrivateKey;                                       // -Only encryption if we got just the public key
 }
 
-size_t Encryption::plainTextMaxSizeInBytes() const{ return size_t(_N_/6); }
-size_t Encryption::cipherTextSizeInBytes()   const{ return size_t(_N_*log2q/8 + 1); }
-size_t Encryption::privateKeySizeInBytes()   const{ return size_t(_N_/5 + 1); }
-size_t Encryption::publicKeySizeInBytes()    const{ return size_t(_N_*log2q/8 + 1); }
+/*
+   -When representing an -input- array of bytes [let us call it A, where A[i] is the ith-element] with a ZpPolynomial, the main idea is to represent the value of
+    each of the A[i] with a number of 6 digits in base 3, then take those digits as coefficients of the polynomial we are building. Why not use just % digits?
+    Because the maximum value for a 5-digits number in base 3 is 242, therefore, in the case of having an element A[i] with a value bigger than 242, then a
+    5-digit representation will not be sufficient for its representation, then the number will be "truncated" and some information will be lost; this is important
+    since we are not assuming anything about the input array.
+*/
+size_t Encryption::inputPlainTextMaxSizeInBytes()  { return size_t(_N_/6); }    // -Each byte will be represented with 6 coefficientes, therefor max size is _N_/6
+size_t Encryption::outputPlainTextMaxSizeInBytes() { return size_t(_N_/6 + 1); }// -Here we are supposing that the polynomial was created using 6-coefficients byte representation. The +1 is for the last N%6 bytes.
+/*
+   -The protocol for the creation of a ZqPolynomial from a byte array is more simple. Each coefficient of a ZpPolynomial can be represented using exactly log2q
+    bits, therefor we can -roughly speaking- copy the bits inside the byte array and paste them directly into the coefficients of the polynomial. The procedure
+    is more complicated, but that is the main idea.
+*/
+size_t Encryption::cipherTextSizeInBytes() { return size_t(_N_*log2q/8 + 1); }
+/*
+   -Private key is generated randomly inside the program, so a 6-digits number where the digits are a pack of 6 consecutive coefficients may be greater than 255
+    (the maximum value of a 6-digits number is 728). Here, the process from private key in polynomial form to byte array takes 5 consecutive coefficients and
+    "converts" it to a 5-digits number in base 3. Thats the reason why the private key needs _N_/5 + 1 bytes to be represente -under this protocol-.
+*/
+size_t Encryption::privateKeySizeInBytes(){ return size_t(_N_/5 + 1); }
+size_t Encryption::publicKeySizeInBytes() { return size_t(_N_*log2q/8 + 1); }
 
 void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const{
     const char thisFunc[] = "void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const";
@@ -1340,7 +1355,7 @@ ZqPolynomial Encryption::encrypt(const ZpPolynomial& msg) const{
 
 ZqPolynomial Encryption::encryptFile(const char fileName[]) const{              // -Reads file content, writes in array, append a 0x80 at the end and encrypts.
     const char thisFunc[] = "ZqPolynomial Encryption::encryptFile(const char fileName[])";
-    const size_t plainTextMaxSize = inputPlainTextMaxSizeBytes()-1;             // -Minus one because we will use one byte to mark the end of the file content.
+    const size_t plainTextMaxSize = inputPlainTextMaxSizeInBytes()-1;             // -Minus one because we will use one byte to mark the end of the file content.
     size_t fileInputArrSize = 0;
     char* fileInput = NULL;
     std::streampos  fileSize;
@@ -1389,9 +1404,6 @@ ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg) const{
 ZpPolynomial Encryption::decrypt(const char bytes[], int size) const{
     return this->decrypt(ZqPolynomial(bytes, size));
 }
-
-NTRU_N Encryption::get_N() const { return (NTRU_N)_N_; }
-NTRU_q Encryption::get_q() const { return (NTRU_q)_q_; }
 
 /************************************************************************* Statistics ****************************************************************************/
 
@@ -1617,7 +1629,7 @@ static void printHex(const char a[], size_t size, const char front[] = "", const
 }
 
 Encryption::Statistics::Data Encryption::Statistics::Data::encryption(const NTRU::Encryption* ptr_e){ // plainTextSize = N/5, cipherTextSize = N*log2(q)/8
-    size_t blockSize = ptr_e->plainTextMaxSizeInBytes();                        // cipherTextSize/plainTextSize = 5*log2(q)/8
+    size_t blockSize = ptr_e->inputPlainTextMaxSizeInBytes();                   // cipherTextSize/plainTextSize = 5*log2(q)/8
     const size_t cipherBlockSize= ptr_e->cipherTextSizeInBytes();               // cipherTextSize = plainTextSize*5*log2(q)/8
     const size_t numberOfRounds = 8*3*512*512/(5*blockSize*(size_t)log2q);      // cipherTextSize*numberOfRounds = 512*512*3 (size of a 256x256 pixel image)
     const size_t dummyEncLen = cipherBlockSize*(numberOfRounds);                // (plainTextSize*5*log2(q)/8)*numberOfRounds = 512*512*3
