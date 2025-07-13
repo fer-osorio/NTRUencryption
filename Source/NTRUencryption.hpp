@@ -27,19 +27,18 @@ int get_q();
 struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N-1)
 	enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};					// -ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
 	private:
-	Z3*  coefficients = NULL;
+	Z3* coefficients = NULL;
 	friend Encryption;
 
 	public:
 	ZpPolynomial();								// -Default constructor; initializes the polynomial with zeros
 	ZpPolynomial(const ZpPolynomial& P);
-	ZpPolynomial(const char data[], int dataLength, bool isPlainText);	// -Initializing with string of bytes
 	~ZpPolynomial() {
 		if(this->coefficients != NULL) delete [] this->coefficients;
 	}
 	static ZpPolynomial randomTernary();
 
-	private: void interchangeZeroFor(Z3);
+	private: void interchangeZeroFor(Z3 t);					// -Randomly selects a coefficient with value 0 and a coefficient with value t and interchanges them.
 	private: void changeZeroForOne();
 
 	public:
@@ -55,15 +54,9 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
 	friend ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&);
 
-	size_t sizeInBytes(bool isPlainText) const;				// -The polynomial represents: plain text-->N/6  or a private key-->N/5
-	void toBytes(char dest[], bool isPlainText) const;			// -From polynomials to bytes. If plainText == False, polynomial is interpreted as private key
 	mpz_class toNumber() const;						// -Interprests the coefficientes as a bese 3 number.
 	void print(const char* name = "", bool centered = true, const char* tail = "") const;
 	void println(const char* name = "", bool centered = true) const;
-
-	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZpPolynomial in a file.
-	void writeFile(const char* fileName, bool writeAsText) const;
-	static ZpPolynomial fromFile(const char* fileName);			// -Building a ZpPolynomial from file. Throws std::runtime_error()
 };
 
 struct Z2Polynomial {								// Representation of the polynomials in Z2[x]/(x^N-1)
@@ -184,14 +177,14 @@ class Encryption {
 	bool validPrivateKey	= false;					// -Flag; tells us if current object can only encrypt (only have a valid publickKey)
 										// -or also is capable of decryption (has a valid private key).
 	public:
-	Encryption();								// -Trows: const std::runtime_error&
+	Encryption();								// -Building keys automatically. Trows: const std::runtime_error&
 	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file. Trows: const std::runtime_error&
 
-	ZqPolynomial encrypt(const char bytes[] ,int size) const;		// -Encryption of char array
+	ZqPolynomial encrypt(const char bytes[] ,size_t size) const;		// -Encryption of char array
 	ZqPolynomial encrypt(const ZpPolynomial&) const;			// -Encrypts ZpPolynomial
 	ZqPolynomial encryptFile(const char fileName[]) const;			// -Reads file content, writes in array, append a 0x80 at the end and encrypts.
 	ZpPolynomial decrypt(const ZqPolynomial&) const;			// -Decryption of ZqPolynomial
-	ZpPolynomial decrypt(const char bytes[] ,int size) const;		// -Decryption of char array
+	ZpPolynomial decrypt(const char bytes[] ,size_t size) const;		// -Decryption of char array
 
 	bool validPrivateKeyAvailable() const{ return this->validPrivateKey; }
 
@@ -201,10 +194,24 @@ class Encryption {
 	static size_t privateKeySizeInBytes();
 	static size_t publicKeySizeInBytes();
 
+	/*
+		Remark: ZpPolynomial structure has no method to read or write files, neither to build an object from a byte array nor to write a
+		byte array from an object; this is delegated to the encryption class because the building procedure depends on the answer to the
+		following question: The data from the byte array represents an arbitrary message waiting to be encrypted (plain text), or it
+		represents a private encryption key (private key)? The answer to these questions determines the reading and writing procedures.
+	*/
+	static ZpPolynomial ZpPolynomialFromBytes(const char bytes[], size_t size, bool isPrivateKey); // -Builds a ZpPolynomial from an array of bytes. The building procesure is determined by the bool argument 'isPrivateKey'. Throws: std::runtime_error&
+	static ZpPolynomial ZpPolynomialPlainTextFromFile(const char* fileName);// -Building a ZpPolynomial from file. Throws std::runtime_error()
+	static void ZpPolynomialtoBytes(const ZpPolynomial& org, char dest[], bool isPrivateKey);// -From ZpPolynomial to bytes. If isPrivateKey is true, polynomial is interpreted as private key
+	static void ZpPolynomialPlainTextSave(const ZpPolynomial& org, const char* name = NULL, bool saveAsText = false);// -Saving ZpPolynomial in a file with format. It assumes the data containded inside it has no format
+	static void ZpPolynomialWriteFile(const ZpPolynomial& org, const char* fileName, bool writeAsText);// -Writes a file using the data contained in the polynomial. In this case, it looks for the "end-of-content" mark, which is 1000,0000
+	/*	There is no "build private key from file" method because it is already implemented in the constructor Encryption(const char* NTRUkeyFile)	*/
+
 	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
 	void printKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
 
 	private:
+
 	ZqPolynomial productByPrivatKey(const ZqPolynomial& P) const;
 	ZqPolynomial productByPrivatKey(const Z2Polynomial& P) const;
 	void setKeys();								// -Creation of the keys
@@ -233,7 +240,7 @@ class Encryption {
 			double getMinimum() const{ return this->Minimum; }
 			double getAverage() const{ return this->Average; }
 			double getVariance()const{ return this->Variance;}
-			double getAAD()     const{ return this->AvrAbsDev; }
+			double getAAD()     const{ return this->AvrAbsDev; }	// -Average absolute deviation
 
 			static Time keyGeneration();
 			static Time ciphering(const NTRU::Encryption* e, const NTRU::ZpPolynomial* msg);// Taking average of encryption time
