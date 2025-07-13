@@ -4,7 +4,7 @@
 #include"../Source/NTRUencryption.hpp"
 
 static std::string statsCategory =
-"What statistics do you want to get?\n(0) Key Generation time \n(1) Ciphering and deciphering time\n(2) Key Generation time, ciphering and deciphering time \n(3) Encrypted data\n(4) All\n";
+"What do you want to get?\n(0) Key Generation time \n(1) Ciphering and deciphering time\n(2) Key Generation time, ciphering and deciphering time \n(3) Encrypted data\n(4) All\n";
 
 static const char invalidInputMsg[] = "\nInvalid input. Try again.\n";
 
@@ -42,7 +42,7 @@ int main(int argc, const char* argv[]){
     NTRU::Encryption::Statistics::Time ch, dc;
     NTRU::Encryption::Statistics::Data dt;
     int opt_C = retreaveValidOption(statsCategory, statisticCategory);
-    switch(argc) {                                                              // -Accept two parametera, intended for the private key and message
+    switch(argc) {                                                              // -Accept two parameters, intended for the private key and message
         case 1:
             if(opt_C != 0){                                                     // -If no argument passed and if not just key creation statistics
                 try {                                                           //  needed,the program will generate a encryption object
@@ -62,11 +62,11 @@ int main(int argc, const char* argv[]){
                 return EXIT_FAILURE;
             }
             if(!ptr_e->validPrivateKeyAvailable()){                             // -Validating polynomial passed as private key.
-                std::cerr << "\n\nExecutable argument must refer to a valid private key. Terminating the program with FAILURE status.\n\n";
+                std::cerr << "\n\nExecutable argument must refer to a valid private key. Terminating program.\n\n";
                 return EXIT_FAILURE;
             }
             ptr_msg = new NTRU::ZpPolynomial(NTRU::ZpPolynomial::randomTernary());
-            ptr_msg->save("msg");
+            NTRU::Encryption::ZpPolynomialPlainTextSave(*ptr_msg);
             break;
         case 3:
             try{
@@ -76,11 +76,11 @@ int main(int argc, const char* argv[]){
                 return EXIT_FAILURE;
             }
             if(!ptr_e->validPrivateKeyAvailable()){                             // -Validating polynomial passed as private key.
-                std::cerr << "\n\nExecutable argument must refer to a valid private key. Terminating the program with FAILURE status.\n\n";
+                std::cerr << "\n\nExecutable argument must refer to a valid private key. Terminating program.\n\n";
                 return EXIT_FAILURE;
             }
             try{
-                ptr_msg = new NTRU::ZpPolynomial(NTRU::ZpPolynomial::fromFile(argv[2])); // -Trying to create a ZpPolynomial from file
+                ptr_msg = new NTRU::ZpPolynomial(NTRU::Encryption::ZpPolynomialPlainTextFromFile(argv[2])); // -Trying to create a ZpPolynomial from file
             } catch(const std::runtime_error& exp){
                 std::cerr << "\nCould not create NTRU::ZpPolynomial object from file.\n\n" << exp.what() << '\n';
                 return EXIT_FAILURE;
@@ -94,7 +94,7 @@ int main(int argc, const char* argv[]){
                 return EXIT_FAILURE;
             }
             if(!ptr_e->validPrivateKeyAvailable()){                             // -Validating polynomial passed as private key.
-                std::cerr << "\n\nExecutable argument must refer to a valid private key. Terminating the program with FAILURE status.\n\n";
+                std::cerr << "\n\nExecutable argument must refer to a valid private key. Terminating program.\n\n";
                 return EXIT_FAILURE;
             }
             try{
@@ -105,7 +105,7 @@ int main(int argc, const char* argv[]){
             }
             break;*/
         default:
-            std::cerr << "\n\nExecutable accept one or two arguments. Termination the program with FAILURE status.\n\n";
+            std::cerr << "\n\nExecutable accept one or two arguments. Termination the program.\n\n";
             return EXIT_FAILURE;
     }
 
