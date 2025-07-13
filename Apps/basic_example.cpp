@@ -10,7 +10,7 @@ int main(int argc, const char* argv[]) {
     const char* plainText = "Hello, quantum-resistant world!";                  // Encrypt a message
     std::cout << "Plain text: " << plainText << "\n\n";
     // Create a ZpPolynomial instance. Using ZpPolynomial(const char data[], int dataLength, bool isPlainText)
-    NTRU::ZpPolynomial ZpPolyPlainText = NTRU::ZpPolynomial(plainText, strlen(plainText), true);
+    NTRU::ZpPolynomial ZpPolyPlainText = NTRU::Encryption::ZpPolynomialFromBytes(plainText, strlen(plainText)+1, false);
     ZpPolyPlainText.println("Plain Text (vector form)");
 
     // Starting with encryption-decryption phase.
@@ -23,7 +23,7 @@ int main(int argc, const char* argv[]) {
     // Finishing with encryption-decryption phase.
 
     char decryptedBytes[1024];
-    decrypted.toBytes(decryptedBytes, true);                                    // Convert back to bytes for your application
+    NTRU::Encryption::ZpPolynomialtoBytes(decrypted, decryptedBytes, false);    // Convert back to bytes for your application
     std::cout << "\nDecrypted message: " << decryptedBytes << '\n';
 
     mpz_class num_r = decrypted.toNumber();                                     // Showing the representation of ZpPolynomial through a number
