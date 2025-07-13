@@ -97,14 +97,14 @@ int main(int argc, char* argv[]) {
             NTRU::ZpPolynomial msg = ptr_e->decrypt(encMsg);
             std::cout << std::endl;
             msg.println("Decrypted message vector");
-            msg.toBytes(aux, NTRU::Encryption::inputPlainTextMaxSizeInBytes());
+            NTRU::Encryption::ZpPolynomialtoBytes(msg, aux, false);
             std::cout << "\nDecrypted message in bynary form:";
             displayByteArrayBin(aux, NTRU::Encryption::inputPlainTextMaxSizeInBytes());std::cout << '\n';
             std::cout << "\nDecrypted message with ASCII code:";
             displayByteArrayChar(aux, NTRU::Encryption::inputPlainTextMaxSizeInBytes());std::cout << '\n';
             try{
                 std::string decMsgFname = std::string(argv[3]) + ".dec";
-                msg.writeFile(decMsgFname.c_str(), false);                      // -Decrypting, writing as binary file.
+                NTRU::Encryption::ZpPolynomialWriteFile(msg, decMsgFname.c_str(), false);// -Decrypting, writing as binary file
             } catch(const std::runtime_error& exp){
                 delete ptr_e;
                 std::cerr << "I could not save decrypted message.\n" << exp.what() << '\n';
