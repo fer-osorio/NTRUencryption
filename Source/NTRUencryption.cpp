@@ -69,11 +69,6 @@ static int printSpaces(unsigned t) {
 	while(t-- > 0) std::cout << ' ' ;
 	return 0;
 }																				// Functions for printing
-static int lengthString(const char* str) {										// Length of a string
-	int l = -1;
-	while(str[++l] != 0) {}
-	return l;
-}
 static unsigned lengthHexadecimalInt(int a) {                                   // -Returns the number of decimal characters for the number a
     unsigned l = 0;
     do { a /= HEXADECIMAL_BASE; l++;
@@ -84,21 +79,20 @@ static void printIntArray(int* array, unsigned arrlen, unsigned columnlen, const
     char buff[10];                                                              // Buffer necessary for the int -> string conversion
     int strLen = 0;                                                             // Start length in characters
     int i=0,j=0;
-    int startLen = lengthString(name);                                          // Length of the starting string
+    int startLen = strlen(name);                                                // Length of the starting string
     int lastIndex = (int)arrlen - 1;
 
     if(startLen > 0) {
-        printSpaces((unsigned)max(startLen + 4 - strLen,0));                    // Padding with spaces
+        std::cout << '\n' << name << "  |";
+        startLen += 3;
         for(i = 0; i < 16; i++) {                                               // Printing the column number
             strLen = intToHexString(i, buff);                                   // Optimize by returning the length of the string
             printSpaces((unsigned)max((int)columnlen - strLen + 1,0));          // Padding with spaces. The +1 is for alignment with negative numbers
-            std::cout << buff << ' ';                                                  // Printing current coefficient
+            std::cout << buff << '|';                                           // Printing current column number
         }
-        std::cout << '\n' << name << " = [";
-        startLen += 4;
     }
     else {
-        std::cout <<  "0   [";
+        std::cout <<  "0    ";
         startLen = 5;
     }
     do {
@@ -106,8 +100,9 @@ static void printIntArray(int* array, unsigned arrlen, unsigned columnlen, const
             std::cout << '\n'; j++;                                             // New row; increasing number of rows
             if(i != lastIndex) {
                 strLen = intToHexString(j, buff);
-                std::cout << buff;                                              // Printing current coefficient
-                printSpaces((unsigned)max(startLen - strLen,0));                // Padding with spaces
+                std::cout << buff;                                              // Printing current line number
+                printSpaces((unsigned)max(startLen - strLen - 1,0));            // Padding with spaces
+                std::cout << '|';
             }
         }
         strLen = intToHexString(array[i], buff);                                // Optimize by returning the length of the string
@@ -115,15 +110,7 @@ static void printIntArray(int* array, unsigned arrlen, unsigned columnlen, const
         std::cout << buff;                                                      // Printing current coefficient
         if(i < lastIndex) std::cout << ',';
     }while(++i < (int)arrlen);
-    std::cout << ']';
     std::cout << tail;
-}
-
-static bool compareStrings(const char* str1, const char* str2) {
-    int i = 0;
-    if(str1 == NULL || str2 == NULL) return false;
-    while(str1[i] == str2[i] && str1[i] != 0) { i++; }
-    return str1[i] == str2[i];
 }
 
 static void printByteArrayBin(const char byteArray[], size_t size){             // -Prints an array of bytes with no line break.
@@ -915,7 +902,7 @@ ZqPolynomial ZqPolynomial::fromFile(const char* fileName){
     byteArr = new char[ntruqsz+1];
     file.read(byteArr, ntruqsz);                                                // -Reading the firsts bytes hoping "NTRUpublicKey" or "NTRUprivatKey" apears
     byteArr[ntruqsz] = 0;                                                       // -End of string
-    if(compareStrings(byteArr, ntruq)) {                                        // -Testing if file saves a NTRU private key
+    if(strcmp(byteArr, ntruq) == 0) {                                           // -Testing if file saves a NTRU private key
         delete[] byteArr; byteArr = NULL;
         file.read((char*)&n, 2);
         file.read((char*)&Q, 2);
@@ -965,7 +952,7 @@ Encryption::Encryption(const char* NTRUkeyFile) {
     const char NTRUprivatKey[] = "NTRUprivatKey";                               // -This will indicate the binary file is saving a NTRU private key
     char* coeffBytes = NULL;
     char* fileHeader = NULL;
-    int   sz = 0, headerSz = lengthString("NTRUpublicKey");                     // -Notice how "NTRUpublicKey" and "NTRUprivatKey" strings have the same length
+    int   sz = 0, headerSz = strlen("NTRUpublicKey");                     // -Notice how "NTRUpublicKey" and "NTRUprivatKey" strings have the same length
     bool  isPrivateKey = false;
     short n;
     short Q;
@@ -975,7 +962,7 @@ Encryption::Encryption(const char* NTRUkeyFile) {
         fileHeader = new char[headerSz + 1];
         file.read(fileHeader, headerSz);                                        // -Reading the firsts bytes hoping "NTRUpublicKey" or "NTRUprivatKey" apears
         fileHeader[headerSz] = 0;                                               // -End of string
-        if(compareStrings(fileHeader, NTRUprivatKey) || compareStrings(fileHeader, NTRUpublicKey)) { // -Testing if file saves a NTRU private key
+        if(strcmp(fileHeader, NTRUprivatKey) == 0 || strcmp(fileHeader, NTRUpublicKey) == 0) { // -Testing if file saves a NTRU private key
             file.read((char*)&n, 2);
             file.read((char*)&Q, 2);
             if(n != _N_ || Q != _q_) {
@@ -984,7 +971,7 @@ Encryption::Encryption(const char* NTRUkeyFile) {
                 std::cout << "From file: N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << '\n';
                 throw std::runtime_error("Could not agree on parameters");
             }
-            if(compareStrings(fileHeader, NTRUprivatKey)) {
+            if(strcmp(fileHeader, NTRUprivatKey) == 0) {
                 isPrivateKey = true;
                 sz = this->privateKeySizeInBytes();
                 coeffBytes = new char[sz];
@@ -1056,7 +1043,7 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
     if(publicKeyName == NULL) file.open("Key.ntrupub", std::ios::binary);
     else                      file.open(publicKeyName, std::ios::binary);
     if(file.is_open()) {
-        file.write((char*)NTRUpublicKey, lengthString(NTRUpublicKey));          // -Initiating the file with the string "NTRUpublicKey"
+        file.write((char*)NTRUpublicKey, strlen(NTRUpublicKey));          // -Initiating the file with the string "NTRUpublicKey"
         file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial
         file.write((char*)&q, 2);                                               // -A short int for the degree of the polynomial
         publicKeyBytes = new char[publicKeySize];                               // -The following bytes are for the polynomials coefficients
@@ -1073,7 +1060,7 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
         if(privateKeyName == NULL) file.open("Key.ntruprv", std::ios::binary);  //  because there is no valid private key
         else                       file.open(privateKeyName, std::ios::binary);
         if(file.is_open()) {
-            file.write((char*)NTRUprivateKey, lengthString(NTRUprivateKey));    // -Initiating the file with the string "NTRUprivateKey"
+            file.write((char*)NTRUprivateKey, strlen(NTRUprivateKey));    // -Initiating the file with the string "NTRUprivateKey"
             file.write((char*)&N, 2);                                          // -A short int for the degree of the polynomial
             file.write((char*)&q, 2);                                          // -A short int for the degree of the polynomial
             privateKeyBytes = new char[privateKeySize];                         // -The following bytes are for the polynomials coefficients
