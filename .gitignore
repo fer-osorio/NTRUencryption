@@ -29,7 +29,7 @@
 # Executables
 Apps/Executables/basic_example
 ## Directory contents
-Apps/Executables/Testing/*
+Apps/Executables/performance_test/*
 Apps/Executables/encryption/*
 
 # ID's files and directories
