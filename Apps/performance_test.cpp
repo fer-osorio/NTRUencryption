@@ -1,6 +1,5 @@
-#include<cmath>
 #include<iomanip>
-#include<limits>
+#include<cmath>
 #include"../Source/NTRUencryption.hpp"
 
 static std::string statsCategory =
@@ -86,24 +85,6 @@ int main(int argc, const char* argv[]){
                 return EXIT_FAILURE;
             }
             break;
-        /*case 4:
-            try{
-                ptr_e = new NTRU::Encryption(argv[1]);                          // -Creating encryption object from (supposedly) private key file
-            } catch(const std::runtime_error& exp){
-                std::cerr << "\nCould not create NTRU::Encryption object from file.\n\n" << exp.what() << '\n';
-                return EXIT_FAILURE;
-            }
-            if(!ptr_e->validPrivateKeyAvailable()){                             // -Validating polynomial passed as private key.
-                std::cerr << "\n\nExecutable argument must refer to a valid private key. Terminating program.\n\n";
-                return EXIT_FAILURE;
-            }
-            try{
-                ptr_msg = new NTRU::ZpPolynomial();                             // -Trying to create a ZpPolynomial from file
-            } catch(const std::runtime_error& exp){
-                std::cerr << "\nCould not create NTRU::ZpPolynomial object from file.\n\n" << exp.what() << '\n';
-                return EXIT_FAILURE;
-            }
-            break;*/
         default:
             std::cerr << "\n\nExecutable accept one or two arguments. Termination the program.\n\n";
             return EXIT_FAILURE;
