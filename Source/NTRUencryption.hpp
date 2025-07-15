@@ -153,8 +153,6 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 	int lengthInBytes() const;
 	static int log2(NTRU_q q);
 
-	ZqPolynomial getNTRUpublicKey();					// -Provided this object is the inverse in Z[x]/X^N-1 modulo q of the private key,
-										//  this function returns the public key
 	static ZqPolynomial timesThree(const ZpPolynomial& p);			// -Gets a ZpPolynomial via the operations 3·p
 	void toBytes(char dest[]) const;					// -Writes the coefficients into an array of bytes. If a certain coefficient is
 										//  negative, +=q is applied in order to write a positive number

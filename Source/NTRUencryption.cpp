@@ -733,45 +733,6 @@ int ZqPolynomial::lengthInBytes() const{
     return _N_*log2q/8 + 1;
 }
 
-ZqPolynomial ZqPolynomial::getNTRUpublicKey() {                                 // -Returns public key provided this ZqPolynomial object is the inverse mod q in
-    ZqPolynomial publicKey;                                                     //  Z[x]/X^N-1 of the private key
-    int* randTernary = new int[_N_];
-    const int d_ = _N_/3;
-    int _d_ = d_;
-    int i, j, k;
-
-    for(i = 0; i < _N_; i++) randTernary[i] = 0;
-
-    while(_d_ > 0) {                                                            // -Building ternary polynomial multiplied by p
-        i = randomIntegersN();                                                  // -Filling with p
-        if(randTernary[i] == 0) {randTernary[i] =  1; _d_--;}                   // ...
-    }
-    _d_ = d_;
-    while(_d_ > 0) {
-        i = randomIntegersN();                                                  // -Filling with negative p
-        if(randTernary[i] == 0) {randTernary[i] = -1; _d_--;}                   // ...
-    }
-	for(i = 0; i < _N_; i++) {                                                    // -Convolution process
-	    k = _N_ - i;
-	    if(randTernary[i] != 0) {
-	        if(randTernary[i] == 1) {
-	            for(j = 0; j < k; j++)                                          // Ensuring we do not get out of the polynomial
-                    publicKey.coefficients[i+j] += this->coefficients[j];
-	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
-	    	        publicKey.coefficients[k] += this->coefficients[j];         // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
-	        } else {
-	            for(j = 0; j < k; j++)                                          // Ensuring we do not get out of the polynomial
-                    publicKey.coefficients[i+j] -= this->coefficients[j];
-	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
-	    	        publicKey.coefficients[k] -= this->coefficients[j];         // Notice i+j = i + (k+N-i), so i+j is congruent with k mod N
-	        }
-	    }
-	}
-	delete[] randTernary;
-	publicKey.mods_q();                                                         // -Applying mods q
-	return publicKey;
-}
-
 ZqPolynomial NTRU::ZqPolynomial::timesThree(const ZpPolynomial& p){
     ZqPolynomial r;
     for(int i = 0; i < _N_; i++){
