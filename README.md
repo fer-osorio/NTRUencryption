@@ -118,52 +118,6 @@ brew install gmp
 vcpkg install gmp:x64-windows
 ```
 
-#  Building
-
-## Before doing anything, I am assuming:
-
-1. You have installed GNU ``g++`` compiler.
-2. The command-line interface software GNU ``Make`` is installed in your computer.
-
-## Use make commands
-
-Use ``make`` commands to build the executables.
-
-1. ``make NTRUencryption.exe`` to build executable for encryption.
-2. ``make NTRUdecryption.exe`` to build executable for decryption.
-3. ``make Statistics.exe`` to build executable for statistics.
-4. ``make`` to build both.
-
-Optionally, you can run the following commands on your terminal (command prompt on Windows)
-
-For NTRUencryption.exe:
-```
-# This is, literally, the command that "make NTRUencryption.exe" calls.
-g++ -o Apps/Executables/NTRUencryption.exe -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors -ggdb -fno-omit-frame-pointer -O2 -std=c++2a
-Apps/encryption.cpp Apps/Settings.cpp Source/*.cpp
-```
-
-For NTRUdecryption.exe:
-```
-# This is, literally, the command that "make NTRUdecryption.exe" calls.
-g++ -o Apps/Executables/NTRUdecryption.exe -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors -ggdb -fno-omit-frame-pointer -O2 -std=c++2a
-Apps/decryption.cpp Apps/Settings.cpp Source/*.cpp
-```
-
-For Statistics.exe:
-```
-# This is, literally, the command that "make Statistics.exe" calls.
-g++ -o Apps/Executables/Statistics.exe -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors -ggdb -fno-omit-frame-pointer -O2 -std=c++2a
-Apps/Statistics.cpp Source/*.cpp
-```
-
-These last two commands are convenient if you do not have ``make`` installed.
-
-# Executable Files
-
-The executables are located in [Executables](Apps/Executables) directory. Instructions for passing arguments to them can be found
-[here](Apps/Executables/README.md)
-
 ## API Reference
 
 ### Core Classes
@@ -215,6 +169,32 @@ std::cout << "Key generation average: " << keyGenStats.getAverage() << " ms" << 
 auto dataStats = NTRU::Encryption::Statistics::Data::encryption(&ntru);
 std::cout << "Ciphertext entropy: " << dataStats.getEntropy() << std::endl;
 ```
+
+#  Building executables
+
+## Before doing anything, I am assuming:
+
+1. You have installed GNU ``g++`` compiler.
+2. The command-line interface software GNU ``Make`` is installed in your computer.
+
+## Use make commands
+
+Run ``make help`` for complete reference.
+
+1. ``make basic_example`` to build basic example executable.
+2. ``make NTRUencryption [arg1] [arg2]`` to build encryption executable with N=arg1 and q=arg2. The arguments are optional.
+3. ``make performance_test [arg1] [arg2]`` to build performance test executable with N=arg1 and q=arg2. The arguments are optional.
+
+### Manual Compilation
+
+```bash
+g++ -std=c++11 -O3 -lgmp -lgmpxx your_program.cpp -o your_program
+```
+
+# Executable Files
+
+The executables are located in [Executables](Apps/Executables) directory. Instructions for passing arguments to them can be found
+[here](Apps/Executables/README.md)
 
 ## Contributing
 
