@@ -320,49 +320,6 @@ static int64_t multiplyBy_3(int64_t t) {
     return (t << 1) + t;                                                        // -This expression is equivalent to t*2 + t
 }
 
-ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey) const{
-    ZqPolynomial encryption;
-    int*  randTernaryTimes_p = new int[_N_];                                      // -Will represent the random polynomial needed for encryption
-    const int d = _N_/3;
-    int _d_ = d, i, j, k;
-
-    for(i = 0; i < _N_; i++) randTernaryTimes_p[i] = 0;
-
-    while(_d_ > 0) {
-        i = randomIntegersN();                                                  // -Filling with threes. It represent the random polynomial multiplied by p
-        if(randTernaryTimes_p[i] == 0) {randTernaryTimes_p[i] =  1; _d_--;}     //  ...
-    }
-    _d_ = d;
-    while(_d_ > 0) {
-        i = randomIntegersN();                                                  // -Filling with negative threes
-        if(randTernaryTimes_p[i] == 0) {randTernaryTimes_p[i] = -1; _d_--;}     //  ...
-    }
-	for(i = 0; i < _N_; i++) {                                                    // -Convolution process
-	    k = _N_ - i;
-	    if(randTernaryTimes_p[i] != 0) {
-	        if(randTernaryTimes_p[i] == 1) {
-	            for(j = 0; j < k; j++)                                          // -Ensuring we do not get out of the polynomial
-                    encryption.coefficients[i+j] += publicKey[j];
-	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
-	    	        encryption.coefficients[k] += publicKey[j];                 // Notice i+j = i + (k+_N_-i), so i+j is congruent with k mod _N_
-	        }
-	        if(randTernaryTimes_p[i] == -1) {
-	            for(j = 0; j < k; j++)                                          // Ensuring we do not get out of the polynomial
-                    encryption.coefficients[i+j] -= publicKey[j];
-	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
-	    	        encryption.coefficients[k] -= publicKey[j];                 // Notice i+j = i + (k+_N_-i), so i+j is congruent with k mod _N_
-	        }
-	    }
-	}
-	for(i = 0; i < _N_; i++) {                                                    // -Adding this polynomial (adding message)
-	    if(this->coefficients[i] == _1_) encryption.coefficients[i]++;
-	    if(this->coefficients[i] == _2_) encryption.coefficients[i]--;
-	}
-	encryption.mods_q();                                                        // -Obtaining center modulus for each coefficient
-	delete[] randTernaryTimes_p;
-	return encryption;
-}
-
 mpz_class ZpPolynomial::toNumber() const{                                       // -Interprets this->coefficients as a number in base 3
     mpz_class r = 0, base = 3;
     for(int i = _N_-1; i >= 0; i--) r = r*base + this->coefficients[i];         // -Horner's algorithm
@@ -1334,13 +1291,51 @@ void Encryption::setKeysFromPrivKey() {                                         
 
 ZqPolynomial Encryption::encrypt(const char bytes[], size_t size) const{
     ZpPolynomial msg = ZpPolynomialFromBytes(bytes, size, false);
-    ZqPolynomial encryptedMsg = msg.encrypt(this->publicKey);
+    ZqPolynomial encryptedMsg = this->encrypt(msg);
     return encryptedMsg;
 }
 
 ZqPolynomial Encryption::encrypt(const ZpPolynomial& msg) const{
-    ZqPolynomial encryptedMsg = msg.encrypt(publicKey);
-    return encryptedMsg;
+    ZqPolynomial encryption;
+    int*  randTernary = new int[_N_];                                           // -Will represent the random polynomial needed for encryption
+    const int d = _N_/3;
+    int _d_ = d, i, j, k;
+
+    for(i = 0; i < _N_; i++) randTernary[i] = 0;
+
+    while(_d_ > 0) {
+        i = randomIntegersN();                                                  // -Filling with threes. It represent the random polynomial multiplied by p
+        if(randTernary[i] == 0) {randTernary[i] =  1; _d_--;}                   //  ...
+    }
+    _d_ = d;
+    while(_d_ > 0) {
+        i = randomIntegersN();                                                  // -Filling with negative threes
+        if(randTernary[i] == 0) {randTernary[i] = -1; _d_--;}                   //  ...
+    }
+	for(i = 0; i < _N_; i++) {                                                  // -Convolution process
+	    k = _N_ - i;
+	    if(randTernary[i] != 0) {
+	        if(randTernary[i] == 1) {
+	            for(j = 0; j < k; j++)                                          // -Ensuring we do not get out of the polynomial
+                    encryption.coefficients[i+j] += this->publicKey[j];
+	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
+	    	        encryption.coefficients[k] += this->publicKey[j];           // Notice i+j = i + (k+_N_-i), so i+j is congruent with k mod _N_
+	        }
+	        if(randTernary[i] == -1) {
+	            for(j = 0; j < k; j++)                                          // Ensuring we do not get out of the polynomial
+                    encryption.coefficients[i+j] -= this->publicKey[j];
+	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
+	    	        encryption.coefficients[k] -= this->publicKey[j];           // Notice i+j = i + (k+_N_-i), so i+j is congruent with k mod _N_
+	        }
+	    }
+	}
+	for(i = 0; i < _N_; i++) {                                                  // -Adding this polynomial (adding message)
+	    if(msg.coefficients[i] == ZpPolynomial::_1_) encryption.coefficients[i]++;
+	    if(msg.coefficients[i] == ZpPolynomial::_2_) encryption.coefficients[i]--;// -Number 2 is interpreted as -1.
+	}
+	encryption.mods_q();                                                        // -Obtaining center modulus for each coefficient
+	delete[] randTernary;
+	return encryption;
 }
 
 ZqPolynomial Encryption::encryptFile(const char fileName[]) const{              // -Reads file content, writes in array, append a 0x80 at the end and encrypts.

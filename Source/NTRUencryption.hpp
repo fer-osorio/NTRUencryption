@@ -48,8 +48,6 @@ struct ZpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	int operator[](int i) const;
 	int degree() const;							// Returns degree of polynomial
 
-	ZqPolynomial encrypt(ZqPolynomial publicKey) const;			// -Encrypts the polynomial represented by this and return a ZqPolynomial
-
 	friend ZpPolynomial mods_p(ZqPolynomial P);
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
 	friend ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&);
@@ -144,7 +142,6 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 	ZqPolynomial operator * (const ZqPolynomial& P) const;
 	friend ZqPolynomial operator - (int64_t, const ZqPolynomial&);
 
-	friend ZqPolynomial ZpPolynomial::encrypt(ZqPolynomial publicKey) const;
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&);
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZqPolynomial&);
 	friend ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&);
