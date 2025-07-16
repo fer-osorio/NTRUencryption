@@ -733,14 +733,6 @@ int ZqPolynomial::lengthInBytes() const{
     return _N_*log2q/8 + 1;
 }
 
-ZqPolynomial NTRU::ZqPolynomial::timesThree(const ZpPolynomial& p){
-    ZqPolynomial r;
-    for(int i = 0; i < _N_; i++){
-        if(p[i] != 0) r.coefficients[i] = multiplyBy_3(p[i]);                   // -Getting 3p
-    }
-    return r;
-}
-
 void ZqPolynomial::toBytes(char dest[]) const{                                  // -Supposing dest is pointing to a suitable memory location
     const int buffBitsSize = 64;
     int i = 0, j = 0;                                                           // -log2q will hold the logarithm base two of q. Here we are assuming q < 2^32)

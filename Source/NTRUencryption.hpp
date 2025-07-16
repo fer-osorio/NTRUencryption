@@ -114,12 +114,14 @@ struct Z2Polynomial {								// Representation of the polynomials in Z2[x]/(x^N-
 	friend ZqPolynomial convolutionZq(const Z2Polynomial&, const ZqPolynomial&);
 
 	int  degree() const;
+	void print(const char* name = "", const char* tail = "") const;
+	void println(const char* name = "") const;
+
+	private:
 	void negFirstCoeff() {
 		if(this->coefficients[0] == 0) this->coefficients[0] = _1_;
 		else this->coefficients[0] = _0_;
 	}
-	void print(const char* name = "", const char* tail = "") const;
-	void println(const char* name = "") const;
 };
 
 ZqPolynomial operator - (int64_t, const ZqPolynomial&);				// The intention is to make this function a friend of ZqPolynomial
@@ -153,7 +155,6 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 	int lengthInBytes() const;
 	static int log2(NTRU_q q);
 
-	static ZqPolynomial timesThree(const ZpPolynomial& p);			// -Gets a ZpPolynomial via the operations 3·p
 	void toBytes(char dest[]) const;					// -Writes the coefficients into an array of bytes. If a certain coefficient is
 										//  negative, +=q is applied in order to write a positive number
 	void print(const char* name = "", const char* tail = "") const;
