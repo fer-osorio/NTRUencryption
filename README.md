@@ -3,7 +3,7 @@
 A C++ implementation of the NTRU lattice-based cryptographic algorithm, providing quantum-resistant encryption capabilities.
 Mail me at aosorios1502@alumno.ipn.mx and alexis.fernando.osorio.sarabio@gmail.com for questions and comments.
 
-# Overview
+## Overview
 
 NTRU (Number Theory Research Unit) is a lattice-based public-key cryptographic system resistant to attacks using Shor's alrithm. This library provides a complete implementation with support for multiple parameter sets and comprenhensive polynomial arithmetic operations.
 
@@ -17,8 +17,8 @@ NTRU (Number Theory Research Unit) is a lattice-based public-key cryptographic s
 - **File I/O**: Save and load keys and data in binary or text format
 - **Memory Management**: Proper RAII with automatic cleanup
 
-
 ## Quick Start
+
 ### Basic Usage
 
 ```cpp
@@ -56,40 +56,25 @@ if (ntru.validPrivateKeyAvailable()) {
 }
 ```
 
-# Usage
-
-## Encryption object
-To create one instance of NTRU::Encryption, two options are available:
-
-1. Use ``Encryption()``; this will set **N** and **q** and will create valid private and public keys.
-2. Use ``Encryption(const char* NTRUkeyFile)``; this will retrieve **N**, **q** and keys from a binary file.
+- Use ``Encryption(const char* NTRUkeyFile)``; this will retrieve the keys from a binary file.
    1. If ``NTRUkeyFile`` represents a public key, the object will be created just with encryption capabilities.
    2. If ``NTRUkeyFile`` represents a private key, the object will have encryption and decryption capabilities.
+   3. If the retrieved parameters [**N**, q] are different from the ones set by the program, an exception will be thrown.
 
-### Binary files for ntru keys
+### File Operations
 
-As you can notice, constructor ``Encryption(const char* NTRUkeyFile)`` accept a string representing the name of a file.
-This file, when reeding in binary mode, must have a particular format in order to obtain the oportunity to succeed in
-the creation of the ``Encryption`` object. This format is the same used in the ``Encryption`` member function
-``void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;`` to save the
-criptographic keys. Formats for the key files are:
+```cpp
+// Encrypt a file directly
+NTRU::ZqPolynomial encrypted_file = ntru.encryptFile("document.txt");
 
-- Public key:
-  1. The first 13 bytes corresponde to the string (with no line ending) "NTRUpublicKey".
-  2. Next two bytes (byte 14 to byte 15) represents the parameter N.
-  3. Next two bytes (byte 16 to byte 17) represents the parameter q.
-  4. Denoting the size in bytes of public key as publicKeySizeInBytes, then the following publicKeySizeInBytes bytes
-     represent the coefficients of the polynomial in the ring Zq[x]/(x^N-1).
+// Work with plain text from files
+NTRU::ZpPolynomial plaintext = NTRU::Encryption::ZpPolynomialPlainTextFromFile("message.txt");
+NTRU::ZqPolynomial ciphertext = ntru.encrypt(plaintext);
 
-- Private key:
-  1. The first 13 bytes corresponde to the string (with no line ending) "NTRUprivatKey".
-  2. Next two bytes (byte 14 to byte 15) represents the parameter N.
-  3. Next two bytes (byte 16 to byte 17) represents the parameter q.
-  4. Denoting the size in bytes of private key as privateKeySizeInBytes, then the following privateKeySizeInBytes bytes
-     represent the coefficients of the polynomial in its respective ring Zp[x]/(x^N-1).
-
-The idea under this format and ``saveKeys`` function is to ensure the key reatrived from any of this files fulfils all
-the necessary requirements for a NTRU key.
+// Save decrypted content as file (automatically handles end-of-content marker)
+NTRU::ZpPolynomial decrypted = ntru.decrypt(ciphertext);
+NTRU::Encryption::ZpPolynomialWriteFile(decrypted, "output.txt", false);
+```
 
 ## Dependencies
 
@@ -118,6 +103,37 @@ brew install gmp
 vcpkg install gmp:x64-windows
 ```
 
+##  Building
+
+### Before doing anything, I am assuming:
+
+1. You have installed GNU ``g++`` compiler.
+2. The command-line interface software GNU ``Make`` is installed in your computer.
+
+### Use make commands
+
+```bash
+mkdir build && cd build
+make
+```
+
+### Manual Compilation
+
+```bash
+g++ -std=c++11 -O3 -lgmp -lgmpxx your_program.cpp -o your_program
+```
+
+### Build Apps
+
+Run ``make help`` for complete reference.
+
+1. ``make basic_example`` to build basic example executable.
+2. ``make NTRUencryption [arg1] [arg2]`` to build encryption executable with N=arg1 and q=arg2. The arguments are optional.
+3. ``make performance_test [arg1] [arg2]`` to build performance test executable with N=arg1 and q=arg2. The arguments are optional.
+
+### Executable Files
+The executables are located in [Executables](Apps/Executables) directory.
+
 ## API Reference
 
 ### Core Classes
@@ -126,28 +142,84 @@ vcpkg install gmp:x64-windows
 The main encryption class that handles key generation, encryption, and decryption.
 
 **Constructors:**
-- `Encryption()` - Creates new instance with auto-generated keys
-- `Encryption(const char* keyFile)` - Loads from existing key file
+- `Encryption()` - Creates new instance with auto-generated keys (throws `std::runtime_error`)
+- `Encryption(const char* keyFile)` - Loads from existing key file (throws `std::runtime_error`)
 
-**Methods:**
-- `ZqPolynomial encrypt(const char bytes[], int size)` - Encrypt byte array
+**Core Methods:**
+- `ZqPolynomial encrypt(const char bytes[], size_t size)` - Encrypt byte array
+- `ZqPolynomial encrypt(const ZpPolynomial& poly)` - Encrypt polynomial directly
+- `ZqPolynomial encryptFile(const char fileName[])` - Encrypt file contents
 - `ZpPolynomial decrypt(const ZqPolynomial& cipher)` - Decrypt ciphertext
+- `ZpPolynomial decrypt(const char bytes[], size_t size)` - Decrypt byte array
 - `void saveKeys(const char* pubKey, const char* privKey)` - Save keys to files
-- `size_t plainTextMaxSizeInBytes()` - Maximum plaintext size
-- `size_t cipherTextSizeInBytes()` - Ciphertext size
+- `bool validPrivateKeyAvailable()` - Check if private key is available
+
+**Size Information:**
+- `static size_t inputPlainTextMaxSizeInBytes()` - Maximum input plaintext size
+- `static size_t outputPlainTextMaxSizeInBytes()` - Maximum output plaintext size
+- `static size_t cipherTextSizeInBytes()` - Ciphertext size
+- `static size_t privateKeySizeInBytes()` - Private key size
+- `static size_t publicKeySizeInBytes()` - Public key size
+
+**Static Utilities:**
+- `static ZpPolynomial ZpPolynomialFromBytes(const char[], size_t, bool isPrivateKey)` - Create polynomial from bytes
+- `static ZpPolynomial ZpPolynomialPlainTextFromFile(const char* fileName)` - Load plaintext from file
+- `static void ZpPolynomialtoBytes(const ZpPolynomial&, char[], bool isPrivateKey)` - Convert polynomial to bytes
+- `static void ZpPolynomialPlainTextSave(const ZpPolynomial&, const char*, bool saveAsText)` - Save plaintext polynomial
+- `static void ZpPolynomialWriteFile(const ZpPolynomial&, const char*, bool writeAsText)` - Write polynomial content to file
 
 #### `NTRU::ZpPolynomial`
 Represents polynomials in Zp[x]/(x^N-1) with coefficients in {-1, 0, 1}.
 
+**Key Methods:**
+- `static ZpPolynomial randomTernary()` - Generate random ternary polynomial
+- `static ZpPolynomial getPosiblePrivateKey()` - Generate potential private key
+- `mpz_class toNumber()` - Convert to base-3 number representation
+- `void print(const char* name, bool centered, const char* tail)` - Print polynomial
+
 #### `NTRU::ZqPolynomial`
 Represents polynomials in Zq[x]/(x^N-1) for ciphertext operations.
+
+**Key Methods:**
+- `ZqPolynomial(const char data[], int dataLength)` - Construct from byte array
+- `static ZqPolynomial timesThree(const ZpPolynomial& p)` - Multiply ZpPolynomial by 3
+- `void toBytes(char dest[])` - Convert to byte array
+- `void save(const char* name, bool saveAsText)` - Save to file
+- `static ZqPolynomial fromFile(const char* fileName)` - Load from file
+- `static int log2(NTRU_q q)` - Calculate log base 2 of q parameter
 
 #### `NTRU::Z2Polynomial`
 Represents polynomials in Z2[x]/(x^N-1) for internal computations.
 
+**Key Methods:**
+- `Z2Polynomial(const ZpPolynomial& P)` - Construct from ZpPolynomial
+- `void division(const Z2Polynomial& P, Z2Polynomial res[2])` - Polynomial division
+- `Z2Polynomial gcdXNmns1(Z2Polynomial& thisBezout)` - GCD with x^N-1
+
+### Global Utilities
+
+**Convolution Operations:**
+- `ZqPolynomial convolutionZq(const Z2Polynomial&, const ZpPolynomial&)`
+- `ZqPolynomial convolutionZq(const Z2Polynomial&, const ZqPolynomial&)`  
+- `ZqPolynomial convolutionZq(const ZpPolynomial&, const ZqPolynomial&)`
+
+**Helper Functions:**
+- `ZpPolynomial mods_p(ZqPolynomial)` - Modular reduction to Zp
+- `int get_N()` - Get current N parameter
+- `int get_q()` - Get current q parameter
+- `void displayByteArrayBin(const char[], size_t)` - Debug: display bytes in binary
+- `void displayByteArrayChar(const char[], size_t)` - Debug: display bytes as characters
+
 ### Parameter Configuration
 
-The library supports these parameter combinations:
+The library supports the following parameters:
+
+```
+N = 509, 677, 701, 821, 1087, 1171, 1499
+q = 2048, 4096, 8192
+```
+
+Expected security for some parameter combinations:
 
 | N    | q    | Security Level |
 |------|------|----------------|
@@ -164,37 +236,57 @@ The library includes built-in performance measurement tools:
 // Measure key generation time
 auto keyGenStats = NTRU::Encryption::Statistics::Time::keyGeneration();
 std::cout << "Key generation average: " << keyGenStats.getAverage() << " ms" << std::endl;
+std::cout << "Key generation variance: " << keyGenStats.getVariance() << " ms" << std::endl;
+std::cout << "Average absolute deviation: " << keyGenStats.getAAD() << " ms" << std::endl;
 
-// Analyze ciphertext entropy
+// Measure encryption/decryption performance
+NTRU::ZpPolynomial message = NTRU::Encryption::ZpPolynomialFromBytes("test", 4, false);
+auto encStats = NTRU::Encryption::Statistics::Time::ciphering(&ntru, &message);
+auto decStats = NTRU::Encryption::Statistics::Time::deciphering(&ntru, &ciphertext);
+
+// Analyze ciphertext entropy and randomness
 auto dataStats = NTRU::Encryption::Statistics::Data::encryption(&ntru);
 std::cout << "Ciphertext entropy: " << dataStats.getEntropy() << std::endl;
+std::cout << "Chi-square test: " << dataStats.getXiSquare() << std::endl;
+std::cout << "Correlation coefficient: " << dataStats.getCorrelation() << std::endl;
 ```
 
-#  Building executables
+## Binary files for ntru keys
 
-## Before doing anything, I am assuming:
+As you can notice, constructor ``Encryption(const char* NTRUkeyFile)`` accept a string representing the name of a file.
+This file, when reeding in binary mode, must have a particular format in order to obtain the oportunity to succeed in
+the creation of the ``Encryption`` object. This format is the same used in the ``Encryption`` member function
+``void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;`` to save the
+criptographic keys. Formats for the key files are:
 
-1. You have installed GNU ``g++`` compiler.
-2. The command-line interface software GNU ``Make`` is installed in your computer.
+- Public key:
+  1. The first 13 bytes corresponde to the string (with no line ending) "NTRUpublicKey".
+  2. Next two bytes (byte 14 to byte 15) represents the parameter N.
+  3. Next two bytes (byte 16 to byte 17) represents the parameter q.
+  4. Denoting the size in bytes of public key as publicKeySizeInBytes, then the following publicKeySizeInBytes bytes
+     represent the coefficients of the polynomial in the ring Zq[x]/(x^N-1).
 
-## Use make commands
+- Private key:
+  1. The first 13 bytes corresponde to the string (with no line ending) "NTRUprivatKey".
+  2. Next two bytes (byte 14 to byte 15) represents the parameter N.
+  3. Next two bytes (byte 16 to byte 17) represents the parameter q.
+  4. Denoting the size in bytes of private key as privateKeySizeInBytes, then the following privateKeySizeInBytes bytes
+     represent the coefficients of the polynomial in its respective ring Zp[x]/(x^N-1).
 
-Run ``make help`` for complete reference.
+The idea under this format and ``saveKeys`` function is to ensure the key reatrived from any of this files fulfils all
+the necessary requirements for a NTRU key.
 
-1. ``make basic_example`` to build basic example executable.
-2. ``make NTRUencryption [arg1] [arg2]`` to build encryption executable with N=arg1 and q=arg2. The arguments are optional.
-3. ``make performance_test [arg1] [arg2]`` to build performance test executable with N=arg1 and q=arg2. The arguments are optional.
+## Security Considerations
 
-### Manual Compilation
+At this moment (15, july of 2025):
 
-```bash
-g++ -std=c++11 -O3 -lgmp -lgmpxx your_program.cpp -o your_program
-```
-
-# Executable Files
-
-The executables are located in [Executables](Apps/Executables) directory. Instructions for passing arguments to them can be found
-[here](Apps/Executables/README.md)
+- **Parameter Selection**: Use recommended parameter sets for your security requirements
+- **Key Storage**: Store private keys securely and never transmit them
+- **Random Number Generation**: This implementation uses `C++` standard library for random number generation
+- **Side-Channel Attacks**: This implementation may be vulnerable to timing attacks in hostile environments
+- **Padding process**: Paddgin process consist just in fillig with zeros.
+- **Truncated data**: If the input data exceeds the maximum size for plaint text, then the intput is truncated prior to processing
+- **Error Handling**: All constructors and file operations can throw `std::runtime_error` - handle appropriately
 
 ## Contributing
 
@@ -203,17 +295,6 @@ The executables are located in [Executables](Apps/Executables) directory. Instru
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-## Security Considerations
-
-At this moment (1, july of 2025):
-
-- **Parameter Selection**: Use recommended parameter sets for your security requirements
-- **Key Storage**: Store private keys securely and never transmit them
-- **Random Number Generation**: This implementation uses `C++` standard library for random number generation
-- **Side-Channel Attacks**: This implementation may be vulnerable to timing attacks in hostile environments
-- **Padding process**: Paddgin process consist just in fillig with zeros.
-- **Truncated data**: If the input data exceeds the maximum size for plaint text, then the intput is truncated prior to processing
 
 ## References
 
