@@ -160,7 +160,7 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
 	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZqPolynomial in a Binary file. Throws NTRU::FileIOException
-	static ZqPolynomial fromFile(const char* fileName);			// -Building a ZqPolynomial from file. Throws NTRU::FileIOException
+	static ZqPolynomial fromFile(const char* fileName);			// -Building a ZqPolynomial from file. Throws NTRU::FileIOException, NTRU::ParameterMismatchException
 
 	private:
 	ZqPolynomial& timesThree();						// -Gets a ZpPolynomial via the operations 3p + 1
@@ -174,7 +174,7 @@ class Encryption {
 										// -or also is capable of decryption (has a valid private key).
 	public:
 	Encryption();								// -Building keys automatically. Trows: const std::runtime_error&
-	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file. Trows: NTRU::MathException, NTRU::FileIOException
+	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file. Trows: NTRU::MathException, NTRU::FileIOException, NTRU::ParameterMismatchException
 
 	ZqPolynomial encrypt(const char bytes[] ,size_t size) const;		// -Encryption of char array
 	ZqPolynomial encrypt(const ZpPolynomial&) const;			// -Encrypts ZpPolynomial
