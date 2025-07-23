@@ -364,7 +364,7 @@ Z2Polynomial& Z2Polynomial::operator = (const Z2Polynomial& P)  {
 Z2Polynomial& Z2Polynomial::operator = (const ZpPolynomial& P) {
 	if(this->coefficients != NULL) delete[] this->coefficients;                 // In case of having an object created with the default (private) constructor
 	this->coefficients = new Z2[_N_];
-	for(int i = 0; i < _N_; i++) {                                                // Fitting the ZpPolynomial in a Z2Polynomial
+	for(int i = 0; i < _N_; i++) {                                              // Fitting the ZpPolynomial in a Z2Polynomial
 	    if(P[i] != ZpPolynomial::_0_) this->coefficients[i] = _1_;
 	    else this->coefficients[i] = _0_;
 	}
@@ -795,7 +795,7 @@ ZqPolynomial ZqPolynomial::fromFile(const char* fileName){
             ss << "In " << thisFunc << ": Parameters retreaved from file do not match with this program parameters\n";
             ss << "From " << fileName << ": N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << "\n";
             ss << "Could not agree on parameters";
-            throw FileIOException(ss.str());
+            throw ParameterMismatchException(ss.str());
         }
         byteArr = new char[byteArrSize];
         file.read(byteArr, byteArrSize);                                        // -Reading the coefficients of the polynomial
@@ -822,7 +822,7 @@ ZqPolynomial& ZqPolynomial::timesThree(){
 Encryption::Encryption() {                                                      // -Just for type declaration. Should not be used just like this
     try {
 	    this->setKeys();
-	}catch(NTRUexception& exp) {
+	}catch(MathException& exp) {
 	    this->validPrivateKey = false;
 	    exp.add_trace_point("Caught in Encryption::Encryption() while building keys");
 	    throw;
@@ -855,7 +855,7 @@ Encryption::Encryption(const char* NTRUkeyFile) {
                 ss << "In " << thisFunc << ": Parameters retreaved from file do not match with this program parameters\n";
                 ss << "From " << NTRUkeyFile << ": N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << "\n";
                 ss << "Could not agree on parameters";
-                throw FileIOException(ss.str());
+                throw ParameterMismatchException(ss.str());
             }
             if(strcmp(fileHeader, NTRUprivatKey) == 0) {
                 isPrivateKey = true;
@@ -1297,7 +1297,13 @@ ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg) const{
 }
 
 ZpPolynomial Encryption::decrypt(const char bytes[], size_t size) const{
-    return this->decrypt(ZqPolynomial(bytes, size));
+    ZpPolynomial msg;
+    try{
+        msg = this->decrypt(ZqPolynomial(bytes, size));
+    } catch(InvalidPrivateKey& exp){
+        exp.add_trace_point("Caught in Encryption::decrypt(const char[], size_t) const");
+    }
+    return msg;
 }
 
 /************************************************************************* Statistics ****************************************************************************/
