@@ -21,7 +21,7 @@ public:
 		std::string full_trace;						//  what() returns a pointer to const char that must remain valid as long as the
 		std::stringstream ss;						//  exception object istself exist.
 		ss << "Exception Trace (from lastest to earliest):\n";		// -Like std::cout but writes in a internal string buffer.
-		for(std::reverse_iterator<std::string> it = this->trace_stack.rbegin(); it != this->trace_stack.rend(); ++it){
+		for(auto it = this->trace_stack.rbegin(); it != this->trace_stack.rend(); ++it){
 			ss << "  -> " << *it << "\n";				// -Giving a format to the output message
 		}
 		full_trace = ss.str();
