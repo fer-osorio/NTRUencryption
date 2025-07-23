@@ -3,7 +3,7 @@
 #include<chrono>
 #include<ctime>
 #include<cstring>
-#include<exception>
+#include"NTRUexceptions.hpp"
 #include"NTRUencryption.hpp"
 
 /*#ifdef _MSC_VER
@@ -28,14 +28,6 @@ static uint64_t readTSC() {
 #ifndef _q_
     #define _q_ 8192
 #endif
-
-static void cerrMessageBeforeThrow(const char callerFunction[], const char message[]) {
-    std::cerr << "In file Source/NTRUencryption.cpp, function " << callerFunction << ": " << message << '\n';
-}
-
-static void cerrMessageBeforeReThrow(const char callerFunction[], const char message[] = "") {
-    std::cerr << "Called from: File Source/NTRUencryption.cpp, function " << callerFunction << " ..."<< message << '\n';
-}
 
 union int64_to_char {                                                           // Allows to cast from an int64_t to an array of four bytes (char)
     int64_t int64;
@@ -254,7 +246,6 @@ ZpPolynomial ZpPolynomial::randomTernary() {
     const int d = _N_/3;
     int i, j, dd = d;
     ZpPolynomial r;
-
 	r.coefficients = new Z3[_N_];
 	for(i = 0; i < _N_; i++) r.coefficients[i] = _0_;
 	while(dd > 0) {                                                             // Putting the ones first
@@ -421,29 +412,24 @@ Z2Polynomial Z2Polynomial::operator * (const Z2Polynomial& P) const{ // Classica
 }
 
 void Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial result[2]) const{
-    const char thisFunc[] = "void Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial result[2]) const";
     if(P == _0_) {
-        cerrMessageBeforeThrow(thisFunc, "Trying divide by zero.");
-        throw std::runtime_error("Division by Zero");
+        throw MathException("In void Z2Polynomial::division(const Z2Polynomial&, Z2Polynomial[]) const: Division by Zero");
     }
     if(*this == _0_) {                                                          // Case zero divided by anything
         result[0] = _0_;                                                        // Zero polynomial
         result[1] = _0_;                                                        // Zero polynomial
         return;
     }
-
     const int dividendDegree = this->degree();
     const int divisorDegree  = P.degree();
     const Z2 leadCoeffDivsrInv = P.coefficients[divisorDegree];                 // In Z3, each element is its own inverse
     int degreeDiff;                                                             // Difference between degrees
     int remDeg;                                                                 // Remainder degree
     int i;                                                                      // For counting
-
     if(dividendDegree < divisorDegree) {                                        // Case dividend has smaller degree than divisor
         result[0] = _0_; result[1] = *this;
         return;
     }                                                                           // At this point we know leading coefficient has an inverse in Zq
-
     degreeDiff = dividendDegree - divisorDegree;                                // At this point we know degreeDiff >= 0
     remDeg = dividendDegree;
     result[1] = *this;                                                          // Initializing remainder with dividend (this)
@@ -456,11 +442,6 @@ void Z2Polynomial::division(const Z2Polynomial& P, Z2Polynomial result[2]) const
             result[1].coefficients[i] -=
             result[0].coefficients[degreeDiff]*P.coefficients[i-degreeDiff];
         }
-
-        if(result[1].coefficients[remDeg] != _0_) {                             // No congruence with 0 mod q, throwing exception
-            cerrMessageBeforeThrow(thisFunc, "result[1]. coefficients[remDeg] != 0.");
-            throw std::runtime_error("Exception in division process.");
-        }                                                                       // At this point we know result[1].coefficients[remDeg] = 0
         while(remDeg >= 0 && result[1].coefficients[remDeg] == _0_) remDeg--;   // Updating value of the degree of the remainder
     }
 }
@@ -473,8 +454,8 @@ Z2Polynomial Z2Polynomial::gcdXNmns1(Z2Polynomial& thisBezout) const{
     Z2 leadCoeff = this->coefficients[deg];                                     // Lead coefficient of this polynomial
     Z2Polynomial quoRem[2]={Z2Polynomial(), Z2Polynomial()};
 
-    quoRem[0].coefficients[_N_-deg] = leadCoeff;                                  // Start of division algorithm between virtual polynomial x^N-1 and this
-    for(i = deg-1, j = _N_ - 1; i >= 0; i--, j--) {                               // First coefficient of quotient and first subtraction
+    quoRem[0].coefficients[_N_-deg] = leadCoeff;                                // Start of division algorithm between virtual polynomial x^N-1 and this
+    for(i = deg-1, j = _N_ - 1; i >= 0; i--, j--) {                             // First coefficient of quotient and first subtraction
         quoRem[1].coefficients[j] = this->coefficients[i];                      // All x in Z2, -x = x
     }
     quoRem[1].coefficients[0] = _1_;                                            // Putting the -1 that is at the end of the polynomial x^N-1. 1 == -1 in Z2
@@ -495,8 +476,8 @@ Z2Polynomial Z2Polynomial::gcdXNmns1(Z2Polynomial& thisBezout) const{
 
 	while(remainders != _0_) {                                                  // EEA implementation (continuation)
         try{ gcd.division(remainders, quoRem); }
-        catch(const std::runtime_error&) {
-            cerrMessageBeforeReThrow("ZpPolynomial ZpPolynomial::gcdXNmns1(ZpPolynomial& thisBezout) const");
+        catch(MathException& exp) {
+            exp.add_trace_point("Caught in ZpPolynomial::gcdXNmns1(ZpPolynomial&) const, while executing division");
             throw;
         }
         tmp[1] = thisBezout - quoRem[0]*tmp[0];                                 // u[k+2] = u[k] - q[k+2]*u[k+1]
@@ -557,9 +538,7 @@ ZqPolynomial::ZqPolynomial(const char data[], int dataLength) {
     int offset = 0;
     int64_to_char aux;
     uint64_t buff = 0;
-
     this->coefficients = new int64_t[_N_];
-
     for(i = 0, dataByteIndex = 0; dataByteIndex < dataLength && i < _N_ ;) {
         aux.int64 = 0;
         for(j = 0; bitsOcupiedInBuff <= 56 && dataByteIndex < dataLength; bitsOcupiedInBuff += 8) {// -If we are using at most 56 bits of the buffer, we can
@@ -609,7 +588,6 @@ ZqPolynomial ZqPolynomial::operator + (const ZqPolynomial& P) const{
 ZqPolynomial ZqPolynomial::operator * (const ZqPolynomial& P) const{
     ZqPolynomial r;
     int i, j, k;
-
 	for(i = 0; i < _N_; i++) {
 		k = _N_ - i;
 	    for(j = 0; j < k; j++)                                                  // Ensuring we do not get out of the polynomial
@@ -641,7 +619,6 @@ ZpPolynomial NTRU::mods_p(ZqPolynomial P) {
 ZqPolynomial NTRU::convolutionZq(const Z2Polynomial& z2P, const ZpPolynomial& zpP) {
     ZqPolynomial r;
     int i, j, k;
-
     for(i = 0; i < _N_; i++) {
         if(z2P.coefficients[i] != Z2Polynomial::Z2::_0_) {
             k = _N_ - i;
@@ -664,7 +641,6 @@ ZqPolynomial NTRU::convolutionZq(const Z2Polynomial& z2P, const ZpPolynomial& zp
 ZqPolynomial NTRU::convolutionZq(const Z2Polynomial& z2P, const ZqPolynomial& zqP) {
     ZqPolynomial r;
     int i, j, k;
-
     for(i = 0; i < _N_; i++) {
         if(z2P.coefficients[i] != Z2Polynomial::Z2::_0_) {
             k = _N_ - i;
@@ -681,7 +657,6 @@ ZqPolynomial NTRU::convolutionZq(const Z2Polynomial& z2P, const ZqPolynomial& zq
 ZqPolynomial NTRU::convolutionZq(const ZpPolynomial& p1, const ZqPolynomial& p2) {
     ZqPolynomial r;
     int i, j, k;
-
 	for(i = 0; i < _N_; i++) {
 		if(p1.coefficients[i] != ZpPolynomial::_0_) {                           // -Taking advantage this polynomials have a big proportion of zeros
 		    if(p1.coefficients[i] == ZpPolynomial::_1_) {                       // -The other two cases are one, as in this line is showed
@@ -790,14 +765,13 @@ void ZqPolynomial::save(const char* name, bool saveAsText) const{
         this->toBytes(byteArr);
         file.write(byteArr, byteArrSize);
     } else {
-        cerrMessageBeforeThrow("void ZqPolynomial::save(const char* name) const", "Could not create file for ZqPolynomial.");
-        throw std::runtime_error("File writing failed.");
+        throw FileIOException("In ZqPolynomial::save(const char*) const: Could not create file for ZqPolynomial");
     }
     if(byteArr != NULL) delete[] byteArr;
 }
 
 ZqPolynomial ZqPolynomial::fromFile(const char* fileName){
-    const char thisFunc[] = "ZqPolynomial ZqPolynomial::fromFile(const char* fileName)";
+    const std::string thisFunc = "ZqPolynomial::fromFile(const char*)";
     const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a NTRU (NTRU) ZqPolynomial
     int byteArrSize = Encryption::cipherTextSizeInBytes(), ntruqsz = strlen(ntruq);
     char* byteArr = NULL;
@@ -806,8 +780,7 @@ ZqPolynomial ZqPolynomial::fromFile(const char* fileName){
     std::ifstream file;
     file.open(fileName, std::ios::binary);
     if(!file.is_open()){
-        cerrMessageBeforeThrow(thisFunc, "Error opening file for polynomial creation");
-        throw std::runtime_error("File opening failed");
+        throw FileIOException("In " + thisFunc + ":File opening failed");
     }
     byteArr = new char[ntruqsz+1];
     file.read(byteArr, ntruqsz);                                                // -Reading the firsts bytes hoping "NTRUpublicKey" or "NTRUprivatKey" apears
@@ -818,9 +791,11 @@ ZqPolynomial ZqPolynomial::fromFile(const char* fileName){
         file.read((char*)&Q, 2);
         if(n != _N_ || Q != _q_) {
             delete[] byteArr; byteArr = NULL;
-            cerrMessageBeforeThrow(thisFunc, "Parameters retreaved from file do not match with this program parameters");
-            std::cout << "From file: N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << '\n';
-            throw std::runtime_error("Could not agree on parameters");
+            std::stringstream ss;
+            ss << "In " << thisFunc << ": Parameters retreaved from file do not match with this program parameters\n";
+            ss << "From " << fileName << ": N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << "\n";
+            ss << "Could not agree on parameters";
+            throw FileIOException(ss.str());
         }
         byteArr = new char[byteArrSize];
         file.read(byteArr, byteArrSize);                                        // -Reading the coefficients of the polynomial
@@ -829,8 +804,7 @@ ZqPolynomial ZqPolynomial::fromFile(const char* fileName){
         delete[] byteArr; byteArr = NULL;
         return out;
     } else{
-        cerrMessageBeforeThrow(thisFunc, "Not a valid NTRU::ZqPolynomial file.");
-        throw std::runtime_error("Not valid input file.");
+        throw FileIOException("In " + thisFunc + ": Not a valid NTRU::ZqPolynomial file.");
     }
 }
 
@@ -848,16 +822,16 @@ ZqPolynomial& ZqPolynomial::timesThree(){
 Encryption::Encryption() {                                                      // -Just for type declaration. Should not be used just like this
     try {
 	    this->setKeys();
-	}catch(const std::runtime_error&) {
+	}catch(NTRUexception& exp) {
 	    this->validPrivateKey = false;
-	    cerrMessageBeforeReThrow("Encryption::Encryption()");
+	    exp.add_trace_point("Caught in Encryption::Encryption() while building keys");
 	    throw;
 	}
 	this->validPrivateKey = true;
 }
 
 Encryption::Encryption(const char* NTRUkeyFile) {
-    const char thisFunc[] = "Encryption::Encryption(const char* NTRUkeyFile)";
+    const std::string thisFunc = "Encryption::Encryption(const char*)";
     const char NTRUpublicKey[] = "NTRUpublicKey";                               // -This will indicate the binary file is saving a NTRU public key
     const char NTRUprivatKey[] = "NTRUprivatKey";                               // -This will indicate the binary file is saving a NTRU private key
     char* coeffBytes = NULL;
@@ -877,9 +851,11 @@ Encryption::Encryption(const char* NTRUkeyFile) {
             file.read((char*)&Q, 2);
             if(n != _N_ || Q != _q_) {
                 delete[] fileHeader; fileHeader = NULL;
-                cerrMessageBeforeThrow(thisFunc, "Parameters retreaved from file do not match with this program parameters");
-                std::cout << "From file: N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << '\n';
-                throw std::runtime_error("Could not agree on parameters");
+                std::stringstream ss;
+                ss << "In " << thisFunc << ": Parameters retreaved from file do not match with this program parameters\n";
+                ss << "From " << NTRUkeyFile << ": N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << "\n";
+                ss << "Could not agree on parameters";
+                throw FileIOException(ss.str());
             }
             if(strcmp(fileHeader, NTRUprivatKey) == 0) {
                 isPrivateKey = true;
@@ -889,10 +865,10 @@ Encryption::Encryption(const char* NTRUkeyFile) {
                 this->privatKey = ZpPolynomialFromBytes(coeffBytes, (size_t)sz, true); // -Create ZpPolynomial as in private key mode
                 try {
                     this->setKeysFromPrivKey();
-                } catch(const std::runtime_error&) {
+                } catch(MathException& exp) {
                     delete[] coeffBytes; coeffBytes = NULL;
                     delete[] fileHeader; fileHeader = NULL;
-                    cerrMessageBeforeReThrow(thisFunc);
+                    exp.add_trace_point("Caught in " + thisFunc + ": while building public key from private key provided by " + std::string(NTRUkeyFile));
                     throw;
                 }
             } else {
@@ -905,12 +881,10 @@ Encryption::Encryption(const char* NTRUkeyFile) {
             }
         } else {
             delete[] fileHeader; fileHeader = NULL;
-            cerrMessageBeforeThrow(thisFunc, "Not a valid ntruPrivateKey file.");
-            throw std::runtime_error("Not valid input file.");
+            throw FileIOException("In " + thisFunc + ": " + std::string(NTRUkeyFile) + " is not a valid ntruPrivateKey file.");
         }
     } else {
-        cerrMessageBeforeThrow(thisFunc, "Could not open file for the creation of the keys.");
-        throw std::runtime_error("File opening failed.");
+        throw FileIOException("In " + thisFunc + ": I could not open " + std::string(NTRUkeyFile));
     }
     if(coeffBytes != NULL) delete[] coeffBytes;
     if(fileHeader != NULL) delete[] fileHeader;
@@ -941,7 +915,7 @@ size_t Encryption::privateKeySizeInBytes(){ return size_t(_N_/5 + 1); }
 size_t Encryption::publicKeySizeInBytes() { return size_t(_N_*log2q/8 + 1); }
 
 void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const{
-    const char thisFunc[] = "void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const";
+    const std::string thisFunc = "void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const";
     int publicKeySize  = this->publicKeySizeInBytes();
     int privateKeySize = this->privateKeySizeInBytes();
     short N = _N_, q = _q_;
@@ -962,8 +936,7 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
         delete[] publicKeyBytes;
         publicKeyBytes = NULL;
     } else {
-        cerrMessageBeforeThrow(thisFunc, "Could not create file for public key.");
-        throw std::runtime_error("File writing failed.");
+        throw FileIOException("In " + thisFunc + ": Could not create file for " + std::string(publicKeyName));
     }
     file.close();
     if(this->validPrivateKey) {                                                 // -If the object is in only encryption mode, private key will not be saved,
@@ -979,8 +952,7 @@ void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[
             delete[] privateKeyBytes;
             privateKeyBytes = NULL;
         } else {
-            cerrMessageBeforeThrow(thisFunc, "Could not create file for private key.");
-            throw std::runtime_error("File writing failed.");
+            throw FileIOException("In " + thisFunc + ": Could not create file for " + std::string(privateKeyName));
         }
     }
     if(publicKeyBytes  != NULL) delete[] publicKeyBytes;
@@ -1041,7 +1013,7 @@ ZpPolynomial Encryption::ZpPolynomialFromBytes(const char bytes[], size_t size, 
 }
 
 ZpPolynomial Encryption::ZpPolynomialPlainTextFromFile(const char* fileName){
-    const char thisFunc[] = "ZpPolynomial Encryption::ZpPolynomialPlainTextFromFile(const char* fileName)";
+    const std::string thisFunc = "Encryption::ZpPolynomialPlainTextFromFile(const char*)";
     const size_t plainTextMaxSize = inputPlainTextMaxSizeInBytes();             // -Minus one because we will use one byte to mark the end of the file content.
     size_t fileInputArrSize = 0;
     char* fileInput = NULL;
@@ -1051,14 +1023,14 @@ ZpPolynomial Encryption::ZpPolynomialPlainTextFromFile(const char* fileName){
     inputFile.open(fileName, std::ios::binary | std::ios::ate);                 // -Bynary mode. Positioning at the end of the file.
     if(inputFile.is_open()) fileSize = inputFile.tellg();                       // -Getting current position of the "get" pointer.
     else{
-        cerrMessageBeforeThrow(thisFunc, "Error opening file for encryption");
-        throw std::runtime_error("File opening failed");
+        throw FileIOException("In " + thisFunc + ": Exception while opening " + std::string(fileName));
     }
     if((size_t)fileSize > plainTextMaxSize) {
-        cerrMessageBeforeThrow(thisFunc, "");
-        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize << " bytes)\n";
-        std::cerr << "I will proceed to truncate the file." << std::endl;
-        fileSize = (std::streamoff)plainTextMaxSize;                            // -From here, input data has plainTextMaxSize bytes.
+        std::stringstream ss;
+        ss << "In " << thisFunc << "File size exceeds the limit size (" << plainTextMaxSize << " bytes)\n";
+        throw FileIOException(ss.str());
+        //ss << "I will proceed to truncate the file\n";
+        //fileSize = (std::streamoff)plainTextMaxSize;                            // -From here, input data has plainTextMaxSize bytes.
     }
     // -End of: Getting file size.
     inputFile.seekg(0, std::ios::beg);                                          // -Move back to the beginning
@@ -1088,16 +1060,12 @@ void Encryption::ZpPolynomialtoBytes(const ZpPolynomial& org, char dest[], bool 
 void Encryption::ZpPolynomialPlainTextSave(const ZpPolynomial& org, const char* name, bool saveAsText){
     int byteArrSize = outputPlainTextMaxSizeInBytes();
     char* byteArr = NULL;
+    std::string fileOutputName = name == NULL ? "NTRUZpPolynomial" : name;
     const char ntrup[] = "NTRUp";                                               // -This will indicate the binary file is saving a NTRU polynomial with
     short N = _N_, q = _q_;                                                     //  coefficients in Zp (p)
     std::ofstream file;
-    if(name == NULL) {
-        if(saveAsText)  file.open("ZpPolynomial.ntrup");
-        else            file.open("ZpPolynomial.ntrup",std::ios::binary);
-    } else{
-        if(saveAsText)  file.open(name);
-        else            file.open(name, std::ios::binary);
-    }
+    if(saveAsText)  file.open(fileOutputName);
+    else            file.open(fileOutputName,std::ios::binary);
     if(file.is_open()) {
         file.write(ntrup, 5);                                                   // -The first five bytes are for the letters 'N' 'T' 'R' 'U' 'p'
         file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial
@@ -1106,8 +1074,7 @@ void Encryption::ZpPolynomialPlainTextSave(const ZpPolynomial& org, const char* 
         ZpPolynomialtoBytes(org, byteArr, false);                               // -Assuming data has no format.
         file.write(byteArr, byteArrSize);                                       // -Saving plain data.
     } else {
-        cerrMessageBeforeThrow("void ZpPolynomial::save(const char* name) const", "Could not create file for ZpPolynomial.");
-        throw std::runtime_error("File writing failed.");
+        throw FileIOException("In void ZpPolynomial::save(const char*) const: Could not create file for " + fileOutputName);
     }
     if(byteArr != NULL) delete[] byteArr;
 }
@@ -1116,14 +1083,10 @@ void Encryption::ZpPolynomialWriteFile(const ZpPolynomial& org, const char* file
     int byteArrSize = outputPlainTextMaxSizeInBytes();
     int fileSize = 0;
     char* byteArr = NULL;
+    std::string fileOutputName = fileName == NULL ? "FromZpPolynomial" : fileName;
     std::ofstream file;
-    if(fileName == NULL) {                                                      // -Guarding against NULL pointer
-        if(writeAsText) file.open("FromZpPolynomial.txt");
-        else            file.open("FromZpPolynomial.bin",std::ios::binary);
-    } else{
-        if(writeAsText) file.open(fileName);
-        else            file.open(fileName, std::ios::binary);
-    }
+    if(writeAsText) file.open(fileName);
+    else            file.open(fileName,std::ios::binary);
     if(file.is_open()) {
         byteArr = new char[byteArrSize];                                        // -The following bytes are for the polynomials coefficients
         ZpPolynomialtoBytes(org, byteArr, false);                               // -Writing bytes in plain text mode.
@@ -1134,13 +1097,12 @@ void Encryption::ZpPolynomialWriteFile(const ZpPolynomial& org, const char* file
         }
         if(fileSize > 0) file.write(byteArr, fileSize);
         else {
-            std::cout << "In file NTRUencryption.cpp,  function void ZpPolynomial::writeFile(const char* fileName, bool writeAsText) const.\n";
+            std::cout << "In file NTRUencryption.cpp,  function void Encryption::ZpPolynomialWriteFile(const ZpPolynomial&, const char*, bool) const.\n";
             std::cout << "I could not find the mark that flags the end of the content. I will proceed to write the file using the entire polynomial." << std::endl;
             fileSize = byteArrSize;
         }
     } else {
-        cerrMessageBeforeThrow("void ZpPolynomial::writeFile(const char* fileName, bool writeAsText) const", "Could not write file from ZpPolynomial.");
-        throw std::runtime_error("File writing failed.");
+        throw FileIOException("Encryption::ZpPolynomialWriteFile(const ZpPolynomial&, const char*, bool): Could not write " + fileOutputName + " from ZpPolynomial.");
     }
     if(byteArr != NULL) delete[] byteArr;
 }
@@ -1160,7 +1122,7 @@ ZqPolynomial Encryption::productByPrivatKey(const Z2Polynomial& P) const{
 }
 
 void Encryption::setKeys() {
-    const char thisFunc[] = "void Encryption::setKeys()";
+    const std::string thisFunc = "void Encryption::setKeys()";
 	Z2Polynomial Z2_privateKeyInv;
 	Z2Polynomial Z2_gcdXNmns1;
 	this->privatKey = NTRU::ZpPolynomial::randomTernary();
@@ -1170,8 +1132,8 @@ void Encryption::setKeys() {
                                                                                 //  other hand, (F[0]+1) mod 2 -> [(F[0] mod 2)+1)] mod 2 -> neg[(F[0]+1) mod 2]
     try{
         Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv);
-    }catch(const std::runtime_error&) {
-        cerrMessageBeforeReThrow(thisFunc);
+    }catch(MathException& exp) {
+        exp.add_trace_point("Caught in " + thisFunc + " while finding inverse in Z2[x]/(x^N-1)");
         throw;
     }
 	counter = 1;
@@ -1184,8 +1146,8 @@ void Encryption::setKeys() {
         //}
         Z2_privateKey.negFirstCoeff();
         try{ Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv); }
-        catch(const std::runtime_error&) {
-            cerrMessageBeforeReThrow(thisFunc);
+        catch(MathException& exp) {
+            exp.add_trace_point("Caught in " + thisFunc + " while finding inverse in Z2[x]/(x^N-1)");
             throw;
     	}
         counter++;
@@ -1210,16 +1172,15 @@ void Encryption::setKeys() {
 }
 
 void Encryption::setKeysFromPrivKey() {                                         // -In this function we're assuming we already have a valid private key,
-    const char thisFunc[] = "void Encryption::setKeysFromPrivKey()";            //  this is, a privatKey with inverse mod 2.
+    const std::string thisFunc = "void Encryption::setKeysFromPrivKey()";       //  this is, a privatKey with inverse mod 2.
     Z2Polynomial Z2_privateKey(this->privatKey);
     Z2Polynomial Z2_privateKeyInv;
     Z2Polynomial Z2_gcdXNmns1;
     int k = 2, l = 1;
-
     Z2_privateKey.negFirstCoeff();
     try{ Z2_gcdXNmns1 = Z2_privateKey.gcdXNmns1(Z2_privateKeyInv); }
-    catch(const std::runtime_error&) {
-        cerrMessageBeforeReThrow(thisFunc);
+    catch(MathException& exp) {
+        exp.add_trace_point("Caught in " + thisFunc + " while finding inverse in Z2[x]/(x^N-1)");
         throw;
     }
     // -This hole section can be optimized by making it a function like lift R2-Rq for private key
@@ -1253,9 +1214,7 @@ ZqPolynomial Encryption::encrypt(const ZpPolynomial& msg) const{
     int*  randTernary = new int[_N_];                                           // -Will represent the random polynomial needed for encryption
     const int d = _N_/3;
     int _d_ = d, i, j, k;
-
     for(i = 0; i < _N_; i++) randTernary[i] = 0;
-
     while(_d_ > 0) {
         i = randomIntegersN();                                                  // -Filling with threes. It represent the random polynomial multiplied by p
         if(randTernary[i] == 0) {randTernary[i] =  1; _d_--;}                   //  ...
@@ -1292,25 +1251,26 @@ ZqPolynomial Encryption::encrypt(const ZpPolynomial& msg) const{
 }
 
 ZqPolynomial Encryption::encryptFile(const char fileName[]) const{              // -Reads file content, writes in array, append a 0x80 at the end and encrypts.
-    const char thisFunc[] = "ZqPolynomial Encryption::encryptFile(const char fileName[])";
+    const std::string thisFunc = "Encryption::encryptFile(const char[])";
     const size_t plainTextMaxSize = inputPlainTextMaxSizeInBytes()-1;           // -Minus one because we will use one byte to mark the end of the file content.
     size_t fileInputArrSize = 0;
     char* fileInput = NULL;
-    std::streampos  fileSize;
+    std::streampos fileSize;
     std::ifstream inputFile;
-    NTRU::ZqPolynomial  enc_msg;
+    NTRU::ZqPolynomial enc_msg;
+    std::string fileName_ = fileName == NULL ? "" :  fileName;                  // -If fileName is NULL, empty string will trow an exception at the moment of trying to open a file
     // -Start of: Getting file size.
-    inputFile.open(fileName, std::ios::binary | std::ios::ate);                 // -Bynary mode. Positioning at the end of the file.
+    inputFile.open(fileName_, std::ios::binary | std::ios::ate);                // -Bynary mode. Positioning at the end of the file.
     if(inputFile.is_open()) fileSize = inputFile.tellg();                       // -Getting current position of the "get" pointer.
     else{
-        cerrMessageBeforeThrow(thisFunc, "Error opening file for encryption");
-        throw std::runtime_error("File opening failed");
+        throw FileIOException("In " + thisFunc + ": I could not open " + fileName_);
     }
     if((size_t)fileSize > plainTextMaxSize) {
-        cerrMessageBeforeThrow(thisFunc, "");
-        std::cerr << "File size exceeds the limit size (" << plainTextMaxSize << " bytes)\n";
-        std::cerr << "I will proceed to truncate the file." << std::endl;
-        fileSize = (std::streamoff)plainTextMaxSize;                            // -From here, input data has plainTextMaxSize bytes.
+        std::stringstream ss;
+        ss << "File size exceeds the limit size (" << plainTextMaxSize << " bytes)\n";
+        throw FileIOException(ss.str());
+        //ss << "I will proceed to truncate the file\n";
+        //fileSize = (std::streamoff)plainTextMaxSize;                          // -From here, input data has plainTextMaxSize bytes.
     }
     // -End of: Getting file size.
     inputFile.seekg(0, std::ios::beg);                                          // -Move back to the beginning
@@ -1328,8 +1288,7 @@ ZqPolynomial Encryption::encryptFile(const char fileName[]) const{              
 
 ZpPolynomial Encryption::decrypt(const ZqPolynomial& e_msg) const{
     if(!this->validPrivateKey) {
-        std::cerr << "\nThis object has no valid private key, therefore is only capable of encryption. Returning zero ZpPolynomial.\n";
-        return ZpPolynomial();
+        throw InvalidPrivateKey("In Encryption::decrypt(const ZqPolynomial&) const: Object has no valid private key, it only has encryption capabilities.");
     }
     ZqPolynomial msg_ = productByPrivatKey(e_msg);
     msg_.mods_q();
