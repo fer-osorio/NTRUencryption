@@ -98,7 +98,7 @@ struct Z2Polynomial {								// Representation of the polynomials in Z2[x]/(x^N-
 	Z2Polynomial  operator + (const Z2Polynomial&) const;			// In Z2, addition (+) coincide with subtraction (-)
 	Z2Polynomial  operator - (const Z2Polynomial&) const;			// In Z2, addition (+) coincide with subtraction (-)
 	Z2Polynomial  operator * (const Z2Polynomial&) const;
-	void division(const Z2Polynomial& P,Z2Polynomial res[2]) const;		// Division between this and P, result[2] will save the res[2]
+	void division(const Z2Polynomial& P,Z2Polynomial res[2]) const;		// Division between this and P, result[2] will save the res[2]. Throws NTRU::MathException
 	Z2Polynomial gcdXNmns1(Z2Polynomial& thisBezout) const;			// Greatest common between this and x^N-1 polynomial. Writing
 										// gcd = u·(x^N - 1) + v·this, thisBezout == v
 	bool operator == (int t) const {
@@ -159,8 +159,8 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 										//  negative, +=q is applied in order to write a positive number
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
-	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZqPolynomial in a Binary file. Throws std::runtime_error
-	static ZqPolynomial fromFile(const char* fileName);			// -Building a ZqPolynomial from file. Throws std::runtime_error()
+	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving ZqPolynomial in a Binary file. Throws NTRU::FileIOException
+	static ZqPolynomial fromFile(const char* fileName);			// -Building a ZqPolynomial from file. Throws NTRU::FileIOException
 
 	private:
 	ZqPolynomial& timesThree();						// -Gets a ZpPolynomial via the operations 3p + 1
@@ -174,11 +174,11 @@ class Encryption {
 										// -or also is capable of decryption (has a valid private key).
 	public:
 	Encryption();								// -Building keys automatically. Trows: const std::runtime_error&
-	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file. Trows: const std::runtime_error&
+	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file. Trows: NTRU::MathException, NTRU::FileIOException
 
 	ZqPolynomial encrypt(const char bytes[] ,size_t size) const;		// -Encryption of char array
 	ZqPolynomial encrypt(const ZpPolynomial&) const;			// -Encrypts ZpPolynomial
-	ZqPolynomial encryptFile(const char fileName[]) const;			// -Reads file content, writes in array, append a 0x80 at the end and encrypts.
+	ZqPolynomial encryptFile(const char fileName[]) const;			// -Reads file content, writes in array, append a 0x80 at the end and encrypts. Throws NTRU::FileIOException
 	ZpPolynomial decrypt(const ZqPolynomial&) const;			// -Decryption of ZqPolynomial
 	ZpPolynomial decrypt(const char bytes[] ,size_t size) const;		// -Decryption of char array
 
@@ -197,22 +197,22 @@ class Encryption {
 		represents a private encryption key (private key)? The answer to these questions determines the reading and writing procedures.
 	*/
 	static ZpPolynomial ZpPolynomialFromBytes(const char bytes[], size_t size, bool isPrivateKey); // -Builds a ZpPolynomial from an array of bytes. The building procesure is determined by the bool argument 'isPrivateKey'. Throws: std::runtime_error&
-	static ZpPolynomial ZpPolynomialPlainTextFromFile(const char* fileName);// -Building a ZpPolynomial from file. Throws std::runtime_error()
+	static ZpPolynomial ZpPolynomialPlainTextFromFile(const char* fileName);// -Building a ZpPolynomial from file. Throws FileIOException
 	static void ZpPolynomialtoBytes(const ZpPolynomial& org, char dest[], bool isPrivateKey);// -From ZpPolynomial to bytes. If isPrivateKey is true, polynomial is interpreted as private key
-	static void ZpPolynomialPlainTextSave(const ZpPolynomial& org, const char* name = NULL, bool saveAsText = false);// -Saving ZpPolynomial in a file with format. It assumes the data containded inside it has no format
-	static void ZpPolynomialWriteFile(const ZpPolynomial& org, const char* fileName, bool writeAsText);// -Writes a file using the data contained in the polynomial. In this case, it looks for the "end-of-content" mark, which is 1000,0000
+	static void ZpPolynomialPlainTextSave(const ZpPolynomial& org, const char* name = NULL, bool saveAsText = false);// -Saving ZpPolynomial in a file with format. It assumes the data containded inside it has no format. Throws NTRU::FileIOException
+	static void ZpPolynomialWriteFile(const ZpPolynomial& org, const char* fileName, bool writeAsText);// -Writes a file using the data contained in the polynomial. In this case, it looks for the "end-of-content" mark, which is 1000,0000. Throws NTRU::FileIOException
 	/*	There is no "build private key from file" method because it is already implemented in the constructor Encryption(const char* NTRUkeyFile)	*/
 
-	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
+	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const; // -Saves keys using the names passed as arguments. Throws NTRU::FileIOException
 	void printKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
 
 	private:
 
 	ZqPolynomial productByPrivatKey(const ZqPolynomial& P) const;
 	ZqPolynomial productByPrivatKey(const Z2Polynomial& P) const;
-	void setKeys();								// -Creation of the keys
+	void setKeys();								// -Creation of the keys. Throws NTRU::MathException
 	void setKeysFromPrivKey();						// -Creates private key inverse and public key from private key. Intended for the
-										//  creation of Encryption object from file
+										//  creation of Encryption object from file. Throws NTRU::MathException
 	public: struct Statistics{
 		struct Time{
 			private:
