@@ -39,6 +39,11 @@ public:
 	explicit FileIOException(const std::string& what_arg) : NTRUexception(what_arg) {}
 };
 
+class ParameterMismatchException : public NTRUexception{
+public:
+    explicit ParameterMismatchException(const std::string& what_arg) : NTRUexception(what_arg) {}
+};
+
 class InvalidPrivateKey: public NTRUexception{
 public:
 	explicit InvalidPrivateKey(const std::string& what_arg) : NTRUexception(what_arg) {}
