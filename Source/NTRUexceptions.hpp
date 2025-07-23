@@ -1,7 +1,10 @@
 #include<stdexcept>
-#include<vector>
-#include <sstream> // For string building
+#include<vector>	// For trance stack
+#include<sstream>	// For string building
 
+#ifndef NTRU_EXCEPTION
+#define NTRU_EXCEPTION
+namespace NTRU{
 class NTRUexception : public std::runtime_error {
 private:
 	std::string original_message = "";					// -Message generated in the origin of exception
@@ -27,9 +30,18 @@ public:
 };
 
 class MathException: public NTRUexception{
+public:
 	explicit MathException(const std::string& what_arg) : NTRUexception(what_arg) {}
 };
 
 class FileIOException: public NTRUexception{
+public:
 	explicit FileIOException(const std::string& what_arg) : NTRUexception(what_arg) {}
 };
+
+class InvalidPrivateKey: public NTRUexception{
+public:
+	explicit InvalidPrivateKey(const std::string& what_arg) : NTRUexception(what_arg) {}
+};
+}
+#endif
