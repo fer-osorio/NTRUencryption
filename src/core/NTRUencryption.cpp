@@ -1459,12 +1459,6 @@ Encryption::Statistics::Time Encryption::Statistics::Time::deciphering(const Enc
 
 //________________________________________________________________________ Encryption _____________________________________________________________________________
 
-void Encryption::Statistics::Data::setbyteValueFrequence(const char data[], size_t size){
-    if(!this->byteValueFrequenceStablisched) {
-        for(size_t i = 0; i < size; i++) this->byteValueFrequence[(uint8_t)data[i]]++;
-        this->byteValueFrequenceStablisched = true;
-    }
-}
 
 double Encryption::Statistics::Data::entropy(const char data[], size_t size){
     double  entropy =  0.0 ;
@@ -1475,34 +1469,6 @@ double Encryption::Statistics::Data::entropy(const char data[], size_t size){
     for(i = 0; i < 256; i++) if(p[i] != 0) entropy -= p[i]*log2(p[i]);
 
     return entropy;
-}
-
-double Encryption::Statistics::Data::xiSquare(const char data[], size_t size) {
-    double xiSquare = 0.0;
-    this->setbyteValueFrequence(data, size);
-    for(int i = 0; i < 256; i++)
-        xiSquare += (double)(this->byteValueFrequence[i]*this->byteValueFrequence[i]);
-    xiSquare *= 256.0/size; xiSquare -= size;
-    return xiSquare;
-}
-
-double Encryption::Statistics::Data::correlation(const char data[], size_t size, size_t offset){
-    double average = 0.0;
-    double variance = 0.0;
-    double covariance = 0.0;
-    size_t i, j;
-    for(i = 0; i < size; i++) average += (uint8_t)data[i];
-    average /= double(size);
-
-    for(i = 0, j = offset; i < size; i++, j++){
-        if(j >= size) j = 0;
-        variance   += ((uint8_t)data[i] - average)*((uint8_t)data[i] - average);
-        covariance += ((uint8_t)data[i] - average)*((uint8_t)data[j] - average);
-    }
-    variance   /= (double)size;
-    covariance /= (double)size;
-
-    return covariance/variance;
 }
 
 Encryption::Statistics::Data::Data(const char data[], size_t size){
