@@ -1,64 +1,117 @@
-struct Timing{
+#include<numeric>	// For std::accumulate
+#include<cmath>		// For abs, sqrt, ...
+#include<optional>	// For optional members
+#include<vector>	// For calculations
+#include<array>		// For fixed size array
+#include<cstddef>	// For std::byte
+#include<cstdint>	// For uint8_t, uint32_t,...
+
+template <typename T> struct Timing{
 private:
-	double Maximum  =  0.0;
-	double Minimum  =  0.0;
-	double Average  = -1.0;
-	double Variance =  0.0;
-	double AvrAbsDev=  0.0;
-
-	double maximum(const uint64_t time_data[], size_t size) const;
-	double minimum(const uint64_t time_data[], size_t size) const;
-	double average(const uint64_t time_data[], size_t size) const;
-	double variance(const uint64_t time_data[], size_t size) const;
-	double avrAbsDev(const uint64_t time_data[], size_t size) const;
-
-	Timing(const uint64_t time_data[], size_t size);
+	std::optional<double> Maximum;
+	std::optional<double> Minimum;
+	std::optional<double> Average;
+	std::optional<double> Variance;
+	std::optional<double> AvrAbsDev;					// Average Absolute Deviation
 
 public:
-	Timing(){}
-	double getMaximum() const{ return this->Maximum; }
-	double getMinimum() const{ return this->Minimum; }
-	double getAverage() const{ return this->Average; }
-	double getVariance()const{ return this->Variance;}
-	double getAAD()     const{ return this->AvrAbsDev; }			// -Average absolute deviation
+	Timing() = default;
+	explicit Timing(const std::vector<const T>& time_data){
+		if(time_data.empty()) {
+			return;							// Leave members as std::nullopt
+		}
+		double sum = std::accumulate(time_data.begin(), time_data.end(), 0.0);
+		this->Average = sum / time_data.size();
+		double min_val = static_cast<double>(time_data[0]);
+		double max_val = static_cast<double>(time_data[0]);
+		for (const T& val : time_data) {
+			if (val < min_val) min_val = val;
+			if (val > max_val) max_val = val;
+		}
+		this->Minimum = min_val;
+		this->Maximum = max_val;
+
+		double sq_sum = 0.0;
+		double abs_dev_sum = 0.0;
+		for (const T& val : time_data) {
+		sq_sum += (static_cast<double>(val) - *this->Average) * (static_cast<double>(val) - *this->Average);
+		abs_dev_sum += std::abs(static_cast<double>(val) - *this->Average);
+		}
+		this->Variance = time_data.size() > 1 ? sq_sum / (time_data.size() - 1) : 0.0;
+		this->AvrAbsDev = abs_dev_sum / time_data.size();
+	}
+
+	// Getters
+	std::optional<double> getMaximum()  const noexcept { return this->Maximum; }
+	std::optional<double> getMinimum()  const noexcept { return this->Minimum; }
+	std::optional<double> getAverage()  const noexcept { return this->Average; }
+	std::optional<double> getVariance() const noexcept { return this->Variance; }
+	std::optional<double> getAAD()      const noexcept { return this->AvrAbsDev; }
 };
 
-struct DataAnalysis{
+struct DataAnalysis {
 private:
-	double Entropy = 0.0;
-	double XiSquare = 0.0;
-	double Correlation = 10.0;
+	std::optional<double> Entropy;
+	std::optional<double> XiSquare;
 
-	uint32_t byteValueFrequence[256] = {0};
-	bool byteValueFrequenceStablisched = false;
-	void setbyteValueFrequence(const char data[], size_t size);
+	size_t data_size = 0;
+	std::array<uint32_t, 256> byteValueFrequence{};
 
-	double entropy(const char data[], size_t size);
-	double xiSquare(const char data[], size_t size);
-	double correlation(const char data[], size_t size, size_t offset);
+	void calculate_entropy() {
+		double temp_entropy = 0.0, probability;
+		for (const uint32_t& freq : byteValueFrequence) {
+			if (freq > 0) {
+				probability = static_cast<double>(freq) / this->data_size;
+				temp_entropy -= probability * std::log2(probability);
+			}
+		}
+		this->Entropy = temp_entropy;
+	}
 
-	DataAnalysis(const char data[], size_t size);
+	void calculate_xiSquare() {
+		double temp_XiSquare = 0.0;
+		for (const uint32_t& freq : byteValueFrequence){
+			temp_XiSquare += static_cast<double>(freq*freq);
+		}
+		temp_XiSquare *= 256.0/this->data_size;
+		temp_XiSquare -= this->data_size;
+		this->XiSquare = temp_XiSquare;
+	}
 
 public:
-	DataAnalysis(){}
-	DataAnalysis(const DataAnalysis& d){
-		this->Entropy = d.Entropy;
-		this->XiSquare = d.XiSquare;
-		this->Correlation = d.Correlation;
-		for(int i = 0; i < 256; i++) this->byteValueFrequence[i] = d.byteValueFrequence[i];
-		this->byteValueFrequenceStablisched = d.byteValueFrequenceStablisched;
-	}
-	DataAnalysis& operator = (const DataAnalysis& d){
-		if(this!=&d){
-			this->Entropy = d.Entropy;
-			this->XiSquare = d.XiSquare;
-			this->Correlation = d.Correlation;
-			for(int i = 0; i < 256; i++) this->byteValueFrequence[i] = d.byteValueFrequence[i];
-			this->byteValueFrequenceStablisched = d.byteValueFrequenceStablisched;
+	DataAnalysis() = default;						// -Rule of Zero: No need for manual copy/assignment/destructor.
+										//  The compiler-generated ones are correct.
+	explicit DataAnalysis(const std::vector<std::byte>& data) : data_size(data.size()) {
+		if(data.empty()) return;
+		for(const std::byte& byte : data) {				// Establishing the frequency of each of the possible values for a byte.
+			byteValueFrequence[static_cast<uint8_t>(byte)]++;
 		}
-		return *this;
+		this->calculate_entropy();
+		this->calculate_xiSquare();
 	}
-	double getEntropy() const{ return this->Entropy; }
-	double getCorrelation() const { return this->Correlation; }
-	double getXiSquare() const{ return this->XiSquare; }
+
+	double calculateCorrelation(std::vector<const std::byte> data, size_t offset) const { // Correlation is (arguably) better as a method since it requires an extra parameter.
+		double average = 0.0;
+		double variance = 0.0;
+		double covariance = 0.0;
+		size_t i, j, sz = data.size();
+
+		for(i = 0; i < sz; i++) average += static_cast<double>(data[i]);
+		average /= static_cast<double>(sz);
+
+		for(i = 0, j = offset; j < sz; i++, j++){
+			variance   += (static_cast<double>(data[i]) - average)*(static_cast<double>(data[i]) - average);
+			covariance += (static_cast<double>(data[i]) - average)*(static_cast<double>(data[j]) - average);
+		}
+		for(j = 0; i < sz; i++, j++){
+			variance   += (static_cast<double>(data[i]) - average)*(static_cast<double>(data[i]) - average);
+			covariance += (static_cast<double>(data[i]) - average)*(static_cast<double>(data[j]) - average);
+		}
+		variance   /= static_cast<double>(sz);
+		covariance /= static_cast<double>(sz);
+		return covariance/variance;
+	}
+
+	std::optional<double> getEntropy() const noexcept { return this->Entropy; }
+	std::optional<double> getXiSquare() const noexcept { return this->XiSquare; }
 };
