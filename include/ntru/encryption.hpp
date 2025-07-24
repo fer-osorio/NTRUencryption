@@ -1,8 +1,8 @@
 #include"polynomials.hpp"
 #include"statistical_measures.hpp"
 
-#ifndef _NTRUENCRYPTION_HPP_
-#define _NTRUENCRYPTION_HPP_
+#ifndef _ENCRYPTION_HPP_
+#define _ENCRYPTION_HPP_
 
 namespace NTRU {
 

@@ -1,6 +1,9 @@
 #include<gmpxx.h>
 #include"parameters.hpp"
 
+#ifndef POLYNOMIALS_HPP
+#define POLYNOMIALS_HPP
+
 namespace NTRU{
 
 struct ZpPolynomial;
@@ -156,3 +159,5 @@ struct ZqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 };
 
 }
+
+#endif

@@ -6,6 +6,9 @@
 #include<cstddef>	// For std::byte
 #include<cstdint>	// For uint8_t, uint32_t,...
 
+#ifndef STATISTICAL_MEASURES_HPP
+#define STATISTICAL_MEASURES_HPP
+
 namespace StatisticalMeasures{
 
 template <typename T> struct Dispersion{
@@ -119,3 +122,5 @@ public:
 };
 
 }
+
+#endif
