@@ -1,4 +1,5 @@
 #include<gmpxx.h>
+#include"parameters.hpp"
 
 namespace NTRU{
 
