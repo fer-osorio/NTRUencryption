@@ -6,7 +6,9 @@
 #include<cstddef>	// For std::byte
 #include<cstdint>	// For uint8_t, uint32_t,...
 
-template <typename T> struct Timing{
+namespace StatisticalMeasures{
+
+template <typename T> struct Dispersion{
 private:
 	std::optional<double> Maximum;
 	std::optional<double> Minimum;
@@ -15,16 +17,16 @@ private:
 	std::optional<double> AvrAbsDev;					// Average Absolute Deviation
 
 public:
-	Timing() = default;
-	explicit Timing(const std::vector<const T>& time_data){
-		if(time_data.empty()) {
+	Dispersion() = default;
+	explicit Dispersion(const std::vector<const T>& data){
+		if(data.empty()) {
 			return;							// Leave members as std::nullopt
 		}
-		double sum = std::accumulate(time_data.begin(), time_data.end(), 0.0);
-		this->Average = sum / time_data.size();
-		double min_val = static_cast<double>(time_data[0]);
-		double max_val = static_cast<double>(time_data[0]);
-		for (const T& val : time_data) {
+		double sum = std::accumulate(data.begin(), data.end(), 0.0);
+		this->Average = sum / data.size();
+		double min_val = static_cast<double>(data[0]);
+		double max_val = static_cast<double>(data[0]);
+		for (const T& val : data) {
 			if (val < min_val) min_val = val;
 			if (val > max_val) max_val = val;
 		}
@@ -33,12 +35,12 @@ public:
 
 		double sq_sum = 0.0;
 		double abs_dev_sum = 0.0;
-		for (const T& val : time_data) {
-		sq_sum += (static_cast<double>(val) - *this->Average) * (static_cast<double>(val) - *this->Average);
-		abs_dev_sum += std::abs(static_cast<double>(val) - *this->Average);
+		for (const T& val : data) {
+			sq_sum += (static_cast<double>(val) - *this->Average) * (static_cast<double>(val) - *this->Average);
+			abs_dev_sum += std::abs(static_cast<double>(val) - *this->Average);
 		}
-		this->Variance = time_data.size() > 1 ? sq_sum / (time_data.size() - 1) : 0.0;
-		this->AvrAbsDev = abs_dev_sum / time_data.size();
+		this->Variance = data.size() > 1 ? sq_sum / (data.size() - 1) : 0.0;
+		this->AvrAbsDev = abs_dev_sum / data.size();
 	}
 
 	// Getters
@@ -49,15 +51,15 @@ public:
 	std::optional<double> getAAD()      const noexcept { return this->AvrAbsDev; }
 };
 
-struct DataAnalysis {
+struct DataRandomness{								// -Specialized to handle data from raw bytes
 private:
 	std::optional<double> Entropy;
-	std::optional<double> XiSquare;
+	std::optional<double> ChiSquare;
 
 	size_t data_size = 0;
 	std::array<uint32_t, 256> byteValueFrequence{};
 
-	void calculate_entropy() {
+	void calculate_entropy() {						// -Using Shannon entropy model
 		double temp_entropy = 0.0, probability;
 		for (const uint32_t& freq : byteValueFrequence) {
 			if (freq > 0) {
@@ -68,26 +70,26 @@ private:
 		this->Entropy = temp_entropy;
 	}
 
-	void calculate_xiSquare() {
-		double temp_XiSquare = 0.0;
+	void calculate_ChiSquare() {
+		double temp_ChiSquare = 0.0;
 		for (const uint32_t& freq : byteValueFrequence){
-			temp_XiSquare += static_cast<double>(freq*freq);
+			temp_ChiSquare += static_cast<double>(freq*freq);
 		}
-		temp_XiSquare *= 256.0/this->data_size;
-		temp_XiSquare -= this->data_size;
-		this->XiSquare = temp_XiSquare;
+		temp_ChiSquare *= 256.0/this->data_size;
+		temp_ChiSquare -= this->data_size;
+		this->ChiSquare = temp_ChiSquare;
 	}
 
 public:
-	DataAnalysis() = default;						// -Rule of Zero: No need for manual copy/assignment/destructor.
+	DataRandomness() = default;						// -Rule of Zero: No need for manual copy/assignment/destructor.
 										//  The compiler-generated ones are correct.
-	explicit DataAnalysis(const std::vector<std::byte>& data) : data_size(data.size()) {
+	explicit DataRandomness(const std::vector<std::byte>& data) : data_size(data.size()) {
 		if(data.empty()) return;
 		for(const std::byte& byte : data) {				// Establishing the frequency of each of the possible values for a byte.
 			byteValueFrequence[static_cast<uint8_t>(byte)]++;
 		}
 		this->calculate_entropy();
-		this->calculate_xiSquare();
+		this->calculate_ChiSquare();
 	}
 
 	double calculateCorrelation(std::vector<const std::byte> data, size_t offset) const { // Correlation is (arguably) better as a method since it requires an extra parameter.
@@ -113,5 +115,7 @@ public:
 	}
 
 	std::optional<double> getEntropy() const noexcept { return this->Entropy; }
-	std::optional<double> getXiSquare() const noexcept { return this->XiSquare; }
+	std::optional<double> getChiSquare() const noexcept { return this->ChiSquare; }
 };
+
+}
