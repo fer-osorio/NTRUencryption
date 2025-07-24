@@ -1,5 +1,5 @@
-#include<iostream>
-#include<cstdint>
+#include"polynomials.hpp"
+#include"statistical_measures.hpp"
 
 #ifndef _NTRUENCRYPTION_HPP_
 #define _NTRUENCRYPTION_HPP_
@@ -10,12 +10,13 @@ int get_N();
 int get_q();
 
 class Encryption {
-	private:								// -Initializing with zeros
+private:
+	// -Initializing with zeros
 	ZqPolynomial publicKey	= ZqPolynomial();
 	ZpPolynomial privatKey	= ZpPolynomial();				// -Private key has the form p·F0+1, we are saving just F0
 	bool validPrivateKey	= false;					// -Flag; tells us if current object can only encrypt (only have a valid publickKey)
 										// -or also is capable of decryption (has a valid private key).
-	public:
+public:
 	Encryption();								// -Building keys automatically. Trows: const std::runtime_error&
 	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file. Trows: NTRU::MathException, NTRU::FileIOException, NTRU::ParameterMismatchException
 
@@ -32,7 +33,6 @@ class Encryption {
 	static size_t cipherTextSizeInBytes();
 	static size_t privateKeySizeInBytes();
 	static size_t publicKeySizeInBytes();
-
 	/*
 		Remark: ZpPolynomial structure has no method to read or write files, neither to build an object from a byte array nor to write a
 		byte array from an object; this is delegated to the encryption class because the building procedure depends on the answer to the
@@ -49,8 +49,13 @@ class Encryption {
 	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const; // -Saves keys using the names passed as arguments. Throws NTRU::FileIOException
 	void printKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
 
-	private:
+	// -Performance measurement
+	static StatisticalMeasures::Dispersion<uint32_t> keyGenerationTime();
+	static StatisticalMeasures::Dispersion<uint32_t> ciphering(const NTRU::Encryption* e, const NTRU::ZpPolynomial* msg);// Taking average of encryption time
+	static StatisticalMeasures::Dispersion<uint32_t> deciphering(const NTRU::Encryption* e, const NTRU::ZqPolynomial* emsg);// Taking average of decryption time
+	static StatisticalMeasures::DataRandomness encryptedData(const NTRU::Encryption* ptr_e);
 
+private:
 	ZqPolynomial productByPrivatKey(const ZqPolynomial& P) const;
 	ZqPolynomial productByPrivatKey(const Z2Polynomial& P) const;
 	void setKeys();								// -Creation of the keys. Throws NTRU::MathException
@@ -58,12 +63,6 @@ class Encryption {
 										//  creation of Encryption object from file. Throws NTRU::MathException
 };
 }
-
-// -Performance measurement
-Timing keyGeneration();
-Timing ciphering(const NTRU::Encryption* e, const NTRU::ZpPolynomial* msg);// Taking average of encryption time
-Timing deciphering(const NTRU::Encryption* e, const NTRU::ZqPolynomial* emsg);// Taking average of decryption time
-static DataAnalysis encryption(const NTRU::Encryption* ptr_e);
 
 // -Helper functions, debugging.
 void displayByteArrayBin(const char byteArray[], size_t size);					// -Prints bytes using bynari format
