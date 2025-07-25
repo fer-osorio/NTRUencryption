@@ -1,6 +1,4 @@
 #include<gmpxx.h>
-#include<random>
-#include<ctime>
 #include"parameters.hpp"
 
 #ifndef POLYNOMIALS_HPP
@@ -30,7 +28,6 @@ struct RpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	~RpPolynomial() {
 		if(this->coefficients != NULL) delete [] this->coefficients;
 	}
-	static RpPolynomial randomTernary();
 
 	private: void interchangeZeroFor(Z3 t);					// -Randomly selects a coefficient with value 0 and a coefficient with value t and interchanges them.
 	private: void changeZeroForOne();
