@@ -1,5 +1,4 @@
 #include<gmpxx.h>
-#include"parameters.hpp"
 
 #ifndef POLYNOMIALS_HPP
 #define POLYNOMIALS_HPP
