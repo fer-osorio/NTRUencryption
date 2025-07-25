@@ -295,6 +295,71 @@ void Encryption::RpPolynomialWriteFile(const RpPolynomial& org, const char* file
     if(byteArr != NULL) delete[] byteArr;
 }
 
+void Encryption::RqPolynomialSave(const RqPolynomial& pl, const char* name, bool saveAsText){
+    int byteArrSize = Encryption::cipherTextSizeInBytes();
+    char* byteArr = NULL;
+    const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a Rq polynomial
+    short N = _N_, q = _q_;
+
+    std::ofstream file;                                                         //  coefficients in Zp (p)
+    if(name == NULL) {
+        if(saveAsText)  file.open("RpPolynomial.ntrup");
+        else            file.open("RpPolynomial.ntrup",std::ios::binary);
+    } else{
+        if(saveAsText)  file.open(name);
+        else            file.open(name, std::ios::binary);
+    }
+    if(file.is_open()) {
+        file.write(ntruq, strlen(ntruq));
+        file.write((char*)&N, 2);                                               // -A short int for the degree of the polynomial
+        file.write((char*)&q, 2);                                               // -A short int for the q value
+        byteArr = new char[byteArrSize];
+        pl.toBytes(byteArr);
+        file.write(byteArr, byteArrSize);
+    } else {
+        throw FileIOException("In RqPolynomial::save(const char*) const: Could not create file for RqPolynomial");
+    }
+    if(byteArr != NULL) delete[] byteArr;
+}
+
+RqPolynomial Encryption::RqPolynomialFromFile(const char* fileName){
+    const std::string thisFunc = "RqPolynomial::fromFile(const char*)";
+    const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a NTRU (NTRU) RqPolynomial
+    int byteArrSize = Encryption::cipherTextSizeInBytes(), ntruqsz = strlen(ntruq);
+    char* byteArr = NULL;
+    short n = _N_, Q = _q_;
+    RqPolynomial out;
+    std::ifstream file;
+    file.open(fileName, std::ios::binary);
+    if(!file.is_open()){
+        throw FileIOException("In " + thisFunc + ":File opening failed");
+    }
+    byteArr = new char[ntruqsz+1];
+    file.read(byteArr, ntruqsz);                                                // -Reading the firsts bytes hoping "NTRUpublicKey" or "NTRUprivatKey" apears
+    byteArr[ntruqsz] = 0;                                                       // -End of string
+    if(strcmp(byteArr, ntruq) == 0) {                                           // -Testing if file saves a NTRU private key
+        delete[] byteArr; byteArr = NULL;
+        file.read((char*)&n, 2);
+        file.read((char*)&Q, 2);
+        if(n != _N_ || Q != _q_) {
+            delete[] byteArr; byteArr = NULL;
+            std::stringstream ss;
+            ss << "In " << thisFunc << ": Parameters retreaved from file do not match with this program parameters\n";
+            ss << "From " << fileName << ": N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << "\n";
+            ss << "Could not agree on parameters";
+            throw ParameterMismatchException(ss.str());
+        }
+        byteArr = new char[byteArrSize];
+        file.read(byteArr, byteArrSize);                                        // -Reading the coefficients of the polynomial
+        file.close();
+        out = RqPolynomial(byteArr, byteArrSize);                               // -Building polynomials in plintext mode
+        delete[] byteArr; byteArr = NULL;
+        return out;
+    } else{
+        throw FileIOException("In " + thisFunc + ": Not a valid NTRU::RqPolynomial file.");
+    }
+}
+
 /********************************************************************* End: File Handling ***********************************************************************/
 
 // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| Encryption keys |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
@@ -538,4 +603,3 @@ RpPolynomial Encryption::decrypt(const char bytes[], size_t size) const{
     }
     return msg;
 }
-

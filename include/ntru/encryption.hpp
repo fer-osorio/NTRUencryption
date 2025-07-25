@@ -42,8 +42,10 @@ public:
 	static RpPolynomial RpPolynomialFromBytes(const char bytes[], size_t size, bool isPrivateKey); // -Builds a RpPolynomial from an array of bytes. The building procesure is determined by the bool argument 'isPrivateKey'. Throws: std::runtime_error&
 	static RpPolynomial RpPolynomialPlainTextFromFile(const char* fileName);// -Building a RpPolynomial from file. Throws FileIOException
 	static void RpPolynomialtoBytes(const RpPolynomial& org, char dest[], bool isPrivateKey);// -From RpPolynomial to bytes. If isPrivateKey is true, polynomial is interpreted as private key
-	static void RpPolynomialPlainTextSave(const RpPolynomial& org, const char* name = NULL, bool saveAsText = false);// -Saving RpPolynomial in a file with format. It assumes the data containded inside it has no format. Throws NTRU::FileIOException
+	static void RpPolynomialPlainTextSave(const RpPolynomial& org, const char* name, bool saveAsText = false);// -Saving RpPolynomial in a file with format. It assumes the data containded inside it has no format. Throws NTRU::FileIOException
 	static void RpPolynomialWriteFile(const RpPolynomial& org, const char* fileName, bool writeAsText);// -Writes a file using the data contained in the polynomial. In this case, it looks for the "end-of-content" mark, which is 1000,0000. Throws NTRU::FileIOException
+	static void RqPolynomialSave(const RqPolynomial& pl, const char* name, bool saveAsText = false);// -Saving RqPolynomial in a Binary file. Throws NTRU::FileIOException
+	static RqPolynomial RqPolynomialFromFile(const char* fileName);		// -Building a RqPolynomial from file. Throws NTRU::FileIOException, NTRU::ParameterMismatchException
 	/*	There is no "build private key from file" method because it is already implemented in the constructor Encryption(const char* NTRUkeyFile)	*/
 
 	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const; // -Saves keys using the names passed as arguments. Throws NTRU::FileIOException
