@@ -134,8 +134,6 @@ public:
 										//  negative, +=q is applied in order to write a positive number
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
-	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving RqPolynomial in a Binary file. Throws NTRU::FileIOException
-	static RqPolynomial fromFile(const char* fileName);			// -Building a RqPolynomial from file. Throws NTRU::FileIOException, NTRU::ParameterMismatchException
 private:
 	RqPolynomial& timesThree();						// -Gets a RpPolynomial via the operations 3p + 1
 };
