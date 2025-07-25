@@ -11,13 +11,13 @@ struct RqPolynomial;
 struct R2Polynomial;
 class  Encryption;
 
-RqPolynomial convolutionZq(const R2Polynomial&, const RpPolynomial&);
-RqPolynomial convolutionZq(const R2Polynomial&, const RqPolynomial&);
-RqPolynomial convolutionZq(const RpPolynomial&, const RqPolynomial&);
+RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
+RqPolynomial convolutionRq(const R2Polynomial&, const RqPolynomial&);
+RqPolynomial convolutionRq(const RpPolynomial&, const RqPolynomial&);
 RpPolynomial mods_p(RqPolynomial);
 
-struct RpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N-1)
-	enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};					// -ZpCenterPolynomial are polynomials with coefficients in {-1, 0, 1}
+struct RpPolynomial {								// -Representation of the polynomials in Rp := Zp[x]/(x^N-1)
+	enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};
 	private:
 	Z3* coefficients = NULL;
 	friend Encryption;
@@ -40,15 +40,15 @@ struct RpPolynomial {								// -Representation of the polynomials in Zp[x]/(x^N
 	int degree() const;							// Returns degree of polynomial
 
 	friend RpPolynomial mods_p(RqPolynomial P);
-	friend RqPolynomial convolutionZq(const R2Polynomial&, const RpPolynomial&);
-	friend RqPolynomial convolutionZq(const RpPolynomial&, const RqPolynomial&);
+	friend RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
+	friend RqPolynomial convolutionRq(const RpPolynomial&, const RqPolynomial&);
 
 	mpz_class toNumber() const;						// -Interprests the coefficientes as a bese 3 number.
 	void print(const char* name = "", bool centered = true, const char* tail = "") const;
 	void println(const char* name = "", bool centered = true) const;
 };
 
-struct R2Polynomial {								// Representation of the polynomials in Z2[x]/(x^N-1)
+struct R2Polynomial {								// Representation of the polynomials in R2 := Z2[x]/(x^N-1)
 	enum Z2 {_0_ = 0, _1_ = 1};						// Integers modulo 2 (binary numbers)
 	friend Z2 operator + (Z2 a,Z2 b) {					// Addition modulus 2
 		if(a!=b) return _1_;
@@ -101,8 +101,8 @@ struct R2Polynomial {								// Representation of the polynomials in Z2[x]/(x^N-
 	}
 	Z2 operator [] (int i) const;
 
-	friend RqPolynomial convolutionZq(const R2Polynomial&, const RpPolynomial&);
-	friend RqPolynomial convolutionZq(const R2Polynomial&, const RqPolynomial&);
+	friend RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
+	friend RqPolynomial convolutionRq(const R2Polynomial&, const RqPolynomial&);
 
 	int  degree() const;
 	void print(const char* name = "", const char* tail = "") const;
@@ -117,7 +117,7 @@ struct R2Polynomial {								// Representation of the polynomials in Z2[x]/(x^N-
 
 RqPolynomial operator - (int64_t, const RqPolynomial&);				// The intention is to make this function a friend of RqPolynomial
 
-struct RqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-1)
+struct RqPolynomial {								// Representation of the polynomials in Rq := Zq[x]/(x^N-1)
 	private:
 	int64_t* coefficients = NULL;
 	friend Encryption;
@@ -135,9 +135,9 @@ struct RqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 	RqPolynomial operator * (const RqPolynomial& P) const;
 	friend RqPolynomial operator - (int64_t, const RqPolynomial&);
 
-	friend RqPolynomial convolutionZq(const R2Polynomial&, const RpPolynomial&);
-	friend RqPolynomial convolutionZq(const R2Polynomial&, const RqPolynomial&);
-	friend RqPolynomial convolutionZq(const RpPolynomial&, const RqPolynomial&);
+	friend RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
+	friend RqPolynomial convolutionRq(const R2Polynomial&, const RqPolynomial&);
+	friend RqPolynomial convolutionRq(const RpPolynomial&, const RqPolynomial&);
 
 	int degree()  const;							// -Returns degree of polynomial
 	bool equalsOne() const;
