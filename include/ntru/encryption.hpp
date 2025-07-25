@@ -57,6 +57,7 @@ public:
 
 private:
 	static RpPolynomial randomTernary();
+	static void interchangeZeroFor(RpPolynomial::Z3 t, RpPolynomial& pl);	// -Randomly selects a coefficient with value 0 and a coefficient with value t and interchanges them.
 	RqPolynomial productByPrivatKey(const RqPolynomial& P) const;
 	RqPolynomial productByPrivatKey(const R2Polynomial& P) const;
 	void setKeys();								// -Creation of the keys. Throws NTRU::MathException
