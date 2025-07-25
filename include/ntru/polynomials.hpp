@@ -144,7 +144,6 @@ struct RqPolynomial {								// Representation of the polynomials in Zq[x]/(x^N-
 	void mod_q()  const;
 	void mods_q() const;
 	int lengthInBytes() const;
-	static int log2(NTRU_q q);
 
 	void toBytes(char dest[]) const;					// -Writes the coefficients into an array of bytes. If a certain coefficient is
 										//  negative, +=q is applied in order to write a positive number
