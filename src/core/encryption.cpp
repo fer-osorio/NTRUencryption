@@ -336,6 +336,14 @@ RpPolynomial Encryption::randomTernary() {
 	return r;
 }
 
+void Encryption::interchangeZeroFor(RpPolynomial::Z3 t, RpPolynomial& pl){
+    int i = randomIntegersN(), j;
+    while(pl.coefficients[i] != RpPolynomial::Z3::_0_) i = randomIntegersN();   // -Looking for a zero in a random position
+    j = i;
+    while(pl.coefficients[i] != t) i = randomIntegersN();                       // -Looking for a k in a random position
+    pl.coefficients[j] = t; pl.coefficients[i] = RpPolynomial::Z3::_0_;         // -Changing zero for k
+}
+
 RqPolynomial Encryption::productByPrivatKey(const RqPolynomial& P) const{
     return convolutionRq(this->privatKey, P).timesThree() + P;                  // Private key f has the form 1+p·F0, so f*P = P+p(P*F0)
 }
@@ -363,8 +371,8 @@ void Encryption::setKeys() {
     }
 	counter = 1;
 	while(R2_gcdXNmns1 != 1) {                                                  // -Looking for a valid private key.
-        if((counter & 1) == 0)  this->privatKey.interchangeZeroFor(RpPolynomial::_1_);
-        else                    this->privatKey.interchangeZeroFor(RpPolynomial::_2_);
+        if((counter & 1) == 0)  this->interchangeZeroFor(RpPolynomial::_1_,privatKey);
+        else                    this->interchangeZeroFor(RpPolynomial::_2_,privatKey);
         R2_privateKey = this->privatKey;
         //if((counter&3)==0){
             //std::cout << "Source/NTRUencryption.cpp; void setKeys(bool showKeyCreationTime). Counter = " << counter << "\n";\\Debuggin purposes
