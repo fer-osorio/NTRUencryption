@@ -56,6 +56,7 @@ public:
 	static StatisticalMeasures::DataRandomness encryptedData(const NTRU::Encryption* ptr_e);
 
 private:
+	static RpPolynomial randomTernary();
 	RqPolynomial productByPrivatKey(const RqPolynomial& P) const;
 	RqPolynomial productByPrivatKey(const R2Polynomial& P) const;
 	void setKeys();								// -Creation of the keys. Throws NTRU::MathException
