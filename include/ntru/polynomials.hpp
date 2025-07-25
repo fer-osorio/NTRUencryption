@@ -6,49 +6,43 @@
 
 namespace NTRU{
 
-struct RpPolynomial;
-struct RqPolynomial;
-struct R2Polynomial;
-class  Encryption;
+class RpPolynomial;
+class RqPolynomial;
+class R2Polynomial;
+class Encryption;
 
 RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
 RqPolynomial convolutionRq(const R2Polynomial&, const RqPolynomial&);
 RqPolynomial convolutionRq(const RpPolynomial&, const RqPolynomial&);
 RpPolynomial mods_p(RqPolynomial);
 
-struct RpPolynomial {								// -Representation of the polynomials in Rp := Zp[x]/(x^N-1)
+class RpPolynomial {								// -Representation of the polynomials in Rp := Zp[x]/(x^N-1)
+public:
 	enum Z3{_0_ = 0, _1_ = 1, _2_ = 2};
-	private:
+private:
 	Z3* coefficients = NULL;
-	friend Encryption;
 
-	public:
+	friend Encryption;
+	friend RpPolynomial mods_p(RqPolynomial P);
+	friend RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
+	friend RqPolynomial convolutionRq(const RpPolynomial&, const RqPolynomial&);
+public:
 	RpPolynomial();								// -Default constructor; initializes the polynomial with zeros
 	RpPolynomial(const RpPolynomial& P);
 	~RpPolynomial() {
 		if(this->coefficients != NULL) delete [] this->coefficients;
 	}
-
-	private: void interchangeZeroFor(Z3 t);					// -Randomly selects a coefficient with value 0 and a coefficient with value t and interchanges them.
-	private: void changeZeroForOne();
-
-	public:
-	static RpPolynomial getPosiblePrivateKey();				// -Setting d = N/3, returns a polynomial with d -1's and d+1 1's
-
+public:
 	RpPolynomial& operator = (const RpPolynomial& P);			// Assignment
 	int operator[](int i) const;
 	int degree() const;							// Returns degree of polynomial
-
-	friend RpPolynomial mods_p(RqPolynomial P);
-	friend RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
-	friend RqPolynomial convolutionRq(const RpPolynomial&, const RqPolynomial&);
-
 	mpz_class toNumber() const;						// -Interprests the coefficientes as a bese 3 number.
 	void print(const char* name = "", bool centered = true, const char* tail = "") const;
 	void println(const char* name = "", bool centered = true) const;
 };
 
-struct R2Polynomial {								// Representation of the polynomials in R2 := Z2[x]/(x^N-1)
+class R2Polynomial {								// Representation of the polynomials in R2 := Z2[x]/(x^N-1)
+public:
 	enum Z2 {_0_ = 0, _1_ = 1};						// Integers modulo 2 (binary numbers)
 	friend Z2 operator + (Z2 a,Z2 b) {					// Addition modulus 2
 		if(a!=b) return _1_;
@@ -70,12 +64,12 @@ struct R2Polynomial {								// Representation of the polynomials in R2 := Z2[x]
 		if(a != b) a = _1_;
 		else a = _0_;
 	}
-
-	private:
+private:
 	Z2* coefficients = NULL;
 	friend Encryption;
-
-	public:
+	friend RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
+	friend RqPolynomial convolutionRq(const R2Polynomial&, const RqPolynomial&);
+public:
 	R2Polynomial();
 	R2Polynomial(const R2Polynomial& P);
 	R2Polynomial(const RpPolynomial& P);
@@ -100,15 +94,10 @@ struct R2Polynomial {								// Representation of the polynomials in R2 := Z2[x]
 		return this->degree() != 0 || this->coefficients[0] != t;
 	}
 	Z2 operator [] (int i) const;
-
-	friend RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
-	friend RqPolynomial convolutionRq(const R2Polynomial&, const RqPolynomial&);
-
 	int  degree() const;
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
-
-	private:
+private:
 	void negFirstCoeff() {
 		if(this->coefficients[0] == 0) this->coefficients[0] = _1_;
 		else this->coefficients[0] = _0_;
@@ -117,12 +106,15 @@ struct R2Polynomial {								// Representation of the polynomials in R2 := Z2[x]
 
 RqPolynomial operator - (int64_t, const RqPolynomial&);				// The intention is to make this function a friend of RqPolynomial
 
-struct RqPolynomial {								// Representation of the polynomials in Rq := Zq[x]/(x^N-1)
-	private:
+class RqPolynomial {								// Representation of the polynomials in Rq := Zq[x]/(x^N-1)
+private:
 	int64_t* coefficients = NULL;
 	friend Encryption;
-
-	public:
+	friend RqPolynomial operator - (int64_t, const RqPolynomial&);
+	friend RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
+	friend RqPolynomial convolutionRq(const R2Polynomial&, const RqPolynomial&);
+	friend RqPolynomial convolutionRq(const RpPolynomial&, const RqPolynomial&);
+public:
 	RqPolynomial();
 	RqPolynomial(const RqPolynomial& P);
 	RqPolynomial(const char data[], int dataLength);			// -Initializing with string of bytes
@@ -133,26 +125,18 @@ struct RqPolynomial {								// Representation of the polynomials in Rq := Zq[x]
 	int64_t operator[](int i) const;
 	RqPolynomial operator + (const RqPolynomial& P) const;
 	RqPolynomial operator * (const RqPolynomial& P) const;
-	friend RqPolynomial operator - (int64_t, const RqPolynomial&);
-
-	friend RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
-	friend RqPolynomial convolutionRq(const R2Polynomial&, const RqPolynomial&);
-	friend RqPolynomial convolutionRq(const RpPolynomial&, const RqPolynomial&);
-
 	int degree()  const;							// -Returns degree of polynomial
 	bool equalsOne() const;
 	void mod_q()  const;
 	void mods_q() const;
 	int lengthInBytes() const;
-
 	void toBytes(char dest[]) const;					// -Writes the coefficients into an array of bytes. If a certain coefficient is
 										//  negative, +=q is applied in order to write a positive number
 	void print(const char* name = "", const char* tail = "") const;
 	void println(const char* name = "") const;
 	void save(const char* name = NULL, bool saveAsText = false) const;	// -Saving RqPolynomial in a Binary file. Throws NTRU::FileIOException
 	static RqPolynomial fromFile(const char* fileName);			// -Building a RqPolynomial from file. Throws NTRU::FileIOException, NTRU::ParameterMismatchException
-
-	private:
+private:
 	RqPolynomial& timesThree();						// -Gets a RpPolynomial via the operations 3p + 1
 };
 
