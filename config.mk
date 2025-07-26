@@ -1,10 +1,12 @@
 # Configuration file - all build settings
-
+CC = gcc
+CXX = g++
+AR = ar
 WARNINGS = -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors
 DEBUG    = -ggdb -fno-omit-frame-pointer
 OPTIMIZE = -O2
 STANDARD = -std=c++2a
-AR = ar
+COMPILE_FLAGS = $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD)
 LDFLAGS = -lgmp -lgmpxx
 
 # Directories
