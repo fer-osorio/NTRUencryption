@@ -75,3 +75,9 @@ endef
 define sources_to_objects
 $(patsubst %.cpp,$(2)/obj/%.o,$(1)) # If $(1) has .cpp as suffix, the suffix gets "cutted" and the $(2)/obj/>>the rest of $(1)<<.o is the output
 endef
+
+# Function to get dependency files from object files
+# Usage DEPS = $(call objects_to_deps,objects)
+define objects_to_deps
+$(patsubst %.o,%.d,$(1))
+endef
