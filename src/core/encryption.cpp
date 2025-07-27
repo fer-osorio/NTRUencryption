@@ -37,11 +37,11 @@ Encryption::Encryption(const char* NTRUkeyFile) {
         if(strcmp(fileHeader, NTRUprivatKey) == 0 || strcmp(fileHeader, NTRUpublicKey) == 0) { // -Testing if file saves a NTRU private key
             file.read((char*)&n, 2);
             file.read((char*)&Q, 2);
-            if(n != _N_ || Q != _q_) {
+            if(n != NTRU_N || Q != NTRU_Q) {
                 delete[] fileHeader; fileHeader = NULL;
                 std::stringstream ss;
                 ss << "In " << thisFunc << ": Parameters retreaved from file do not match with this program parameters\n";
-                ss << "From " << NTRUkeyFile << ": N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << "\n";
+                ss << "From " << NTRUkeyFile << ": N == " << n << ", q == " << Q << ". From this program: N == " << NTRU_N << ", q == " << NTRU_Q << "\n";
                 ss << "Could not agree on parameters";
                 throw ParameterMismatchException(ss.str());
             }
@@ -86,27 +86,27 @@ Encryption::Encryption(const char* NTRUkeyFile) {
     5-digit representation will not be sufficient for its representation, then the number will be "truncated" and some information will be lost; this is important
     since we are not assuming anything about the input array.
 */
-size_t Encryption::inputPlainTextMaxSizeInBytes()  { return size_t(_N_/6 - 1); }// -Each byte will be represented with 6 coefficientes, and one byte will be used to mark the end of the contents, therefor max size is _N_/6 - 1
-size_t Encryption::outputPlainTextMaxSizeInBytes() { return size_t(_N_/6 + 1); }// -Here we are supposing that the polynomial was created using 6-coefficients byte representation. The +1 is for the last N%6 bytes.
+size_t Encryption::inputPlainTextMaxSizeInBytes()  { return size_t(NTRU_N/6 - 1); }// -Each byte will be represented with 6 coefficientes, and one byte will be used to mark the end of the contents, therefor max size is NTRU_N/6 - 1
+size_t Encryption::outputPlainTextMaxSizeInBytes() { return size_t(NTRU_N/6 + 1); }// -Here we are supposing that the polynomial was created using 6-coefficients byte representation. The +1 is for the last N%6 bytes.
 /*
    -The protocol for the creation of a RqPolynomial from a byte array is more simple. Each coefficient of a RpPolynomial can be represented using exactly log2q
     bits, therefor we can -roughly speaking- copy the bits inside the byte array and paste them directly into the coefficients of the polynomial. The procedure
     is more complicated, but that is the main idea.
 */
-size_t Encryption::cipherTextSizeInBytes() { return size_t(_N_*log2q/8 + 1); }
+size_t Encryption::cipherTextSizeInBytes() { return size_t(NTRU_N*log2q/8 + 1); }
 /*
    -Private key is generated randomly inside the program, so a 6-digits number where the digits are a pack of 6 consecutive coefficients may be greater than 255
     (the maximum value of a 6-digits number is 728). Here, the process from private key in polynomial form to byte array takes 5 consecutive coefficients and
-    "converts" it to a 5-digits number in base 3. Thats the reason why the private key needs _N_/5 + 1 bytes to be represente -under this protocol-.
+    "converts" it to a 5-digits number in base 3. Thats the reason why the private key needs NTRU_N/5 + 1 bytes to be represente -under this protocol-.
 */
-size_t Encryption::privateKeySizeInBytes(){ return size_t(_N_/5 + 1); }
-size_t Encryption::publicKeySizeInBytes() { return size_t(_N_*log2q/8 + 1); }
+size_t Encryption::privateKeySizeInBytes(){ return size_t(NTRU_N/5 + 1); }
+size_t Encryption::publicKeySizeInBytes() { return size_t(NTRU_N*log2q/8 + 1); }
 
 void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const{
     const std::string thisFunc = "void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const";
     int publicKeySize  = this->publicKeySizeInBytes();
     int privateKeySize = this->privateKeySizeInBytes();
-    short N = _N_, q = _q_;
+    short N = NTRU_N, q = NTRU_Q;
     char* publicKeyBytes  = NULL;
     char* privateKeyBytes = NULL;
     const char NTRUpublicKey[]  = "NTRUpublicKey";                              // -This will indicate the binary file is saving a NTRU public key
@@ -175,9 +175,9 @@ RpPolynomial Encryption::RpPolynomialFromBytes(const char bytes[], size_t size, 
         std::cerr << "I will proceed to truncate the input array." << std::endl;
         size = maxSize;                                                         // -From here, input data has plainTextMaxSize bytes.
     }
-    for(i = 0, j = 0; i < size && j < _N_; i++) {                               // -i will run through data, j through coefficients
+    for(i = 0, j = 0; i < size && j < NTRU_N; i++) {                               // -i will run through data, j through coefficients
         l = (unsigned char)bytes[i];
-        for(k = 0; k < m && j < _N_; k++, l/=3) {                               // -Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
+        for(k = 0; k < m && j < NTRU_N; k++, l/=3) {                               // -Here we're supposing _p_ == 3. Basically we're changing from base 2 to base 3
             switch(l%3) {                                                       //  in big endian notation. Notice that the maximum value allowed is 242
                 case  1:                                                        // -One idea to solve this issue is to have a "flag" value, say 242. Suppose b is
                     r.coefficients[j++] = RpPolynomial::_1_;                    //  a byte such that b >= 242; then we can write b = 242 + (b - 242). The
@@ -235,8 +235,8 @@ void Encryption::RpPolynomialtoBytes(const RpPolynomial& org, char dest[], bool 
     int N_florm;
     int buff;
     isPrivateKey == true ? m = 5 : m = 6;
-    N_mod_m = _N_ % m;                                                          // -Since _N_ is a prime number, N_mod_m is always bigger than 0
-    N_florm = _N_ - N_mod_m;
+    N_mod_m = NTRU_N % m;                                                          // -Since NTRU_N is a prime number, N_mod_m is always bigger than 0
+    N_florm = NTRU_N - N_mod_m;
     for(i = 0, j = 0; i < N_florm; i += m, j++) {                               // i will run through dest, j through coefficients
         for(k = m-1, buff = 0; k >= 0; k--) buff = buff*3 + org.coefficients[i+k]; // Here we're supposing _p_== 3. Basically we're changing from base 3 to base 2
         dest[j] = (char)buff;                                                   // Supposing the numbers in base 3 are in big endian notation
@@ -250,7 +250,7 @@ void Encryption::RpPolynomialPlainTextSave(const RpPolynomial& org, const char* 
     char* byteArr = NULL;
     std::string fileOutputName = name == NULL ? "NTRURpPolynomial" : name;
     const char ntrup[] = "NTRUp";                                               // -This will indicate the binary file is saving a NTRU polynomial with
-    short N = _N_, q = _q_;                                                     //  coefficients in Zp
+    short N = NTRU_N, q = NTRU_Q;                                                     //  coefficients in Zp
     std::ofstream file;
     if(saveAsText)  file.open(fileOutputName);
     else            file.open(fileOutputName,std::ios::binary);
@@ -299,7 +299,7 @@ void Encryption::RqPolynomialSave(const RqPolynomial& pl, const char* name, bool
     int byteArrSize = Encryption::cipherTextSizeInBytes();
     char* byteArr = NULL;
     const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a Rq polynomial
-    short N = _N_, q = _q_;
+    short N = NTRU_N, q = NTRU_Q;
 
     std::ofstream file;                                                         //  coefficients in Zp (p)
     if(name == NULL) {
@@ -327,7 +327,7 @@ RqPolynomial Encryption::RqPolynomialFromFile(const char* fileName){
     const char ntruq[] = "NTRUq";                                               // -This will indicate the binary file is saving a NTRU (NTRU) RqPolynomial
     int byteArrSize = Encryption::cipherTextSizeInBytes(), ntruqsz = strlen(ntruq);
     char* byteArr = NULL;
-    short n = _N_, Q = _q_;
+    short n = NTRU_N, Q = NTRU_Q;
     RqPolynomial out;
     std::ifstream file;
     file.open(fileName, std::ios::binary);
@@ -341,11 +341,11 @@ RqPolynomial Encryption::RqPolynomialFromFile(const char* fileName){
         delete[] byteArr; byteArr = NULL;
         file.read((char*)&n, 2);
         file.read((char*)&Q, 2);
-        if(n != _N_ || Q != _q_) {
+        if(n != NTRU_N || Q != NTRU_Q) {
             delete[] byteArr; byteArr = NULL;
             std::stringstream ss;
             ss << "In " << thisFunc << ": Parameters retreaved from file do not match with this program parameters\n";
-            ss << "From " << fileName << ": N == " << n << ", q == " << Q << ". From this program: N == " << _N_ << ", q == " << _q_ << "\n";
+            ss << "From " << fileName << ": N == " << n << ", q == " << Q << ". From this program: N == " << NTRU_N << ", q == " << NTRU_Q << "\n";
             ss << "Could not agree on parameters";
             throw ParameterMismatchException(ss.str());
         }
@@ -375,14 +375,14 @@ class RandInt {                                                                 
     std::uniform_int_distribution<> dist;
 };
 unsigned RandInt::_seed_ = (unsigned)time(NULL);
-static RandInt randomIntegersN(0, _N_ - 1);
+static RandInt randomIntegersN(0, NTRU_N - 1);
 
 RpPolynomial Encryption::randomTernary() {
-    const int d = _N_/3;
+    const int d = NTRU_N/3;
     int i, j, dd = d;
     RpPolynomial r;
-	r.coefficients = new RpPolynomial::Z3[_N_];
-	for(i = 0; i < _N_; i++) r.coefficients[i] = RpPolynomial::Z3::_0_;
+	r.coefficients = new RpPolynomial::Z3[NTRU_N];
+	for(i = 0; i < NTRU_N; i++) r.coefficients[i] = RpPolynomial::Z3::_0_;
 	while(dd > 0) {                                                             // Putting the ones first
         j = randomIntegersN();
         if(r.coefficients[j] == RpPolynomial::Z3::_0_) {
@@ -415,7 +415,7 @@ RqPolynomial Encryption::productByPrivatKey(const RqPolynomial& P) const{
 
 RqPolynomial Encryption::productByPrivatKey(const R2Polynomial& P) const{
     RqPolynomial r = convolutionRq(P, this->privatKey).timesThree();            // Private key f has the form 1+p·F0, so f*P = P+p(P*F0)
-    for(int i = 0; i < _N_; i++) if(P.coefficients[i] != 0) r.coefficients[i]++;
+    for(int i = 0; i < NTRU_N; i++) if(P.coefficients[i] != 0) r.coefficients[i]++;
     return r;
 }
 
@@ -453,14 +453,14 @@ void Encryption::setKeys() {
     // -This hole section can be optimized by making it a function like lift R2-Rq for private key
     this->publicKey = convolutionRq(R2_privateKeyInv, 2 - productByPrivatKey(R2_privateKeyInv));
     k <<= l; l <<= 1;
-	while(k < _q_) {
+	while(k < NTRU_Q) {
         this->publicKey = this->publicKey*(2 - productByPrivatKey(publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
     RqPolynomial t = productByPrivatKey(this->publicKey);                       // -Testing the if the statement above is true (Debugging purposes)
     /*t.mods_q();
     if(!t.equalsOne()) {
-        std::cout << thisFunc << "::Parameters: N = "<< _N_ << ", q = " << _q_ << " --------------" << std::endl;
+        std::cout << thisFunc << "::Parameters: N = "<< NTRU_N << ", q = " << NTRU_Q << " --------------" << std::endl;
         t.println("this->publicKey*this->privateKey");
         cerrMessageBeforeThrow(thisFunc,"Public key inverse in Zq[x]/x^N-1 finding failed");
         throw std::runtime_error("Exception in public key inverse creation");
@@ -484,7 +484,7 @@ void Encryption::setKeysFromPrivKey() {                                         
     // -This hole section can be optimized by making it a function like lift R2-Rq for private key
     this->publicKey = convolutionRq(R2_privateKeyInv, 2 - productByPrivatKey(R2_privateKeyInv));
     k <<= l; l <<= 1;
-	while(k < _q_) {
+	while(k < NTRU_Q) {
         this->publicKey = this->publicKey*(2 - productByPrivatKey(publicKey));
         k <<= l; l <<= 1;
     }                                                                           // -At this line, we have just created the private key and its inverse
@@ -509,10 +509,10 @@ RqPolynomial Encryption::encrypt(const char bytes[], size_t size) const{
 
 RqPolynomial Encryption::encrypt(const RpPolynomial& msg) const{
     RqPolynomial encryption;
-    int*  randTernary = new int[_N_];                                           // -Will represent the random polynomial needed for encryption
-    const int d = _N_/3;
+    int*  randTernary = new int[NTRU_N];                                           // -Will represent the random polynomial needed for encryption
+    const int d = NTRU_N/3;
     int _d_ = d, i, j, k;
-    for(i = 0; i < _N_; i++) randTernary[i] = 0;
+    for(i = 0; i < NTRU_N; i++) randTernary[i] = 0;
     while(_d_ > 0) {
         i = randomIntegersN();                                                  // -Filling with threes. It represent the random polynomial multiplied by p
         if(randTernary[i] == 0) {randTernary[i] =  1; _d_--;}                   //  ...
@@ -522,24 +522,24 @@ RqPolynomial Encryption::encrypt(const RpPolynomial& msg) const{
         i = randomIntegersN();                                                  // -Filling with negative threes
         if(randTernary[i] == 0) {randTernary[i] = -1; _d_--;}                   //  ...
     }
-	for(i = 0; i < _N_; i++) {                                                  // -Convolution process
-	    k = _N_ - i;
+	for(i = 0; i < NTRU_N; i++) {                                                  // -Convolution process
+	    k = NTRU_N - i;
 	    if(randTernary[i] != 0) {
 	        if(randTernary[i] == 1) {
 	            for(j = 0; j < k; j++)                                          // -Ensuring we do not get out of the polynomial
                     encryption.coefficients[i+j] += this->publicKey[j];
 	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
-	    	        encryption.coefficients[k] += this->publicKey[j];           // Notice i+j = i + (k+_N_-i), so i+j is congruent with k mod _N_
+	    	        encryption.coefficients[k] += this->publicKey[j];           // Notice i+j = i + (k+NTRU_N-i), so i+j is congruent with k mod NTRU_N
 	        }
 	        if(randTernary[i] == -1) {
 	            for(j = 0; j < k; j++)                                          // Ensuring we do not get out of the polynomial
                     encryption.coefficients[i+j] -= this->publicKey[j];
 	            for(k = 0; k < i; j++, k++)                                     // Using the definition of convolution polynomial ring
-	    	        encryption.coefficients[k] -= this->publicKey[j];           // Notice i+j = i + (k+_N_-i), so i+j is congruent with k mod _N_
+	    	        encryption.coefficients[k] -= this->publicKey[j];           // Notice i+j = i + (k+NTRU_N-i), so i+j is congruent with k mod NTRU_N
 	        }
 	    }
 	}
-	for(i = 0; i < _N_; i++) {                                                  // -Adding this polynomial (adding message)
+	for(i = 0; i < NTRU_N; i++) {                                                  // -Adding this polynomial (adding message)
 	    if(msg.coefficients[i] == RpPolynomial::_1_) encryption.coefficients[i]++;
 	    if(msg.coefficients[i] == RpPolynomial::_2_) encryption.coefficients[i]--;// -Number 2 is interpreted as -1.
 	}
