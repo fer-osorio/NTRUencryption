@@ -6,18 +6,18 @@
 using namespace NTRU;
 
 R2Polynomial::R2Polynomial() {
-	this->coefficients = new Z2[_N_];
-	for(int i = 0; i < _N_; i++) this->coefficients[i] = _0_;
+	this->coefficients = new Z2[NTRU_N];
+	for(int i = 0; i < NTRU_N; i++) this->coefficients[i] = _0_;
 }
 
 R2Polynomial::R2Polynomial(const R2Polynomial& P) {
-    this->coefficients = new Z2[_N_];
-    for(int i = 0; i < _N_; i++) this->coefficients[i] = P.coefficients[i];
+    this->coefficients = new Z2[NTRU_N];
+    for(int i = 0; i < NTRU_N; i++) this->coefficients[i] = P.coefficients[i];
 }
 
 R2Polynomial::R2Polynomial(const RpPolynomial& P) {
-	this->coefficients = new Z2[_N_];
-	for(int i = 0; i < _N_; i++) {
+	this->coefficients = new Z2[NTRU_N];
+	for(int i = 0; i < NTRU_N; i++) {
 	    if(P[i] != RpPolynomial::_0_) this->coefficients[i] = _1_;              // Two won't go to zero because it's the additive inverse of one in Z3, therefore
 	    else this->coefficients[i] = _0_;                                       // it must go to the additive inverse of one in Z2, which if itself
     }
@@ -26,16 +26,16 @@ R2Polynomial::R2Polynomial(const RpPolynomial& P) {
 R2Polynomial& R2Polynomial::operator = (const R2Polynomial& P)  {
 	if(this != &P) {													        // Guarding against self assignment
 		if(this->coefficients != NULL) delete[] this->coefficients;
-		this->coefficients = new Z2[_N_];
-		for(int i = 0; i < _N_; i++) this->coefficients[i] = P.coefficients[i];
+		this->coefficients = new Z2[NTRU_N];
+		for(int i = 0; i < NTRU_N; i++) this->coefficients[i] = P.coefficients[i];
 	}
 	return *this;
 }
 
 R2Polynomial& R2Polynomial::operator = (const RpPolynomial& P) {
 	if(this->coefficients != NULL) delete[] this->coefficients;                 // In case of having an object created with the default (private) constructor
-	this->coefficients = new Z2[_N_];
-	for(int i = 0; i < _N_; i++) {                                              // Fitting the RpPolynomial in a R2Polynomial
+	this->coefficients = new Z2[NTRU_N];
+	for(int i = 0; i < NTRU_N; i++) {                                              // Fitting the RpPolynomial in a R2Polynomial
 	    if(P[i] != RpPolynomial::_0_) this->coefficients[i] = _1_;
 	    else this->coefficients[i] = _0_;
 	}
@@ -44,15 +44,15 @@ R2Polynomial& R2Polynomial::operator = (const RpPolynomial& P) {
 
 R2Polynomial& R2Polynomial::operator = (Z2 t)  {
 	if(this->coefficients != NULL) delete[] this->coefficients;                 // In case of have been generated from the (private) default constructor
-	this->coefficients = new Z2[_N_];
+	this->coefficients = new Z2[NTRU_N];
 	this->coefficients[0] = t;
-	for(int i = 1; i < _N_; i++) this->coefficients[i] = _0_;
+	for(int i = 1; i < NTRU_N; i++) this->coefficients[i] = _0_;
 	return *this;
 }
 
 R2Polynomial R2Polynomial::operator + (const R2Polynomial& P) const {
     R2Polynomial r;                                                             // -Initializing result with zeros
-    for(int i = 0; i < _N_; i++)
+    for(int i = 0; i < NTRU_N; i++)
         r.coefficients[i] = this->coefficients[i] + P.coefficients[i];          // -Addition element by element till the smallest degree of the arguments
     return r;
 }
@@ -65,9 +65,9 @@ R2Polynomial R2Polynomial::operator * (const R2Polynomial& P) const{ // Classica
     R2Polynomial r;                                                             // -Initializing with zeros
     int i, j, k, l;
 
-	for(i = 0; i < _N_; i++) {
+	for(i = 0; i < NTRU_N; i++) {
 		if(this->coefficients[i] != _0_) {                                      // -Polynomial over binary field, here we know  this->coefficients[i] is 1
-		    k = _N_ - i;
+		    k = NTRU_N - i;
 		    for(j = 0; j < k; j++) {                                            // -Adding and multiplying while the inequality i+j < N holds
 		        l = i+j;
 			    if(P.coefficients[j] != r.coefficients[l]) r.coefficients[l] = _1_;
@@ -125,12 +125,12 @@ R2Polynomial R2Polynomial::gcdXNmns1(R2Polynomial& thisBezout) const{
     Z2 leadCoeff = this->coefficients[deg];                                     // Lead coefficient of this polynomial
     R2Polynomial quoRem[2]={R2Polynomial(), R2Polynomial()};
 
-    quoRem[0].coefficients[_N_-deg] = leadCoeff;                                // Start of division algorithm between virtual polynomial x^N-1 and this
-    for(i = deg-1, j = _N_ - 1; i >= 0; i--, j--) {                             // First coefficient of quotient and first subtraction
+    quoRem[0].coefficients[NTRU_N-deg] = leadCoeff;                                // Start of division algorithm between virtual polynomial x^N-1 and this
+    for(i = deg-1, j = NTRU_N - 1; i >= 0; i--, j--) {                             // First coefficient of quotient and first subtraction
         quoRem[1].coefficients[j] = this->coefficients[i];                      // All x in Z2, -x = x
     }
     quoRem[1].coefficients[0] = _1_;                                            // Putting the -1 that is at the end of the polynomial x^N-1. 1 == -1 in Z2
-    for(i = _N_-1 - deg, j = _N_-1; j >= deg; i = j - deg) {                        // Continuing with division algorithm; i is the place of the next coefficient of
+    for(i = NTRU_N-1 - deg, j = NTRU_N-1; j >= deg; i = j - deg) {                        // Continuing with division algorithm; i is the place of the next coefficient of
         quoRem[0].coefficients[i] = leadCoeff * quoRem[1].coefficients[j];      // the quotient, j is the degree of the remainders.
         for(k = deg, l = j; k >= 0; k--, l--) {                                 // Multiplication-subtraction step
             quoRem[1].coefficients[l] -=
@@ -161,18 +161,18 @@ R2Polynomial R2Polynomial::gcdXNmns1(R2Polynomial& thisBezout) const{
 }
 
 bool R2Polynomial::operator == (const R2Polynomial& P) const{
-	for(int i = 0; i < _N_; i++) if(this->coefficients[i] != P.coefficients[i])  return false;
+	for(int i = 0; i < NTRU_N; i++) if(this->coefficients[i] != P.coefficients[i])  return false;
 	return true;
 }
 
 R2Polynomial::Z2 R2Polynomial::operator[](int i) const{
 	if(i < 0) i = -i;
-	if(i >= _N_) i %= _N_;
+	if(i >= NTRU_N) i %= NTRU_N;
 	return this->coefficients[i];
 }
 
 int R2Polynomial::degree() const{												// Returns degree of polynomial
-	int deg = _N_;
+	int deg = NTRU_N;
 	while(this->coefficients[--deg] == _0_ && deg > 0) {}
 	return deg;
 }

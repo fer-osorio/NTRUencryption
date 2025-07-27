@@ -5,32 +5,32 @@
 using namespace NTRU;
 
 RpPolynomial::RpPolynomial() {
-	this->coefficients = new Z3[_N_];
-	for(int i = 0; i < _N_; i++) this->coefficients[i] = _0_;
+	this->coefficients = new Z3[NTRU_N];
+	for(int i = 0; i < NTRU_N; i++) this->coefficients[i] = _0_;
 }
 
 RpPolynomial::RpPolynomial(const RpPolynomial& P) {
-	this->coefficients = new Z3[_N_];
-	for(int i = 0; i < _N_; i++) this->coefficients[i] = P.coefficients[i];
+	this->coefficients = new Z3[NTRU_N];
+	for(int i = 0; i < NTRU_N; i++) this->coefficients[i] = P.coefficients[i];
 }
 
 RpPolynomial& RpPolynomial::operator = (const RpPolynomial& P) {
     if(this != &P) {													        // Guarding against self assignment
         if(this->coefficients != NULL) delete[] this->coefficients;
-        this->coefficients = new Z3[_N_];
-	    for(int i = 0; i < _N_; i++) this->coefficients[i] = P.coefficients[i];
+        this->coefficients = new Z3[NTRU_N];
+	    for(int i = 0; i < NTRU_N; i++) this->coefficients[i] = P.coefficients[i];
 	}
 	return *this;
 }
 
 int RpPolynomial::operator [] (int i) const{
 	if(i < 0) i = -i;
-	if(i > _N_) i %= _N_;
+	if(i > NTRU_N) i %= NTRU_N;
 	return this->coefficients[i];
 }
 
 int RpPolynomial::degree() const{
-    int deg = _N_;
+    int deg = NTRU_N;
 	while(this->coefficients[--deg] == 0 && deg > 0) {}
 	return deg;
 }
@@ -41,7 +41,7 @@ static int64_t multiplyBy_3(int64_t t) {
 
 mpz_class RpPolynomial::toNumber() const{                                       // -Interprets this->coefficients as a number in base 3
     mpz_class r = 0, base = 3;
-    for(int i = _N_-1; i >= 0; i--) r = r*base + this->coefficients[i];         // -Horner's algorithm
+    for(int i = NTRU_N-1; i >= 0; i--) r = r*base + this->coefficients[i];         // -Horner's algorithm
     return r;
 }
 
