@@ -10,11 +10,11 @@ INCLUDE_DIR = include
 endif
 
 # Colors for pretty output (not necessary but cool)
-RED = \033[0;31m
-GREEN = \033[0;32m
-YELLOW = \033[0;33m
-BLUE = \033[0;34m
-NC = \033[0m          # No Color
+RED = \e[31m
+GREEN = \e[32m
+YELLOW = \e[33m
+BLUE = \e[34m
+RESET_COLOR = \e[0m          # No Color
 
 # Function to create directories
 define create_dir
@@ -23,19 +23,19 @@ endef
 
 # Functions to print colored messages
 define print_info
-	@echo "$(BLUE)[INFO]$(NC) $(1)"
+	@echo -e "$(BLUE)[INFO]$(RESET_COLOR) $(1)"
 endef
 
 define print_success
-	@echo "$(GREEN)[SUCCESS]$(NC) $(1)"
+	@echo -e "$(GREEN)[SUCCESS]$(RESET_COLOR) $(1)"
 endef
 
 define print_warning
-	@echo "$(YELLOW)[WARNING]$(NC) $(1)"
+	@echo -e "$(YELLOW)[WARNING]$(RESET_COLOR) $(1)"
 endef
 
 define print_error
-	@echo "$(RED)[ERROR]$(NC) $(1)"
+	@echo -e "$(RED)[ERROR]$(RESET_COLOR) $(1)"
 endef
 
 # Standard compilation rule for C++ files
@@ -52,7 +52,7 @@ define create_static_lib
 	$(call print_info,Creating static library $(1))
 	$(call create_dir,$(dir $(1)))
 	$(AR) rcs $(1) $(2) # AR: Archiver (usually ar), r: Insert files into archive (replace if they exist), c: Create archive if it does not exist (do not warn), s: Write an index (symbol table) for faster linking
-	$(call print_success,Static library created; $(1))
+	$(call print_success,Static library created: $(1))
 endef
 
 # Standard rule for creating shared libraries
@@ -101,50 +101,53 @@ endef
 
 # Check if program exist
 # Usage: $(call check_program,program_name)
+# 'which $(1)' look for $(1); '>/dev/null 2>&1' redirect stdout and stderr to supress status message; ' && echo "found" || echo "missing" ' if which succed, outputs "found", if not outputs "missing"
 define check_program
-$(shell which $(1) >/dev/null 2>&1 && echo "found" || echo "missing") # 'which $(1)' look for $(1); '>/dev/null 2>&1' redirect stdout and stderr to supress status message; ' && echo "found" || echo "missing" ' if which succed, outputs "found", if not outputs "missing"
+$(shell which $(1) >/dev/null 2>&1 && echo "found" || echo "missing")
 endef
 
 define check_dependencies
 	$(call print_info,Checking dependencies...)
-	@if [ "$(call check_program,$(CXX))" = "missing" ]; then \		# Check if GNU g++ compiler is installed
+	# Check if GNU g++ compiler is installed
+	@if [ "$(call check_program,$(CXX))" = "missing" ]; then \
 		$(call print_error,C++ compiler $(CXX) not found); \
 		exit 1; \
 	fi
-	@if [ "$(call check_program,pkg-config)" = "found" ]; then \		# Check if pkg-config package is installed
-		if ! pkg-config --exists gmp >/dev/null 2>&1; then \		# Check -through pkg-config- if gmp library is installed
+	# Check if pkg-config package is installed; Check -through pkg-config- if gmp library is installed
+	@if [ "$(call check_program,pkg-config)" = "found" ]; then \
+		if ! pkg-config --exists gmp >/dev/null 2>&1; then \
 			$(call print_warning,GMP library not found via pkg-config); \
 		fi; \
 	else \
-		$(call print_warning,pkg-config not found, skipping GMP check); \
+		$(call print_warning,'pkg-config not found, skipping GMP check'); \
 	fi
 	$(call print_success,Dependencies check completed)
 endef
 
 # Help function - shows available targets
 define show_help
-    @echo "$(BLUE)Available targets:$(NC)"
-    @echo "  $(GREEN)all$(NC)       - Build everything (libraries, examples)"
-    @echo "  $(GREEN)lib$(NC)       - Build only the library"
-    @echo "  $(GREEN)examples$(NC)  - Build example programs"
-    @echo "  $(GREEN)test$(NC)      - Build and run tests"
-#    @echo "  $(GREEN)docs$(NC)      - Generate documentation"
-#    @echo "  $(GREEN)clean$(NC)     - Remove all build artifacts"
-#    @echo "  $(GREEN)install$(NC)   - Install library system-wide"
-    @echo "  $(GREEN)help$(NC)      - Show this help message"
-    @echo ""
-#    @echo "$(BLUE)Build options:$(NC)"
-#    @echo "  $(YELLOW)DEBUG=1$(NC)   - Build with debug symbols"
-#    @echo "  $(YELLOW)-j N$(NC)      - Build with N parallel jobs"
-#    @echo ""
-#    @echo "$(BLUE)Examples:$(NC)"
-#    @echo "  make DEBUG=1           # Debug build"
-#    @echo "  make -j8               # Parallel build with 8 jobs"
-#    @echo "  make clean all         # Clean rebuild"
+	@echo -e "$(BLUE)Available targets:$(RESET_COLOR)"
+	@echo -e "  $(GREEN)all$(RESET_COLOR)       - Build everything (libraries, examples)"
+	@echo -e "  $(GREEN)lib$(RESET_COLOR)       - Build only the library"
+	@echo -e "  $(GREEN)examples$(RESET_COLOR)  - Build example programs"
+	@echo -e "  $(GREEN)test$(RESET_COLOR)      - Build and run tests"
+#	@echo -e "  $(GREEN)docs$(RESET_COLOR)      - Generate documentation"
+#	@echo -e "  $(GREEN)clean$(RESET_COLOR)     - Remove all build artifacts"
+#	@echo -e "  $(GREEN)install$(RESET_COLOR)   - Install library system-wide"
+	@echo -e "  $(GREEN)help$(RESET_COLOR)      - Show this help message"
+	@echo ""
+#	@echo -e "$(BLUE)Build options:$(RESET_COLOR)"
+#	@echo -e "  $(YELLOW)DEBUG=1$(RESET_COLOR)   - Build with debug symbols"
+#	@echo -e "  $(YELLOW)-j N$(RESET_COLOR)      - Build with N parallel jobs"
+#	@echo ""
+#	@echo -e "$(BLUE)Examples:$(RESET_COLOR)"
+#	@echo "  make DEBUG=1           # Debug build"
+#	@echo "  make -j8               # Parallel build with 8 jobs"
+#	@echo "  make clean all         # Clean rebuild"
 endef
 
 # Make help the default if no target is specified
-.DEFAULT_GOAL := help
+#.DEFAULT_GOAL := help
 
 # Common phony targets
 .PHONY: help clean all
