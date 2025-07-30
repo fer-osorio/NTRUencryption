@@ -3,7 +3,7 @@
 #include<random>
 #include"../../include/ntru/encryption.hpp"
 #include"../../include/ntru/exceptions.hpp"
-#include"../core/parameter_validation.hpp"
+#include"parameter_validation.hpp"
 
 using namespace NTRU;
 
