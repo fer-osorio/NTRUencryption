@@ -35,10 +35,6 @@ int RpPolynomial::degree() const{
 	return deg;
 }
 
-static int64_t multiplyBy_3(int64_t t) {
-    return (t << 1) + t;                                                        // -This expression is equivalent to t*2 + t
-}
-
 mpz_class RpPolynomial::toNumber() const{                                       // -Interprets this->coefficients as a number in base 3
     mpz_class r = 0, base = 3;
     for(int i = NTRU_N-1; i >= 0; i--) r = r*base + this->coefficients[i];         // -Horner's algorithm
