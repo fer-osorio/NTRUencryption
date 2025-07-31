@@ -40,18 +40,20 @@ endef
 
 # Standard compilation rule for C++ files
 # Usage: $(call compile_cpp, source_file, object_file, additional_flags)
+# -I: Compiler includes directory, MMD: Generates dependency fiel, -MP: Add pony targets for each dependency
 define compile_cpp
 	$(call print_info,Compiling $(1))
 	$(call create_dir,$(dir $(2)))
-	$(CXX) $(CXXFLAGS) $(3) -I(INCLUDE_DIR) -MMD -MP -c $(1) -o $(2) # -I: Compiler includes directory, MMD: Generates dependency fiel, -MP: Add pony targets for each dependency
+	$(CXX) $(CXXFLAGS) $(3) -I$(INCLUDE_DIR) -MMD -MP -c $(1) -o $(2)
 endef
 
 # Standard rule for creating static libraries
 # Usage: $(call create_static_lib, library_file, object_files)
+# AR: Archiver (usually ar), r: Insert files into archive (replace if they exist), c: Create archive if it does not exist (do not warn), s: Write an index (symbol table) for faster linking
 define create_static_lib
 	$(call print_info,Creating static library $(1))
 	$(call create_dir,$(dir $(1)))
-	$(AR) rcs $(1) $(2) # AR: Archiver (usually ar), r: Insert files into archive (replace if they exist), c: Create archive if it does not exist (do not warn), s: Write an index (symbol table) for faster linking
+	$(AR) rcs $(1) $(2)
 	$(call print_success,Static library created: $(1))
 endef
 
@@ -81,8 +83,9 @@ endef
 
 # Function to convert source files to object files
 # Usage: OBJECTS = (call sources_to_objects, sources, build_prefix)
+ # If $(1) has .cpp as suffix, the suffix gets "cutted" and the $(2)/obj/>>the rest of $(1)<<.o is the output
 define sources_to_objects
-$(patsubst %.cpp,$(2)/obj/%.o,$(1)) # If $(1) has .cpp as suffix, the suffix gets "cutted" and the $(2)/obj/>>the rest of $(1)<<.o is the output
+$(patsubst %.cpp,$(2)/obj/%.o,$(1))
 endef
 
 # Function to get dependency files from object files
@@ -106,14 +109,14 @@ define check_program
 $(shell which $(1) >/dev/null 2>&1 && echo "found" || echo "missing")
 endef
 
+# Check if GNU g++ compiler is installed
+# Check if pkg-config package is installed; Check -through pkg-config- if gmp library is installed
 define check_dependencies
 	$(call print_info,Checking dependencies...)
-	# Check if GNU g++ compiler is installed
 	@if [ "$(call check_program,$(CXX))" = "missing" ]; then \
 		$(call print_error,C++ compiler $(CXX) not found); \
 		exit 1; \
 	fi
-	# Check if pkg-config package is installed; Check -through pkg-config- if gmp library is installed
 	@if [ "$(call check_program,pkg-config)" = "found" ]; then \
 		if ! pkg-config --exists gmp >/dev/null 2>&1; then \
 			$(call print_warning,GMP library not found via pkg-config); \
