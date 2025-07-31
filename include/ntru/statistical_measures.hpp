@@ -56,8 +56,8 @@ public:
 
 struct DataRandomness{								// -Specialized to handle data from raw bytes
 private:
-	std::optional<double> Entropy;
-	std::optional<double> ChiSquare;
+	std::optional<double> Entropy = std::nullopt;
+	std::optional<double> ChiSquare = std::nullopt;
 
 	size_t data_size = 0;
 	std::array<uint32_t, 256> byteValueFrequence{};
@@ -95,7 +95,7 @@ public:
 		this->calculate_ChiSquare();
 	}
 
-	double calculateCorrelation(std::vector<const std::byte> data, size_t offset) const { // Correlation is (arguably) better as a method since it requires an extra parameter.
+	double calculateCorrelation(std::vector<std::byte> data, size_t offset) const { // Correlation is (arguably) better as a method since it requires an extra parameter.
 		double average = 0.0;
 		double variance = 0.0;
 		double covariance = 0.0;
