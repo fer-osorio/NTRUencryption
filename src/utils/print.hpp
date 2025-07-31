@@ -11,7 +11,6 @@ union int64_to_char {                                                           
     int64_t int64;
     char    chars[8];
 };
-
 static int max(int a, int b) {
 	if(a < b) return b;
 	return a;
@@ -38,14 +37,14 @@ static int intToHexString(int n, char* dest) {                                  
 static int printSpaces(unsigned t) {
 	while(t-- > 0) std::cout << ' ' ;
 	return 0;
-}																				// Functions for printing
-static unsigned lengthHexadecimalInt(int a) {                                   // -Returns the number of decimal characters for the number a
+}										// Functions for printing
+unsigned lengthHexadecimalInt(int a) {                                   // -Returns the number of decimal characters for the number a
     unsigned l = 0;
     do { a /= HEXADECIMAL_BASE; l++;
     }while(a > 0);
     return l;
 }
-static void printIntArray(int* array, unsigned arrlen, unsigned columnlen, const char* name = "", const char* tail = "") {
+void printIntArray(int* array, unsigned arrlen, unsigned columnlen, const char* name = "", const char* tail = "") {
     char buff[10];                                                              // Buffer necessary for the int -> string conversion
     int strLen = 0;                                                             // Start length in characters
     int i=0,j=0;
@@ -82,7 +81,6 @@ static void printIntArray(int* array, unsigned arrlen, unsigned columnlen, const
     }while(++i < (int)arrlen);
     std::cout << tail;
 }
-
 static void printByteArrayBin(const char byteArray[], size_t size){             // -Prints an array of bytes with no line break.
     uint8_t bit = 0x80;                                                         // -Byte 1000,0000
     size_t i = 0, t = 0, size_1 = size > 0? size-1: 0;
@@ -139,7 +137,7 @@ static void printByteArrayChar(const char byteArray[], size_t size){            
     }
 }
 
-static void displayByteArray(const char byteArray[], size_t size, size_t columnSize, const char format[]){
+void displayByteArray(const char byteArray[], size_t size, size_t columnSize, const char format[]){
     if(byteArray == NULL) return;
     if(size == 0) return;
     if(columnSize == 0) columnSize = size;
