@@ -93,14 +93,14 @@ size_t Encryption::outputPlainTextMaxSizeInBytes() { return size_t(NTRU_N/6 + 1)
     bits, therefor we can -roughly speaking- copy the bits inside the byte array and paste them directly into the coefficients of the polynomial. The procedure
     is more complicated, but that is the main idea.
 */
-size_t Encryption::cipherTextSizeInBytes() { return size_t(NTRU_N*log2q/8 + 1); }
+size_t Encryption::cipherTextSizeInBytes() { return size_t(NTRU_N*getlog2q()/8 + 1); }
 /*
    -Private key is generated randomly inside the program, so a 6-digits number where the digits are a pack of 6 consecutive coefficients may be greater than 255
     (the maximum value of a 6-digits number is 728). Here, the process from private key in polynomial form to byte array takes 5 consecutive coefficients and
     "converts" it to a 5-digits number in base 3. Thats the reason why the private key needs NTRU_N/5 + 1 bytes to be represente -under this protocol-.
 */
 size_t Encryption::privateKeySizeInBytes(){ return size_t(NTRU_N/5 + 1); }
-size_t Encryption::publicKeySizeInBytes() { return size_t(NTRU_N*log2q/8 + 1); }
+size_t Encryption::publicKeySizeInBytes() { return size_t(NTRU_N*getlog2q()/8 + 1); }
 
 void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const{
     const std::string thisFunc = "void Encryption::saveKeys(const char publicKeyName[], const char privateKeyName[]) const";
