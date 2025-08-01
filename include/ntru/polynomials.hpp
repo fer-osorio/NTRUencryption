@@ -14,6 +14,7 @@ RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
 RqPolynomial convolutionRq(const R2Polynomial&, const RqPolynomial&);
 RqPolynomial convolutionRq(const RpPolynomial&, const RqPolynomial&);
 RpPolynomial mods_p(RqPolynomial);
+int getlog2q();
 
 class RpPolynomial {								// -Representation of the polynomials in Rp := Zp[x]/(x^N-1)
 public:
@@ -136,7 +137,5 @@ public:
 private:
 	RqPolynomial& timesThree();						// -Gets a RpPolynomial via the operations 3p + 1
 };
-
 }
-
 #endif
