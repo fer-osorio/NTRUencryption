@@ -4,6 +4,11 @@
 
 using namespace NTRU;
 
+union int64_to_char {                                                           // Allows to cast from an int64_t to an array of four bytes (char)
+    int64_t int64;
+    char    chars[8];
+};
+
 static int log2_q(ntru_q q) {                                                   // -Returns logarithm base 2 of a ntru_q value
     int log2q = 0, qq = q;
     for(; qq > 1; qq >>= 1, log2q++) {}
