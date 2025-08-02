@@ -7,10 +7,6 @@
 
 #define HEXADECIMAL_BASE 16
 
-union int64_to_char {                                                           // Allows to cast from an int64_t to an array of four bytes (char)
-    int64_t int64;
-    char    chars[8];
-};
 static int max(int a, int b) {
 	if(a < b) return b;
 	return a;
