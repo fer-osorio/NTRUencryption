@@ -96,9 +96,10 @@ endef
 
 # Standard clean rule
 # Usage: $(call standard_clean, directories_to_clean)
+# -rf: recursive and force options
 define standard_clean
 	$(call print_info,Cleaning $(1))
-	rm -rf $(1) # -rf: recursive and force options
+	rm -rf $(1)
 	$(call print_success,Cleaned $(1))
 endef
 
