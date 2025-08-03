@@ -39,7 +39,7 @@ $(BUILD_DIR_PATH)/examples/obj/%.o: %.cpp
 	$(call compile_cpp,$<,$@,-I../$(INCLUDE_DIR))
 
 clean:
-	$(call standard_clean,$(BUILD_DIR_PATH)/bin/basic_encryption $(BUILD_DIR_PATH)/bin/file_encryptor)
+	$(call standard_clean,$(BUILD_DIR_PATH)/bin/basic_encryption $(BUILD_DIR_PATH)/bin/file_encryptor $(BUILD_DIR_PATH)/examples)
 
 #	$(call standard_clean,$(BUILD_DIR_PATH)/bin/example_* $(BUILD_DIR_PATH)/bin/file_* $(BUILD_DIR_PATH)/bin/perf_* $(BUILD_DIR_PATH)/bin/advanced_* $(BUILD_DIR_PATH)/examples)
 
