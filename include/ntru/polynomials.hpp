@@ -13,8 +13,7 @@ class Encryption;
 RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
 RqPolynomial convolutionRq(const R2Polynomial&, const RqPolynomial&);
 RqPolynomial convolutionRq(const RpPolynomial&, const RqPolynomial&);
-RpPolynomial mods_p(RqPolynomial);
-int getlog2q();
+RpPolynomial mods_p(const RqPolynomial&);
 
 class RpPolynomial {								// -Representation of the polynomials in Rp := Zp[x]/(x^N-1)
 public:
@@ -23,7 +22,7 @@ private:
 	Z3* coefficients = NULL;
 
 	friend Encryption;
-	friend RpPolynomial mods_p(RqPolynomial P);
+	friend RpPolynomial mods_p(const RqPolynomial& P);
 	friend RqPolynomial convolutionRq(const R2Polynomial&, const RpPolynomial&);
 	friend RqPolynomial convolutionRq(const RpPolynomial&, const RqPolynomial&);
 public:
