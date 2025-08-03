@@ -6,9 +6,6 @@
 
 namespace NTRU {
 
-int get_N();
-int get_q();
-
 class Encryption {
 private:
 	// -Initializing with zeros
