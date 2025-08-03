@@ -1,7 +1,7 @@
 #include"../../include/ntru/polynomials.hpp"
 #include"../../include/ntru/exceptions.hpp"
-#include"../core/parameter_validation.hpp"
-#include"../utils/print.hpp"
+#include"../../include/ntru/parameters_constants.hpp"
+#include"../../include/print_debug/print_array_table.hpp"
 
 using namespace NTRU;
 
@@ -178,11 +178,7 @@ int R2Polynomial::degree() const{												// Returns degree of polynomial
 }
 
 void R2Polynomial::print(const char* name,const char* tail) const{
-    int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
-    int* array = new int[coeffAmount], i;                                       // ...
-    for(i = 0; i < coeffAmount; i++) array[i] = (int)this->coefficients[i];     // ...
-    printIntArray(array, (unsigned)coeffAmount, 2, name, tail);
-    delete[] array;
+    print_table<Z2>(this->coefficients, (size_t)this->degree()+1, name, tail, 2);
 }
 
 void R2Polynomial::println(const char* name) const{

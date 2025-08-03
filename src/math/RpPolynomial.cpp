@@ -1,6 +1,6 @@
 #include"../../include/ntru/polynomials.hpp"
-#include"../core/parameter_validation.hpp"
-#include"../utils/print.hpp"
+#include"../../include/ntru/parameters_constants.hpp"
+#include"../../include/print_debug/print_array_table.hpp"
 
 using namespace NTRU;
 
@@ -42,12 +42,16 @@ mpz_class RpPolynomial::toNumber() const{                                       
 }
 
 void RpPolynomial::print(const char* name, bool centered, const char* tail) const{
-    int coeffAmount = this->degree() + 1;                                       // This three lines is a "casting" from Z2 array to int array
-    int* array = new int[coeffAmount], i;                                       // ...
-    for(i = 0; i < coeffAmount; i++) array[i] = (int)this->coefficients[i];     // ...
-    if(centered) for(i = 0; i < coeffAmount; i++) if(array[i] == 2) array[i] = -1; // Printing the polynomials with coefficient in {-1, 0, 1}
-    printIntArray(array, (unsigned)coeffAmount, 3, name, tail);
-    delete[] array;
+    short coeffs[NTRU_N];
+    int coeffAmount = this->degree() + 1, i;
+    for(i = 0; i < coeffAmount; i++) {
+        if(this->coefficients[i] == 2) {
+            if(centered) coeffs[i] = -1;                                        // Printing the polynomials with coefficient in {-1, 0, 1}
+            else coeffs[i] = 2;
+        }
+        else coeffs[i] = this->coefficients[i];                                 // ...
+    }
+    print_table<short>(coeffs, (size_t)this->degree()+1, name, tail, 3);
 }
 
 void RpPolynomial::println(const char* name, bool centered) const{

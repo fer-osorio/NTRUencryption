@@ -1,6 +1,7 @@
+#include<cstdint>
 #include"../../include/ntru/polynomials.hpp"
-#include"../core/parameter_validation.hpp"
-#include"../utils/print.hpp"
+#include"../../include/ntru/parameters_constants.hpp"
+#include"../../include/print_debug/print_array_table.hpp"
 
 using namespace NTRU;
 
@@ -9,16 +10,10 @@ union int64_to_char {                                                           
     char    chars[8];
 };
 
-static int log2_q(ntru_q q) {                                                   // -Returns logarithm base 2 of a ntru_q value
-    int log2q = 0, qq = q;
-    for(; qq > 1; qq >>= 1, log2q++) {}
-    return log2q;
-}
 
 int64_t q_1     = (int64_t)NTRU_Q-1;										    // Will hold q-1, this will help with mod q operation
 int64_t negq_1  = ~q_1;													        // This will help in the centering process. Set as ~q_1
 int64_t q_div_2 = NTRU_Q>>1;
-int     log2q   = log2_q((ntru_q)NTRU_Q);
 
 int64_t modq(int64_t t) {											            // operation t % q
     if(t >= 0)	return t & q_1;									                // Equivalent to t % q since q is a power of 2
@@ -31,10 +26,6 @@ int64_t modsq(int64_t a) {
         else r = (a | negq_1) & q_1;							                // Computing q - (-a%q) because -t = -(Q-1)q + (q-r) 0 <= r < q
     if(r < q_div_2) return r;										            // At this point we know 0 <= r < q
     else return r | negq_1;										                // This is equivalent to r - this->q when r < q
-}
-
-int getlog2q(){
-    return log2q;
 }
 
 RqPolynomial::RqPolynomial() {
@@ -121,7 +112,7 @@ RqPolynomial NTRU::operator - (int64_t t, const RqPolynomial& P) {
     return r;
 }
 
-RpPolynomial NTRU::mods_p(RqPolynomial P) {
+RpPolynomial NTRU::mods_p(const RqPolynomial& P) {
     RpPolynomial r;
     for(int i = 0, buff = 0; i < NTRU_N; i++) {
         buff = P[i] % 3;
@@ -240,12 +231,8 @@ void RqPolynomial::toBytes(char dest[]) const{                                  
 }
 
 void RqPolynomial::print(const char* name,const char* tail) const{
-    unsigned len_q = lengthHexadecimalInt(NTRU_Q);
-    int coeffAmount = this->degree() + 1;                                       // -This three lines is a "casting" from int64_t array to int array
-    int* array = new int[coeffAmount], i;                                       // ...
-    for(i = 0; i < coeffAmount; i++) array[i] = (int)this->coefficients[i];     // ...
-    printIntArray(array, (unsigned)coeffAmount, len_q+1, name, tail);
-    delete[] array;
+    size_t len_q = lenHexRep(NTRU_Q);
+    print_table<int64_t>(this->coefficients, (size_t)this->degree()+1, name, tail, len_q);
 }
 
 void RqPolynomial::println(const char* name) const{
