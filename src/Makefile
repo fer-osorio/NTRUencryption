@@ -9,8 +9,8 @@ BUILD_DIR_PATH = $(UP)$(BUILD_DIR)
 SOURCES = $(shell find . -name "*.cpp" 2>/dev/null)                             # "./*.cpp" #$(call find_sources,.,cpp)
 CLEAN_SOURCES = $(patsubst ./%,%,$(SOURCES))                                    # Remove the leading ./
 OBJECTS = $(patsubst %.cpp,$(BUILD_DIR_PATH)/src/obj/%.o,$(CLEAN_SOURCES))      # This would create build/src/obj/core/encryption.o, build/src/obj/math/R2Polynomial.o, etc.
-$(info SOURCES: $(SOURCES))                                                     # Debugging purposes
-$(info CLEAN_SOURCES: $(CLEAN_SOURCES))                                         # Debugging purposes
+#$(info SOURCES: $(SOURCES))                                                     # Debugging purposes
+#$(info CLEAN_SOURCES: $(CLEAN_SOURCES))                                         # Debugging purposes
 $(info OBJECTS: $(OBJECTS))                                                     # Debugging purposes
 #$(call sources_to_objects,$(CLEAN_SOURCES),$(BUILD_DIR_PATH)/src)
 DEPS = $(call objects_to_deps,$(OBJECTS))
@@ -20,7 +20,7 @@ STATIC_LIB = $(BUILD_DIR_PATH)/lib/libntru.a
 
 .PHONY: all clean deps-check
 
-all: deps-check $(STATIC_LIB)# $(SHARED_LIB)
+all: deps-check $(STATIC_LIB) #$(SHARED_LIB)
 
 deps-check:
 	$(call check_dependencies)
