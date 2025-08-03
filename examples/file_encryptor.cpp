@@ -18,7 +18,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#include"../Source/NTRUencryption.hpp"
+#include<iostream>
+#include"../include/ntru/ntru.hpp"
 
 static void displayUsage() {                                                    // -Executable with no arguments is equivalent to asking for help.
     std::cout << "Usage: NTRUencryption <command> [args...]\n";
@@ -30,7 +31,7 @@ static void displayUsage() {                                                    
 
 static void showParameters(){
     printf("\t-----------------------------------------\n");
-    printf("\t| NTRU parmeters: N = %d, q = %d\t|\n", NTRU::get_N(), NTRU::get_q());
+    printf("\t| NTRU parmeters: N = %d, q = %d\t|\n", NTRU_N, NTRU_Q);
     printf("\t| Plain text maximum size = %lu \t|\n", NTRU::Encryption::inputPlainTextMaxSizeInBytes());
     printf("\t| Cipher text size = %lu \t\t|\n",      NTRU::Encryption::cipherTextSizeInBytes());
     printf("\t-----------------------------------------\n");
@@ -62,7 +63,7 @@ int main(int argc, char* argv[]) {
         ptr_e->printKeys(); std::cout << std::endl;
         std::cout << "\t***************************************************************************************************************************************************\n\n";
         if(command == "encrypt"){
-            NTRU::ZqPolynomial encMsg;
+            NTRU::RqPolynomial encMsg;
             try{
                 std::cout << "\tEncrypting file contents...\n";
                 encMsg = ptr_e->encryptFile(argv[3]);                           // -Encrypts file
@@ -74,7 +75,7 @@ int main(int argc, char* argv[]) {
             encMsg.println("Encrypted file vector");
             try{
                 std::string encMsgFname = std::string(argv[3]) + ".enc";
-                encMsg.save(encMsgFname.c_str());
+                NTRU::Encryption::RqPolynomialSave(encMsg, encMsgFname.c_str());
             } catch(const std::runtime_error& exp){
                 delete ptr_e;
                 std::cerr << "I could not save encrypted message.\n" << exp.what() << '\n';
@@ -85,26 +86,26 @@ int main(int argc, char* argv[]) {
                 std::cerr << "No private key available for decryption process." << std::endl;
                 return EXIT_FAILURE;
             }
-            NTRU::ZqPolynomial encMsg;
+            NTRU::RqPolynomial encMsg;
             try{
-                encMsg = NTRU::ZqPolynomial::fromFile(argv[3]);                 // -Creates encrypted message from file
+                NTRU::Encryption::RqPolynomialFromFile(argv[3]);                // -Creates encrypted message from file
             }catch(const std::runtime_error& exp){
                 delete ptr_e;
-                std::cerr << "I could not create NTRU::ZqPolynomial object.\n" << exp.what() << '\n';
+                std::cerr << "I could not create NTRU::RqPolynomial object.\n" << exp.what() << '\n';
                 return EXIT_FAILURE;
             }
             encMsg.println("Encrypted message vector");
-            NTRU::ZpPolynomial msg = ptr_e->decrypt(encMsg);
+            NTRU::RpPolynomial msg = ptr_e->decrypt(encMsg);
             std::cout << std::endl;
             msg.println("Decrypted message vector");
-            NTRU::Encryption::ZpPolynomialtoBytes(msg, aux, false);
+            NTRU::Encryption::RpPolynomialtoBytes(msg, aux, false);
             std::cout << "\nDecrypted message in bynary form:";
             displayByteArrayBin(aux, NTRU::Encryption::inputPlainTextMaxSizeInBytes());std::cout << '\n';
             std::cout << "\nDecrypted message with ASCII code:";
             displayByteArrayChar(aux, NTRU::Encryption::inputPlainTextMaxSizeInBytes());std::cout << '\n';
             try{
                 std::string decMsgFname = std::string(argv[3]) + ".dec";
-                NTRU::Encryption::ZpPolynomialWriteFile(msg, decMsgFname.c_str(), false);// -Decrypting, writing as binary file
+                NTRU::Encryption::RpPolynomialWriteFile(msg, decMsgFname.c_str(), false);// -Decrypting, writing as binary file
             } catch(const std::runtime_error& exp){
                 delete ptr_e;
                 std::cerr << "I could not save decrypted message.\n" << exp.what() << '\n';
