@@ -21,3 +21,6 @@ clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C tests clean
 	$(MAKE) -C examples clean
+
+help:
+	$(call show_help)
