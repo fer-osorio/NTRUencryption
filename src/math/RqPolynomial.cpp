@@ -232,7 +232,7 @@ void RqPolynomial::toBytes(char dest[]) const{                                  
 
 void RqPolynomial::print(const char* name,const char* tail) const{
     size_t len_q = lenHexRep(NTRU_Q);
-    print_table<int64_t>(this->coefficients, (size_t)this->degree()+1, name, tail, len_q);
+    print_table<int64_t>(this->coefficients, (size_t)this->degree()+1, name, tail, len_q+1);
 }
 
 void RqPolynomial::println(const char* name) const{
