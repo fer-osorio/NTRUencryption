@@ -62,12 +62,14 @@ template <typename T> void print_table(
 			if (i > 0) std::cout << '\n';
 			// Use stringstream to format the line header
 			ssh << std::hex << "[" << (i / columns) << "] " << "(" << i  << " -- " << i + columns << ")";
-			std::cout << std::setw(row_header_sz) << ssh.str() << "  |";
+			std::cout << std::left << std::setw(row_header_sz) << ssh.str() << "  |" << std::right;
 		}
 
 		// Use stringstream to format the number and get its length for alignment
 		std::stringstream ssd;
-		ssd << std::hex << data[i];
+		ssd << std::hex;
+		if(data[i] < 0) ssd << "-" << -data[i];
+        else ssd << data[i];
 
 		// Print with appropriate padding
 		std::cout << std::setw((int)column_width) << ssd.str();
