@@ -11,7 +11,7 @@
 
 namespace StatisticalMeasures{
 
-template <typename T> struct Dispersion{
+template <typename T> class Dispersion{
 private:
 	std::optional<double> Maximum;
 	std::optional<double> Minimum;
@@ -54,7 +54,7 @@ public:
 	std::optional<double> getAAD()      const noexcept { return this->AvrAbsDev; }
 };
 
-struct DataRandomness{								// -Specialized to handle data from raw bytes
+class DataRandomness{								// -Specialized to handle data from raw bytes
 private:
 	std::optional<double> Entropy = std::nullopt;
 	std::optional<double> ChiSquare = std::nullopt;
@@ -120,7 +120,5 @@ public:
 	std::optional<double> getEntropy() const noexcept { return this->Entropy; }
 	std::optional<double> getChiSquare() const noexcept { return this->ChiSquare; }
 };
-
 }
-
 #endif
