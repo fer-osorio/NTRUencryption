@@ -6,13 +6,12 @@ UP = ../
 BUILD_DIR_PATH = $(UP)$(BUILD_DIR)
 
 # Find all sources files inside this ( . ) directory, assign object files
-SOURCES = $(shell find . -name "*.cpp" 2>/dev/null)                             # "./*.cpp" #$(call find_sources,.,cpp)
-CLEAN_SOURCES = $(patsubst ./%,%,$(SOURCES))                                    # Remove the leading ./
-OBJECTS = $(patsubst %.cpp,$(BUILD_DIR_PATH)/src/obj/%.o,$(CLEAN_SOURCES))      # This would create build/src/obj/core/encryption.o, build/src/obj/math/R2Polynomial.o, etc.
-#$(info SOURCES: $(SOURCES))                                                     # Debugging purposes
-#$(info CLEAN_SOURCES: $(CLEAN_SOURCES))                                         # Debugging purposes
+SOURCES = $(call find_sources,.,cpp)
+$(info SOURCES: $(SOURCES))                                                     # Debugging purposes
+CLEAN_SOURCES = $(call clean_sources,$(SOURCES))                                # Remove the leading ./
+$(info CLEAN_SOURCES: $(CLEAN_SOURCES))                                         # Debugging purposes
+OBJECTS = $(call sources_to_objects,$(CLEAN_SOURCES),$(BUILD_DIR_PATH)/src)     # This would create build/src/obj/core/encryption.o, build/src/obj/math/R2Polynomial.o, etc.
 $(info OBJECTS: $(OBJECTS))                                                     # Debugging purposes
-#$(call sources_to_objects,$(CLEAN_SOURCES),$(BUILD_DIR_PATH)/src)
 DEPS = $(call objects_to_deps,$(OBJECTS))
 
 STATIC_LIB = $(BUILD_DIR_PATH)/lib/libntru.a
