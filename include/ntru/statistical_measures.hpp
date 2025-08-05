@@ -5,9 +5,33 @@
 #include<array>		// For fixed size array
 #include<cstddef>	// For std::byte
 #include<cstdint>	// For uint8_t, uint32_t,...
+#include<string>	// For string
 
 #ifndef STATISTICAL_MEASURES_HPP
 #define STATISTICAL_MEASURES_HPP
+
+enum struct TestIDnum{ KEY_GENERATION, CIPHERING, DECIPHERING };
+struct TestID{
+private:
+    const TestIDnum ID_num_;
+    std::string label = "";
+public:
+    explicit TestID(TestIDnum ID_num): ID_num_(ID_num){
+        switch(ID_num) {                                                        // Unique constructor. The idea to have the label uniquely determined by the TestIDnum.
+        case TestIDnum::KEY_GENERATION:
+            label = "Key Generation";
+            break;
+        case TestIDnum::CIPHERING:
+            label = "Ciphering";
+            break;
+        case TestIDnum::DECIPHERING:
+            label = "Deciphering";
+            break;
+        }
+    }
+    TestIDnum get_ID_num() const{ return this->ID_num_; }
+    std::string get_label() const{ return this->label; }
+};
 
 namespace StatisticalMeasures{
 
@@ -21,7 +45,7 @@ private:
 
 public:
 	Dispersion() = default;
-	explicit Dispersion(const std::vector<const T>& data){
+	explicit Dispersion(const std::vector<T>& data){
 		if(data.empty()) {
 			return;							// Leave members as std::nullopt
 		}
