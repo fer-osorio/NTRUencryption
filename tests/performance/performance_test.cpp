@@ -6,7 +6,8 @@
 #include<fstream>
 #include<getopt.h>
 #include<map>
-#include"../Source/NTRUencryption.hpp"
+#include<iostream>
+#include"../../include/ntru/ntru.hpp"
 
 class NTRUperformanceTester{
 public:
@@ -49,7 +50,7 @@ public:
 private:
     Configuration config_;
     std::unique_ptr<NTRU::Encryption> encryption_ = nullptr;
-    std::unique_ptr<NTRU::ZpPolynomial> testMessage_ = nullptr;
+    std::unique_ptr<NTRU::RpPolynomial> testMessage_ = nullptr;
     std::vector<TestResult> results_ = {};
     DataAnalysisResult dataAnalysis_ = {};
 
@@ -102,13 +103,13 @@ private:
                 );
             }
             if(!this->config_.messageFile.empty()){                             // -Case: Test message provided from file
-                this->testMessage_ = ResourceManagement::createSafe<NTRU::ZpPolynomial>(
-                    [this](){ return new NTRU::ZpPolynomial(NTRU::Encryption::ZpPolynomialPlainTextFromFile(this->config_.messageFile.c_str())); },
+                this->testMessage_ = ResourceManagement::createSafe<NTRU::RpPolynomial>(
+                    [this](){ return new NTRU::RpPolynomial(NTRU::Encryption::RpPolynomialPlainTextFromFile(this->config_.messageFile.c_str())); },
                     "Failed to load message from file"
                 );
             } else if(this->config_.category != TestCategory::KEY_GENERATION){  // -Case: No file provide for test message
-                this->testMessage_ = ResourceManagement::createSafe<NTRU::ZpPolynomial>(
-                    [this](){ return new NTRU::ZpPolynomial(NTRU::ZpPolynomial::randomTernary()); }, // -Automatically generating a test message
+                this->testMessage_ = ResourceManagement::createSafe<NTRU::RpPolynomial>(
+                    [this](){ return new NTRU::RpPolynomial(NTRU::Encryption::randomTernary()); }, // -Automatically generating a test message
                     "Failed to create test message"
                 );
             }
@@ -144,14 +145,14 @@ private:
     void runKeyGenerationTest(){
         if(config_.verbose) std::cout << "Running key generation performance test...\n";
         try{
-            NTRU::Encryption::Statistics::Time stats = NTRU::Encryption::Statistics::Time::keyGeneration(); // -Performance test is running here
+            StatisticalMeasures::Dispersion<uint32_t> stats = NTRU::Encryption::keyGenerationTime(); // -Performance test is running here
             TestResult result;                                                  // -If no exception thrown, proceed to organize the results.
             result.testName = "Key Generation";
-            result.maximum = stats.getMaximum();
-            result.minimum = stats.getMinimum();
-            result.average = stats.getAverage();
-            result.standardDeviation = std::sqrt(stats.getVariance());
-            result.averageAbsoluteDeviation = stats.getAAD();
+            result.maximum = stats.getMaximum().value();
+            result.minimum = stats.getMinimum().value();
+            result.average = stats.getAverage().value();
+            result.standardDeviation = std::sqrt(stats.getVariance().value());
+            result.averageAbsoluteDeviation = stats.getAAD().value();
             result.units = "microseconds";
             result.success = true;
 
@@ -168,15 +169,15 @@ private:
     void runEncryptionTest(){
         if(this->config_.verbose) std::cout << "Running encryption performance test...\n";
         try{
-            NTRU::Encryption::Statistics::Time stats = NTRU::Encryption::Statistics::Time::ciphering(this->encryption_.get(), this->testMessage_.get());
+            StatisticalMeasures::Dispersion<uint32_t> stats = NTRU::Encryption::ciphering(*this->encryption_.get(), *this->testMessage_.get());
 
             TestResult result;                                                  // -If no exception thrown, proceed to organize the results.
             result.testName = "Encryption";
-            result.maximum = stats.getMaximum();
-            result.minimum = stats.getMinimum();
-            result.average = stats.getAverage();
-            result.standardDeviation = std::sqrt(stats.getVariance());
-            result.averageAbsoluteDeviation = stats.getAAD();
+            result.maximum = stats.getMaximum().value();
+            result.minimum = stats.getMinimum().value();
+            result.average = stats.getAverage().value();
+            result.standardDeviation = std::sqrt(stats.getVariance().value());
+            result.averageAbsoluteDeviation = stats.getAAD().value();
             result.units = "microseconds";
             result.success = true;
             this->results_.push_back(result);
@@ -195,15 +196,15 @@ private:
         }
 
         try {
-            NTRU::Encryption::Statistics::Time stats = NTRU::Encryption::Statistics::Time::deciphering(encryption_.get(), nullptr);
+            StatisticalMeasures::Dispersion<uint32_t> stats = NTRU::Encryption::deciphering(*encryption_.get(), nullptr);
 
             TestResult result;                                                  // -If no exception thrown, proceed to organize the results.
             result.testName = "Decryption";
-            result.maximum = stats.getMaximum();
-            result.minimum = stats.getMinimum();
-            result.average = stats.getAverage();
-            result.standardDeviation = std::sqrt(stats.getVariance());
-            result.averageAbsoluteDeviation = stats.getAAD();
+            result.maximum = stats.getMaximum().value();
+            result.minimum = stats.getMinimum().value();
+            result.average = stats.getAverage().value();
+            result.standardDeviation = std::sqrt(stats.getVariance().value());
+            result.averageAbsoluteDeviation = stats.getAAD().value();
             result.units = "microseconds";
             result.success = true;
 
