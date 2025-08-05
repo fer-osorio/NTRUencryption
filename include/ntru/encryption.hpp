@@ -13,6 +13,9 @@ private:
 	RpPolynomial privatKey	= RpPolynomial();				// -Private key has the form p·F0+1, we are saving just F0
 	bool validPrivateKey	= false;					// -Flag; tells us if current object can only encrypt (only have a valid publickKey)
 										// -or also is capable of decryption (has a valid private key).
+	template <typename T>
+	friend class StatisticalMeasures::Dispersion;
+	friend StatisticalMeasures::DataRandomness;
 public:
 	Encryption();								// -Building keys automatically. Trows: const std::runtime_error&
 	Encryption(const char* NTRUkeyFile);					// -Building from a NTRU key file. Trows: NTRU::MathException, NTRU::FileIOException, NTRU::ParameterMismatchException
@@ -48,14 +51,18 @@ public:
 	void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const; // -Saves keys using the names passed as arguments. Throws NTRU::FileIOException
 	void printKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;
 
+	static RpPolynomial randomTernary();					// -Random Rp polynomial generation
+private:
+	// -Runs key generation, ciphering or deciphering test depending on the parameter const TestID&
+	static StatisticalMeasures::Dispersion<uint32_t> encryption_test(const TestID&,const NTRU::Encryption&,const NTRU::RpPolynomial&,const NTRU::RqPolynomial&);
+public:
 	// -Performance measurement
 	static StatisticalMeasures::Dispersion<uint32_t> keyGenerationTime();
-	static StatisticalMeasures::Dispersion<uint32_t> ciphering(const NTRU::Encryption* e, const NTRU::RpPolynomial* msg);// Taking average of encryption time
-	static StatisticalMeasures::Dispersion<uint32_t> deciphering(const NTRU::Encryption* e, const NTRU::RqPolynomial* emsg);// Taking average of decryption time
-	static StatisticalMeasures::DataRandomness encryptedData(const NTRU::Encryption* ptr_e);
+	static StatisticalMeasures::Dispersion<uint32_t> ciphering(const NTRU::Encryption& e, const NTRU::RpPolynomial& msg);// Taking average of encryption time
+	static StatisticalMeasures::Dispersion<uint32_t> deciphering(const NTRU::Encryption& e, const NTRU::RqPolynomial& emsg);// Taking average of decryption time
+	static StatisticalMeasures::DataRandomness encryptedData(const NTRU::Encryption& ptr_e);
 
 private:
-	static RpPolynomial randomTernary();
 	static void interchangeZeroFor(RpPolynomial::Z3 t, RpPolynomial& pl);	// -Randomly selects a coefficient with value 0 and a coefficient with value t and interchanges them.
 	RqPolynomial productByPrivatKey(const RqPolynomial& P) const;
 	RqPolynomial productByPrivatKey(const R2Polynomial& P) const;
@@ -64,8 +71,4 @@ private:
 										//  creation of Encryption object from file. Throws NTRU::MathException
 };
 }
-
-// -Helper functions, debugging.
-void displayByteArrayBin(const char byteArray[], size_t size);					// -Prints bytes using bynari format
-void displayByteArrayChar(const char byteArray[], size_t size);					// -Prints each byte as a character, if not printable, it prints its hexadecimal value, if it is a white space, it prints its hexadecimal value
 #endif
