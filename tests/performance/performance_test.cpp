@@ -23,6 +23,7 @@ public:
         TestCategory category = TestCategory::NONE;
         std::string privateKeyFile = "";                                        // -[If available]: Retreaving key from file
         std::string messageFile = "";                                           // -Retreaving message from file
+        std::string encMessageFile = "";                                        // -Retreaving message from file
         std::string outputFile = "";                                            // -Writing output file
         size_t iterations = 0;
         bool verbose = false;                                                   // -Detailed output for diagnostic purposes
@@ -51,6 +52,7 @@ private:
     Configuration config_;
     std::unique_ptr<NTRU::Encryption> encryption_ = nullptr;
     std::unique_ptr<NTRU::RpPolynomial> testMessage_ = nullptr;
+    std::unique_ptr<NTRU::RqPolynomial> testEncMessage_ = nullptr;
     std::vector<TestResult> results_ = {};
     DataAnalysisResult dataAnalysis_ = {};
 
@@ -110,6 +112,18 @@ private:
             } else if(this->config_.category != TestCategory::KEY_GENERATION){  // -Case: No file provide for test message
                 this->testMessage_ = ResourceManagement::createSafe<NTRU::RpPolynomial>(
                     [this](){ return new NTRU::RpPolynomial(NTRU::Encryption::randomTernary()); }, // -Automatically generating a test message
+                    "Failed to create test message"
+                );
+            }
+            if(!this->config_.encMessageFile.empty()){                          // -Case: Test encrypteed message provided from file
+                this->testEncMessage_ = ResourceManagement::createSafe<NTRU::RqPolynomial>(
+                    [this](){ return new NTRU::RqPolynomial(NTRU::Encryption::RqPolynomialFromFile(this->config_.encMessageFile.c_str())); },
+                    "Failed to load encrypted message from file"
+                );
+            } else if(this->config_.category != TestCategory::KEY_GENERATION){  // -Case: No file provide for test message
+                this->testEncMessage_ = ResourceManagement::createSafe<NTRU::RqPolynomial>(
+                    [this](){
+                        return new NTRU::RqPolynomial( this->encryption_->encrypt(NTRU::Encryption::randomTernary()) ); }, // -Automatically generating a test encrypted message
                     "Failed to create test message"
                 );
             }
@@ -191,12 +205,10 @@ private:
     }
 
     void runDecryptionTest() {
-        if (this->config_.verbose) {
-            std::cout << "Running decryption performance test..." << std::endl;
-        }
+        if (this->config_.verbose) std::cout << "Running decryption performance test..." << std::endl;
 
         try {
-            StatisticalMeasures::Dispersion<uint32_t> stats = NTRU::Encryption::deciphering(*encryption_.get(), nullptr);
+            StatisticalMeasures::Dispersion<uint32_t> stats = NTRU::Encryption::deciphering(*encryption_.get(), *this->testEncMessage_);
 
             TestResult result;                                                  // -If no exception thrown, proceed to organize the results.
             result.testName = "Decryption";
@@ -333,6 +345,7 @@ public:
             {"category", required_argument, 0, 'c'},
             {"private-key", required_argument, 0, 'k'},
             {"message", required_argument, 0, 'm'},
+            {"encrypted-message", required_argument, 0, 'e'},
             {"output", required_argument, 0, 'o'},
             {"iterations", required_argument, 0, 'i'},
             {"verbose", no_argument, 0, 'v'},
@@ -341,7 +354,7 @@ public:
         };
         int option_index = 0;
         int c;
-        while((c = getopt_long(argc, argv, "hc:k:m:o:i:vj", long_options, &option_index)) != -1){
+        while((c = getopt_long(argc, argv, "hc:k:m:e:o:i:vj", long_options, &option_index)) != -1){
             switch(c){
                 case 'h':
                     printUsage(argv[0]);
@@ -354,6 +367,9 @@ public:
                     break;
                 case 'm':
                     config.messageFile = optarg;
+                    break;
+                case 'e':
+                    config.encMessageFile = optarg;
                     break;
                 case 'o':
                     config.outputFile = optarg;
@@ -382,13 +398,14 @@ private:
     static void printUsage(const char* programName){
         std::cout << "Usage: " << programName << " [OPTIONS]\n\n";
         std::cout << "Options:\n";
-        std::cout << "  -h, -help               Shows this help message\n";
-        std::cout << "  -c, -category CATEGORY  Test category (keygen|encrypt|decrypt|data|all)\n";
-        std::cout << "  -k, -private-key FILE   Private key file\n";
-        std::cout << "  -m, -message FILE       Message file\n";
-        std::cout << "  -o, -output FILE        Output file\n";
-        std::cout << "  -v, -verbose            Verbose output\n";
-        std::cout << "  -j, -json               JSON output format\n";
+        std::cout << "  -h, -help                       Shows this help message\n";
+        std::cout << "  -c, -category CATEGORY          Test category (keygen|encrypt|decrypt|data|all)\n";
+        std::cout << "  -k, -private-key FILE           Private key file\n";
+        std::cout << "  -m, -message FILE               Message file\n";
+        std::cout << "  -e, -encrypted message FILE     Message file\n";
+        std::cout << "  -o, -output FILE                Output file\n";
+        std::cout << "  -v, -verbose                    Verbose output\n";
+        std::cout << "  -j, -json                       JSON output format\n";
         std::cout << "\nExamples:\n";
         std::cout << "  " << programName << " --category all --verbose\n";
         std::cout << "  " << programName << " --category keygen --json --output results.json\n";
