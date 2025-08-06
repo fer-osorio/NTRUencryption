@@ -60,7 +60,7 @@ public:
 	static StatisticalMeasures::Dispersion<uint32_t> keyGenerationTime();
 	static StatisticalMeasures::Dispersion<uint32_t> ciphering(const NTRU::Encryption& e, const NTRU::RpPolynomial& msg);// Taking average of encryption time
 	static StatisticalMeasures::Dispersion<uint32_t> deciphering(const NTRU::Encryption& e, const NTRU::RqPolynomial& emsg);// Taking average of decryption time
-	static StatisticalMeasures::DataRandomness encryptedData(const NTRU::Encryption& ptr_e);
+	static StatisticalMeasures::DataRandomness encryptedData(const NTRU::Encryption& e, const std::vector<std::byte>& plain_data);
 
 private:
 	static void interchangeZeroFor(RpPolynomial::Z3 t, RpPolynomial& pl);	// -Randomly selects a coefficient with value 0 and a coefficient with value t and interchanges them.
