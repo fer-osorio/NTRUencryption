@@ -1,8 +1,108 @@
 #include<iostream>
-#include"../../include/ntru/parameters_constants.hpp"
-#include"../../include/ntru/encryption.hpp"
+#include<vector>
+//#include"../../include/ntru/parameters_constants.hpp"
+//#include"../../include/ntru/encryption.hpp"
 
-static void printHex(const char a[], size_t size, const char front[] = "", const char back[] = ""){
+#define BYTE_UPPER_TWO_BITS 0xC0     // binary -->1100,0000
+
+struct NumberBaseTwosPower{
+    enum struct Base{
+        BINARY = 1,         // 0000,0001
+        QUATERNARY = 3,     // 0000,0011
+        OCTAL = 7,          // 0000,0111
+        HEXADECIMAL = 15    // 0000,1111
+    };
+    static size_t bit_amount(Base b){
+        size_t b_ = static_cast<size_t>(b), r;
+        for(r = 1 ; b_ > 1; b_ >>= 1, r++) {}
+        return r;
+    }
+    static unsigned char to_upper_bits(Base b){
+        unsigned char r = static_cast<unsigned char>(b);
+        while((r & 0x80) == 0) r <<= 1;
+        return r;
+    }
+};
+
+template <typename T> static size_t print_obj_byte_view(const T& obj, NumberBaseTwosPower::Base b){
+    const unsigned char* byte_ptr = reinterpret_cast<const unsigned char*>(&obj);
+    unsigned int buff = 0, b_ = static_cast<unsigned int>(b), bit_mask = 0, digit;
+    const size_t obj_sz = sizeof(obj);
+    const int bit_num = static_cast<int>(NumberBaseTwosPower::bit_amount(b));
+    int right_displacement;
+    size_t print_output_sz = 0;
+
+    for(int i = obj_sz-1; i >= 0; i--){
+        buff = byte_ptr[i];
+        bit_mask = NumberBaseTwosPower::to_upper_bits(b);
+        right_displacement = 8 - bit_num;
+        if(b == NumberBaseTwosPower::Base::OCTAL) {
+            right_displacement = 6;
+            std::cout << ((buff & BYTE_UPPER_TWO_BITS) >> right_displacement);
+            bit_mask >>= 2;
+            right_displacement -= bit_num;
+            print_output_sz += 2;
+        }
+        while(bit_mask >= b_){
+            digit = (buff & bit_mask) >> right_displacement;
+            if(digit < 10) std::cout << digit;
+            else std::cout << static_cast<char>(digit + 55);                    // -In case of having a hexadecimal character
+
+            bit_mask >>= bit_num;
+            right_displacement -= bit_num;
+            print_output_sz++;
+        }
+        if(i > 0){
+            std::cout  << ',';
+            print_output_sz += 2;
+        }
+    }
+    return print_output_sz;
+}
+
+template <typename T>
+static size_t print_slice_centered(const std::vector<T>& v, size_t at_index, size_t slice_width, NumberBaseTwosPower::Base b){
+    if(slice_width > v.size()) slice_width = v.size();                          // Ensuring 'slice_width <= v.size()' inequality
+    if(at_index >= v.size()) return 0;                                          // Ensuring 'at_index < v.size()' inequality
+    size_t sw_div2 = slice_width >> 1, sw_mod2 = slice_width & 1;               // Equivalent to slice_width / 2 and slice_width % 2
+    size_t first_ind = 0;
+    size_t last_ind  = 0;
+    size_t obj_char_len = 0;
+    size_t at_index_obj_poss = 0;
+
+    // The idea is to have the output centered at 'at_index', but sometimes it will not be possible. The following if's handle those cases.
+    if(sw_div2 >= at_index){                                                    // First case, not enough space to the left
+        first_ind = 0;
+        last_ind = slice_width;
+    }else{
+        if(at_index + sw_div2 + sw_mod2 >= v.size()){                           // Second case, not enough space to the right.
+            last_ind = v.size();                                                // Notice how, in the impair width case, we are tilting the output to the right.
+            first_ind = v.size() - slice_width;
+        }else{                                                                  // Third case, enough space in both sides.
+            first_ind = at_index - sw_div2;
+            last_ind = at_index + sw_div2 + sw_mod2;                            // As mentioned before, in the impair width case, we are tilting the output to the
+        }                                                                       // right.
+    }
+
+    if(first_ind != 0) std::cout << "...";                                      // Indicate that the array continues to the left
+    else std::cout << "[  ";
+    at_index_obj_poss += 3;
+    // Sending coefficients to standard output.
+    for(size_t i = first_ind, last_ind_1 = last_ind-1; i < last_ind; i++){
+        obj_char_len = print_obj_byte_view(v[i], b);
+        if(i < at_index) at_index_obj_poss += obj_char_len;
+        if(i != last_ind_1){
+            std::cout << ' ';
+            if(i <= at_index) at_index_obj_poss++;
+        }
+    }
+    if(last_ind != v.size()) std::cout << "...";                                // Indicate that the array continues to the right
+    else std::cout << "  ]";
+
+    return at_index_obj_poss;
+}
+
+/*static void printHex(const char a[], size_t size, const char front[] = "", const char back[] = ""){
     size_t sz = size > 0 ? size - 1: 0;
     size_t i;
     unsigned char ua;
@@ -18,18 +118,75 @@ static void printHex(const char a[], size_t size, const char front[] = "", const
     printf("%X", ua);
     printf("]");
     std::cout << back;
-}
+}*/
 
-static void print_differences(std::vector<char> v1, std::vector<char> v2, size_t numb_diff){
+static void print_first_difference(std::vector<char> v1, std::vector<char> v2, std::string diff_msg, std::string v1_front, std::string v2_front, size_t width){
     if(v1 == v2) return;
     size_t s1 = v1.size(), s2 = v2.size();
+    size_t at_ind_elem_pos = 0;
+    int num_spaces = 0;
+    std::string first_occurr_msg = "First difference here";
     if(s1 != s2) {
         std::cout << "Vectors differ in size. First vector size: " << s1 << ", second vector size: " << s2 << "\n";
         return;
     }
+    size_t left_offset = std::max( std::max(v1_front.size(), v2_front.size()), first_occurr_msg.size());
+    size_t v1front_left_offset = left_offset - v1_front.size();
+    size_t v2front_left_offset = left_offset - v2_front.size();
+    first_occurr_msg += " ~~^";
     for(size_t i = 0; i < s1; i++){
-        if(v1[i] != v2[i]){}
+        if(v1[i] != v2[i]){
+            std::cout << diff_msg << '\n';
+            std::cout << v1_front;
+            for(; v1front_left_offset > 0; v1front_left_offset--) std::cout << ' ';
+            at_ind_elem_pos = print_slice_centered(v1, i, width, NumberBaseTwosPower::Base::HEXADECIMAL);
+            std::cout << '\n';
+            std::cout << v2_front;
+            for(; v2front_left_offset > 0; v2front_left_offset--) std::cout << ' ';
+            print_slice_centered(v2, i, width, NumberBaseTwosPower::Base::HEXADECIMAL);
+            std::cout << '\n';
+            num_spaces = left_offset + at_ind_elem_pos - first_occurr_msg.length();
+            for(; num_spaces > 0; num_spaces--) std::cout << ' ';
+            std::cout << first_occurr_msg << std::endl;
+            break;
+        }
     }
+}
+
+int main(int argc, const char* argv[]){
+    std::vector<char> char_arr_01 = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B, 0x0C,0x0D,0x0E,0x0F,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18};
+    std::vector<char> char_arr_02 = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x1B,-0x02,0x0D,0x0E,0x0F,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18};
+    std::vector<char> char_arr_11 = {0x7F,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B, 0x0C,0x0D,0x0E,0x0F,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18};
+    std::vector<char> char_arr_12 = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x1B,-0x02,0x0D,0x0E,0x0F,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18};
+
+    std::vector<short> short_arr_1 = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F,0x10,0x11,0x12,0x13,-0x14,0x15, 0x16,0x17,0x18};
+    std::vector<short> short_arr_2 = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F,0x10,0x11,0x12,0x13, 0x14,0x15,-0x16,0x17,0x18};
+    std::vector<int> int_arr_1 = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0xFFFF,0x0E,0x0F, 0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18};
+    std::vector<int> int_arr_2 = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x1B,0x0C,0x0D,  0x0E,0x0F,-0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18};
+
+    std::cout << "\nBinary: bits amount = " << NumberBaseTwosPower::bit_amount(NumberBaseTwosPower::Base::BINARY);
+    printf("; upper bits: %X\n", (unsigned int)NumberBaseTwosPower::to_upper_bits(NumberBaseTwosPower::Base::BINARY));
+    std::cout << "Quaternary: bits amount = " << NumberBaseTwosPower::bit_amount(NumberBaseTwosPower::Base::QUATERNARY);
+    printf("; upper bits: %X\n\n", (unsigned int)NumberBaseTwosPower::to_upper_bits(NumberBaseTwosPower::Base::QUATERNARY));
+
+    print_first_difference(char_arr_01, char_arr_02, "Vectors are diferent", "char_arr_01: ", "char_arr_02: ", 13);
+    std::cout << std::endl;
+    print_first_difference(char_arr_11, char_arr_12, "Vectors are diferent", "char_arr_11: ", "char_array_12: ", 18);
+    std::cout << std::endl;
+
+    print_slice_centered(short_arr_1, 22, 5, NumberBaseTwosPower::Base::BINARY);
+    std::cout << std::endl;
+    print_slice_centered(short_arr_1, 22, 8, NumberBaseTwosPower::Base::QUATERNARY);
+    std::cout << std::endl;
+    print_slice_centered(short_arr_2, 22, 8, NumberBaseTwosPower::Base::OCTAL);
+    std::cout << std::endl;
+
+    print_slice_centered(int_arr_1, 13, 9, NumberBaseTwosPower::Base::OCTAL);
+    std::cout << std::endl;
+    print_slice_centered(int_arr_2, 13, 9, NumberBaseTwosPower::Base::OCTAL);
+    std::cout << std::endl;
+
+    return 0;
 }
 
 // cipherTextSize/plainTextSize = 5*log2(q)/8
@@ -40,7 +197,7 @@ static void print_differences(std::vector<char> v1, std::vector<char> v2, size_t
 // numberOfRounds = dummyLen/plainTextSize
 // -A byte more for blocks to avoid <<out of range>> error.
 
-StatisticalMeasures::DataRandomness NTRU::Encryption::encryptedData(const NTRU::Encryption& e, const std::vector<std::byte>& plain_data){
+/*StatisticalMeasures::DataRandomness NTRU::Encryption::encryptedData(const NTRU::Encryption& e, const std::vector<std::byte>& plain_data){
     const size_t plain_blk_sz = e.inputPlainTextMaxSizeInBytes();               // Plain data block size
     const size_t cipher_blk_sz = e.cipherTextSizeInBytes();                     // Cipher block size
     const size_t number_of_rounds = plain_data.size() > 0 ? plain_data.size() / plain_blk_sz + 1: 0;
@@ -109,4 +266,4 @@ StatisticalMeasures::DataRandomness NTRU::Encryption::encryptedData(const NTRU::
     Data stats(dummy_enc, enc_data_sz);
     delete[] dummy_enc;
     return stats;
-}
+}*/
