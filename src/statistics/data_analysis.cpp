@@ -1,7 +1,6 @@
 #include<iostream>
-#include<vector>
-//#include"../../include/ntru/parameters_constants.hpp"
-//#include"../../include/ntru/encryption.hpp"
+#include"../../include/ntru/parameters_constants.hpp"
+#include"../../include/ntru/encryption.hpp"
 
 #define BYTE_UPPER_TWO_BITS 0xC0     // binary -->1100,0000
 
@@ -143,7 +142,7 @@ static int print_first_difference(std::vector<char> v1, std::vector<char> v2, st
     }
     size_t at_ind_elem_pos = 0;
     int num_spaces = 0;
-    std::string first_occurr_msg = "First difference here";
+    std::string first_occurr_msg = "Difference here";
     size_t left_offset = std::max( std::max(v1_slice_front.size(), v2_slice_front.size()), first_occurr_msg.size());
     size_t v1front_left_offset = left_offset - v1_slice_front.size();
     size_t v2front_left_offset = left_offset - v2_slice_front.size();
@@ -152,6 +151,7 @@ static int print_first_difference(std::vector<char> v1, std::vector<char> v2, st
     for(i = 0; i < s1; i++){
         if(v1[i] != v2[i]){
             std::cout << diff_msg << '\n';
+            std::cout << "Firs inequality found at index " << std::to_string(i) << '\n';
             std::cout << v1_slice_front;
             for(; v1front_left_offset > 0; v1front_left_offset--) std::cout << ' '; //  Padding to get an aligned output.
             at_ind_elem_pos = print_slice_centered(v1, i, width, NumberBaseTwosPower::Base::HEXADECIMAL);
@@ -169,7 +169,58 @@ static int print_first_difference(std::vector<char> v1, std::vector<char> v2, st
     return static_cast<int>(i);
 }
 
-int main(int argc, const char* argv[]){
+StatisticalMeasures::DataRandomness NTRU::Encryption::encryptedData(const NTRU::Encryption& e, const std::vector<std::byte>& plain_data){
+    const size_t plain_blk_sz = e.inputPlainTextMaxSizeInBytes();               // Plain data block size
+    const size_t cipher_blk_sz = e.cipherTextSizeInBytes();                     // Cipher block size
+    const size_t number_of_rounds = plain_data.size() > 0 ? plain_data.size() / plain_blk_sz: 0;
+    const size_t enc_data_sz = cipher_blk_sz*(number_of_rounds + 1);            // Encrypted data size
+    // Containers of plain and encypted data
+    std::vector<char> plain_blk;
+    std::vector<char> cipher_blk(cipher_blk_sz);
+    std::vector<char> decrypted_blk(plain_blk_sz);
+    std::vector<std::byte> enc_data(enc_data_sz, std::byte{0});
+    size_t i, j, k, l, n;
+    int dec_fail_indx = -2;
+    RqPolynomial enc;
+    RpPolynomial dec;
+    StatisticalMeasures::DataRandomness dr;
+
+    std::cout << "Encryption::encryptedData: Parameters: N = "<< NTRU_N << ", q = " << NTRU_Q << " ---------------------------------------" << std::endl;
+    std::cout << "Input length = " << plain_data.size() << ". Encrypted input length = " << enc_data_sz << ". Block size = " << plain_blk_sz << '\n';
+
+    for(i = k = n = 0, j = plain_blk_sz; j < plain_data.size(); i += plain_blk_sz, j += plain_blk_sz, k += cipher_blk_sz, n++){
+        plain_blk = std::vector<char>(plain_data.begin() + i, plain_data.begin() + j);
+        enc = e.encrypt(plain_blk.data(), plain_blk.size());
+        enc.toBytes(cipher_blk.data());
+        for(l = 0; l < cipher_blk_sz; l++) enc_data[k+l] = static_cast<std::byte>(cipher_blk[l]); // Save encrypted data block
+        enc = RqPolynomial(cipher_blk.data(), cipher_blk.size());
+        dec = e.decrypt(enc);
+        Encryption::RpPolynomialtoBytes(dec, decrypted_blk.data(), false);      // -Second parameter isPrivateKey = false
+        if(decrypted_blk != plain_blk){
+            std::string dec_fail_msg = "Decryption failure at block " + std::to_string(n) + ".";
+            dec_fail_indx = print_first_difference(plain_blk, decrypted_blk, dec_fail_msg, "Plain: ", "Decrypted: ", 16);
+            return dr;
+        }
+    }
+    if(j > plain_data.size()){
+        plain_blk = std::vector<char>(plain_data.begin() + i, plain_data.end());
+        enc = e.encrypt(plain_blk.data(), plain_blk.size());
+        enc.toBytes(cipher_blk.data());
+        for(l = 0; l < cipher_blk_sz; l++) enc_data[k+l] = static_cast<std::byte>(cipher_blk[l]); // Save encrypted data block
+        enc = RqPolynomial(cipher_blk.data(), cipher_blk.size());
+        dec = e.decrypt(enc);
+        Encryption::RpPolynomialtoBytes(dec, decrypted_blk.data(), false);      // -Second parameter isPrivateKey = false
+        if(decrypted_blk != plain_blk){
+            std::string dec_fail_msg = "Decryption failure at block " + std::to_string(n) + ".";
+            dec_fail_indx = print_first_difference(plain_blk, decrypted_blk, dec_fail_msg, "Plain: ", "Decrypted: ", 16);
+            return dr;
+        }
+    }
+    dr = StatisticalMeasures::DataRandomness(enc_data);
+    return dr;
+}
+
+/*int main(int argc, const char* argv[]){
     std::vector<char> char_arr_01 = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B, 0x0C,0x0D,0x0E,0x0F,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18};
     std::vector<char> char_arr_02 = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x1B,-0x02,0x0D,0x0E,0x0F,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18};
     std::vector<char> char_arr_11 = {0x7F,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B, 0x0C,0x0D,0x0E,0x0F,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18};
@@ -203,83 +254,4 @@ int main(int argc, const char* argv[]){
     std::cout << std::endl;
 
     return 0;
-}
-
-// cipherTextSize/plainTextSize = 5*log2(q)/8
-// cipherTextSize = plainTextSize*5*log2(q)/8
-// cipherTextSize*numberOfRounds = 512*512*3 (size of a 256x256 pixel image)
-// (plainTextSize*5*log2(q)/8)*numberOfRounds = 512*512*3
-// dummyLen = plainTextSize*numberOfRounds = 512*512*3*8/[5*log2(q)]
-// numberOfRounds = dummyLen/plainTextSize
-// -A byte more for blocks to avoid <<out of range>> error.
-
-/*StatisticalMeasures::DataRandomness NTRU::Encryption::encryptedData(const NTRU::Encryption& e, const std::vector<std::byte>& plain_data){
-    const size_t plain_blk_sz = e.inputPlainTextMaxSizeInBytes();               // Plain data block size
-    const size_t cipher_blk_sz = e.cipherTextSizeInBytes();                     // Cipher block size
-    const size_t number_of_rounds = plain_data.size() > 0 ? plain_data.size() / plain_blk_sz + 1: 0;
-    const size_t enc_data_sz = cipher_blk_sz*number_of_rounds;                  // Encrypted data size
-    std::vector<char> plain_blk(plain_data.begin(), plain_data.begin() + plain_blk_sz); //plain_blk(plain_blk_sz);
-    std::vector<char> cipher_blk(cipher_blk_sz);
-    std::vector<char> decrypted_blk(plain_blk_sz);
-    std::vector<std::byte> enc_data(enc_data_sz, std::byte{0});
-    size_t i, j, k, l, r;
-    int a = 0;
-    RqPolynomial enc;
-    RpPolynomial dec;
-    StatisticalMeasures::DataRandomness dr;
-
-    for(i = 0, j = plain_blk_sz, k = 0; j < plain_data.size(); i += plain_blk_sz, j += plain_blk_sz, k += cipher_blk_sz){
-        plain_blk = std::vector<char>(plain_data.begin() + i, plain_data.begin() + j);
-        enc = e.encrypt(plain_blk.data(), plain_blk.size());
-        enc.toBytes(cipher_blk.data());
-        for(l = 0; l < cipher_blk_sz; l++) enc_data[k+l] = static_cast<std::byte>(cipher_blk[l]); // Save encrypted data block
-        enc = RqPolynomial(cipher_blk.data(), cipher_blk.size());
-        dec = e.decrypt(enc);
-        Encryption::RpPolynomialtoBytes(dec, decrypted_blk.data(), false);      // -Second parameter isPrivateKey = false
-        if(decrypted_blk != plain_blk){}
-    }
-
-    std::cout << "Encryption::Statistics::Data::encryption::Parameters: N = "<< NTRU_N << ", q = " << NTRU_Q << " ---------------------------------------" << std::endl;
-    std::cout << "Source/NTRUencryption.cpp, Encryption::Statistics::Data::encryption(): "
-                 "Input length = " << plain_blk_sz*number_of_rounds << ". Encrypted input length = " << enc_data_sz << ". Block size = " << plain_blk_sz << '\n';
-
-    for(j = 0, k = 0, r = 0; k < number_of_rounds; j += cipher_blk_sz, k++) {
-        if((k&7)==0) std::cout << "Encryption::Statistics::Data::encryption(): Round " << k << std::endl;
-        enc = e.encrypt(dummy, plain_blk_sz);
-        enc.toBytes(dummy_enc + j);
-        enc = RqPolynomial(dummy_enc + j, cipher_blk_sz);
-        dec = e.decrypt(enc);
-        Encryption::RpPolynomialtoBytes(dec, dummy_dec, false);                 // -Second parameter isPlainText = true
-        for(l = 0; l < plain_blk_sz; l++){
-            if(dummy[l] != dummy_dec[l]) {
-                a = int(l<<1) - 4;
-                std::cout << "At block " << k << ": Decryption failure in byte number " << "l = " << l << std::endl; // -Showing firs decryption failure
-                if(l < 8) {
-                    printHex(dummy,    16, "Block[0,16]           = ", "\n");
-                    printHex(dummy_dec,16, "Dec(Enc(Block))[0,16] = ", "\n");
-                    if(a > 0) for(; a > 0; a--) std::cout << ' ';
-                    std::cout <<           " First occurrence here ~~^" << std::endl;
-                } else if(plain_blk_sz - l < 8) {
-                    printHex(dummy+(plain_blk_sz-16),    16, "Block[SZ-16,SZ-1]           = ", "\n");
-                    printHex(dummy_dec+(plain_blk_sz-16),16, "Dec(Enc(Block))[SZ-16,SZ-1] = ", "\n");
-                    if(a > 0) for(; a > 0; a--) std::cout << ' ';
-                    std::cout <<                      "       First occurrence here ~~^" << std::endl;
-                } else{
-                    printHex(dummy+(l-8),    16, "Block[l-8,l+8]           = ", "\n");
-                    printHex(dummy_dec+(l-8),16, "Dec(Enc(Block))[l-8,l+8] = ", "\n");
-                    for(a = 0; a <16; a++) std::cout << ' ';
-                    std::cout <<                 "    First occurrence here ~~^" << std::endl;
-                }
-                r++;
-                break;
-            }
-        }
-        if(dummy[i] == (char)255) i++;
-        else dummy[i]++;
-    }
-    std::cout << "Total amount of rounds: " <<  number_of_rounds << '\n';
-    std::cout << "Total amount of decryption failures: " << r;
-    Data stats(dummy_enc, enc_data_sz);
-    delete[] dummy_enc;
-    return stats;
 }*/
