@@ -234,11 +234,29 @@ private:
     void runDataAnalysisTest(){
         if(this->config_.verbose) std::cout << "Running data analysis test..." << std::endl;
         try{
-            NTRU::Encryption::Statistics::Data stats = NTRU::Encryption::Statistics::Data::encryption(this->encryption_.get());
+            std::vector<std::byte> test_data(256*256*3);
+            size_t bz = this->encryption_->inputPlainTextMaxSizeInBytes();
+            size_t bn = test_data.size()/bz;
+            size_t i, k;
+            std::byte bit = std::byte{0x01};
 
-            this->dataAnalysis_.entropy = stats.getEntropy();                   // -If no exception thrown, proceed to organize the results.
-            this->dataAnalysis_.correlation = stats.getCorrelation();
-            this->dataAnalysis_.xiSquare = stats.getXiSquare();
+            for(i = 0, k = bz; i < test_data.size(); i++){
+                if(i == k){
+                    test_data[i] = bit;
+                    bit = (bit == std::byte{0x80}) ? std::byte{0x01} : bit << 1;
+                    k += bz+1;
+                } else
+                    test_data[i] = std::byte{0x00};
+            }
+            for(size_t i = 0; i < bn; i++){
+                for(size_t j = 0; j < bz; j++);
+            }
+
+            StatisticalMeasures::DataRandomness stats = NTRU::Encryption::encryptedData(this->encryption_.get());
+
+            this->dataAnalysis_.entropy = stats.getEntropy().value();           // -If no exception thrown, proceed to organize the results.
+            this->dataAnalysis_.xiSquare = stats.getChiSquare().value();
+            this->dataAnalysis_.correlation = stats.getCorrelation().value();
             this->dataAnalysis_.success = true;
         } catch(const std::exception& exp){
             this->dataAnalysis_.success = false;
