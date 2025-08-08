@@ -37,11 +37,11 @@ namespace StatisticalMeasures{
 
 template <typename T> class Dispersion{
 private:
-	std::optional<double> Maximum;
-	std::optional<double> Minimum;
-	std::optional<double> Average;
-	std::optional<double> Variance;
-	std::optional<double> AvrAbsDev;					// Average Absolute Deviation
+	std::optional<double> Maximum = std::nullopt;
+	std::optional<double> Minimum = std::nullopt;
+	std::optional<double> Average = std::nullopt;
+	std::optional<double> Variance = std::nullopt;
+	std::optional<double> AvrAbsDev = std::nullopt;				// Average Absolute Deviation
 
 public:
 	Dispersion() = default;
@@ -82,6 +82,7 @@ class DataRandomness{								// -Specialized to handle data from raw bytes
 private:
 	std::optional<double> Entropy = std::nullopt;
 	std::optional<double> ChiSquare = std::nullopt;
+	std::optional<double> CorrelationAdjacentByte = std::nullopt;
 
 	size_t data_size = 0;
 	std::array<uint32_t, 256> byteValueFrequence{};
@@ -117,9 +118,10 @@ public:
 		}
 		this->calculate_entropy();
 		this->calculate_ChiSquare();
+		this->CorrelationAdjacentByte = this->calculateCorrelation(data, 1);
 	}
 
-	double calculateCorrelation(std::vector<std::byte> data, size_t offset) const { // Correlation is (arguably) better as a method since it requires an extra parameter.
+	std::optional<double> calculateCorrelation(const std::vector<std::byte>& data, size_t offset) const { // Correlation is (arguably) better as a method since it requires an extra parameter.
 		double average = 0.0;
 		double variance = 0.0;
 		double covariance = 0.0;
@@ -143,6 +145,7 @@ public:
 
 	std::optional<double> getEntropy() const noexcept { return this->Entropy; }
 	std::optional<double> getChiSquare() const noexcept { return this->ChiSquare; }
+	std::optional<double> getCorrelationAdjacentByte() const noexcept { return this->CorrelationAdjacentByte; }
 };
 }
 #endif
