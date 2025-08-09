@@ -4,8 +4,8 @@ CXX = g++
 AR = ar
 
 # NTRU Parameters (can be overridden on command line)
-NTRU_N ?= 509
-NTRU_q ?= 2048
+NTRU_N ?= 701
+NTRU_q ?= 8192
 
 WARNINGS = -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors
 DEBUG    = -ggdb -fno-omit-frame-pointer
@@ -17,7 +17,7 @@ CXXFLAGS = $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD)
 LDFLAGS = -lgmp -lgmpxx
 
 # Add NTRU parameters as preprocessor defines
-CXXFLAGS += -DNTRU_N=$(NTRU_N) -DNTRU_q=$(NTRU_q) #-DNTRU_P=$(NTRU_P)
+NTRU_PARAMETERS = -DNTRU_N=$(NTRU_N) -DNTRU_q=$(NTRU_q) #-DNTRU_P=$(NTRU_P)
 
 # Directories
 BUILD_DIR = build
