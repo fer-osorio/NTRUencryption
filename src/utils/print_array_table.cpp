@@ -46,11 +46,11 @@ template <typename T> void print_table(
 {
 	if (data == NULL) return;
 
-	std::string default_title = "                ";
+	std::string default_title = "                    ";
 	const size_t row_header_sz = title.length() > default_title.length() ? title.length() : default_title.length(); // - Maximum between title lengths
 
-	if (!title.empty()) std::cout << "\n" << title << "  |";		            // - If provided, Print Title
-	else std::cout << "\n" << default_title << "  |";
+	if (!title.empty()) std::cout << "\n" << std::left << std::setw(row_header_sz) << title << "  |";		            // - If provided, Print Title
+	else std::cout << "\n" << std::left << std::setw(row_header_sz) << default_title << "  |";
 	for (unsigned int i = 0; i < columns; ++i) {				                // - Print table header
 		std::cout << std::setw((int)column_width) << std::hex << i << "|";	    // - Setting with to column_with
 	}
