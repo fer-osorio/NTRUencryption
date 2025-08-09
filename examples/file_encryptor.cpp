@@ -20,6 +20,7 @@
 
 #include<iostream>
 #include"../include/ntru/ntru.hpp"
+#include"../include/print_debug/debug_helpers.hpp"
 
 static void displayUsage() {                                                    // -Executable with no arguments is equivalent to asking for help.
     std::cout << "Usage: NTRUencryption <command> [args...]\n";
