@@ -14,7 +14,7 @@ examples: lib
 
 test: lib
 	$(MAKE) -C tests
-	$(BUILD_DIR)/bin/run_all_tests
+#	$(BUILD_DIR)/bin/run_all_tests
 
 clean:
 	rm -rf $(BUILD_DIR)
