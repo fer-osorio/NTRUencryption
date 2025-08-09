@@ -7,9 +7,9 @@ BUILD_DIR_PATH = $(UP)$(BUILD_DIR)
 
 # Find all sources files inside this ( . ) directory, assign object files
 SOURCES = $(call find_sources,.,cpp)
-$(info SOURCES: $(SOURCES))                                                     # Debugging purposes
+#$(info SOURCES: $(SOURCES))                                                     # Debugging purposes
 CLEAN_SOURCES = $(call clean_sources,$(SOURCES))                                # Remove the leading ./
-$(info CLEAN_SOURCES: $(CLEAN_SOURCES))                                         # Debugging purposes
+#$(info CLEAN_SOURCES: $(CLEAN_SOURCES))                                         # Debugging purposes
 OBJECTS = $(call sources_to_objects,$(CLEAN_SOURCES),$(BUILD_DIR_PATH)/src)     # This would create build/src/obj/core/encryption.o, build/src/obj/math/R2Polynomial.o, etc.
 $(info OBJECTS: $(OBJECTS))                                                     # Debugging purposes
 DEPS = $(call objects_to_deps,$(OBJECTS))
@@ -35,7 +35,7 @@ $(STATIC_LIB): $(OBJECTS)
 # Generic rule for compiling C++ files
 # -fPIC (Position-Independent Code), thougth for shared libraries
 $(BUILD_DIR_PATH)/src/obj/%.o: %.cpp
-	$(call compile_cpp,$<,$@,-fPIC)
+	$(call compile_cpp,$<,$@,-fPIC $(NTRU_PARAMETERS))
 
 clean:
 	$(call standard_clean,$(BUILD_DIR_PATH)/lib $(BUILD_DIR_PATH)/src)
