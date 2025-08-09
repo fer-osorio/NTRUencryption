@@ -54,7 +54,8 @@ private:
     std::unique_ptr<NTRU::RpPolynomial> testMessage_ = nullptr;
     std::unique_ptr<NTRU::RqPolynomial> testEncMessage_ = nullptr;
     std::vector<TestResult> results_ = {};
-    DataAnalysisResult dataAnalysis_ = {};
+    DataAnalysisResult plainDataAnalysis_ = {};
+    DataAnalysisResult encryptedDataAnalysis_ = {};
 
     class ResourceManagement{                                                   // -Safe and generic way to create resources
     public:
@@ -159,14 +160,14 @@ private:
     void runKeyGenerationTest(){
         if(config_.verbose) std::cout << "Running key generation performance test...\n";
         try{
-            StatisticalMeasures::Dispersion<uint32_t> stats = NTRU::Encryption::keyGenerationTime(); // -Performance test is running here
+            StatisticalMeasures::Dispersion<uint32_t> encryptedStats = NTRU::Encryption::keyGenerationTime(); // -Performance test is running here
             TestResult result;                                                  // -If no exception thrown, proceed to organize the results.
             result.testName = "Key Generation";
-            result.maximum = stats.getMaximum().value();
-            result.minimum = stats.getMinimum().value();
-            result.average = stats.getAverage().value();
-            result.standardDeviation = std::sqrt(stats.getVariance().value());
-            result.averageAbsoluteDeviation = stats.getAAD().value();
+            result.maximum = encryptedStats.getMaximum().value();
+            result.minimum = encryptedStats.getMinimum().value();
+            result.average = encryptedStats.getAverage().value();
+            result.standardDeviation = std::sqrt(encryptedStats.getVariance().value());
+            result.averageAbsoluteDeviation = encryptedStats.getAAD().value();
             result.units = "microseconds";
             result.success = true;
 
@@ -183,15 +184,15 @@ private:
     void runEncryptionTest(){
         if(this->config_.verbose) std::cout << "Running encryption performance test...\n";
         try{
-            StatisticalMeasures::Dispersion<uint32_t> stats = NTRU::Encryption::ciphering(*this->encryption_.get(), *this->testMessage_.get());
+            StatisticalMeasures::Dispersion<uint32_t> encryptedStats = NTRU::Encryption::ciphering(*this->encryption_.get(), *this->testMessage_.get());
 
             TestResult result;                                                  // -If no exception thrown, proceed to organize the results.
             result.testName = "Encryption";
-            result.maximum = stats.getMaximum().value();
-            result.minimum = stats.getMinimum().value();
-            result.average = stats.getAverage().value();
-            result.standardDeviation = std::sqrt(stats.getVariance().value());
-            result.averageAbsoluteDeviation = stats.getAAD().value();
+            result.maximum = encryptedStats.getMaximum().value();
+            result.minimum = encryptedStats.getMinimum().value();
+            result.average = encryptedStats.getAverage().value();
+            result.standardDeviation = std::sqrt(encryptedStats.getVariance().value());
+            result.averageAbsoluteDeviation = encryptedStats.getAAD().value();
             result.units = "microseconds";
             result.success = true;
             this->results_.push_back(result);
@@ -208,15 +209,15 @@ private:
         if (this->config_.verbose) std::cout << "Running decryption performance test..." << std::endl;
 
         try {
-            StatisticalMeasures::Dispersion<uint32_t> stats = NTRU::Encryption::deciphering(*encryption_.get(), *this->testEncMessage_);
+            StatisticalMeasures::Dispersion<uint32_t> encryptedStats = NTRU::Encryption::deciphering(*encryption_.get(), *this->testEncMessage_);
 
             TestResult result;                                                  // -If no exception thrown, proceed to organize the results.
             result.testName = "Decryption";
-            result.maximum = stats.getMaximum().value();
-            result.minimum = stats.getMinimum().value();
-            result.average = stats.getAverage().value();
-            result.standardDeviation = std::sqrt(stats.getVariance().value());
-            result.averageAbsoluteDeviation = stats.getAAD().value();
+            result.maximum = encryptedStats.getMaximum().value();
+            result.minimum = encryptedStats.getMinimum().value();
+            result.average = encryptedStats.getAverage().value();
+            result.standardDeviation = std::sqrt(encryptedStats.getVariance().value());
+            result.averageAbsoluteDeviation = encryptedStats.getAAD().value();
             result.units = "microseconds";
             result.success = true;
 
@@ -236,7 +237,6 @@ private:
         try{
             std::vector<std::byte> test_data(256*256*3);
             size_t bz = this->encryption_->inputPlainTextMaxSizeInBytes();
-            size_t bn = test_data.size()/bz;
             size_t i, k;
             std::byte bit = std::byte{0x01};
 
@@ -248,19 +248,22 @@ private:
                 } else
                     test_data[i] = std::byte{0x00};
             }
-            for(size_t i = 0; i < bn; i++){
-                for(size_t j = 0; j < bz; j++);
-            }
+            StatisticalMeasures::DataRandomness plainStats = StatisticalMeasures::DataRandomness(test_data);
+            StatisticalMeasures::DataRandomness encryptedStats = NTRU::Encryption::encryptedData(*this->encryption_.get(), test_data);
 
-            StatisticalMeasures::DataRandomness stats = NTRU::Encryption::encryptedData(this->encryption_.get());
-
-            this->dataAnalysis_.entropy = stats.getEntropy().value();           // -If no exception thrown, proceed to organize the results.
-            this->dataAnalysis_.xiSquare = stats.getChiSquare().value();
-            this->dataAnalysis_.correlation = stats.getCorrelation().value();
-            this->dataAnalysis_.success = true;
+            this->plainDataAnalysis_.entropy = plainStats.getEntropy().value();           // -If no exception thrown, proceed to organize the results.
+            this->plainDataAnalysis_.xiSquare = plainStats.getChiSquare().value();
+            this->plainDataAnalysis_.correlation = plainStats.getCorrelationAdjacentByte().value();
+            this->plainDataAnalysis_.success = true;
+            this->encryptedDataAnalysis_.entropy = encryptedStats.getEntropy().value();           // -If no exception thrown, proceed to organize the results.
+            this->encryptedDataAnalysis_.xiSquare = encryptedStats.getChiSquare().value();
+            this->encryptedDataAnalysis_.correlation = encryptedStats.getCorrelationAdjacentByte().value();
+            this->encryptedDataAnalysis_.success = true;
         } catch(const std::exception& exp){
-            this->dataAnalysis_.success = false;
-            this->dataAnalysis_.errorMessage = exp.what();
+            this->plainDataAnalysis_.success = false;
+            this->plainDataAnalysis_.errorMessage = exp.what();
+            this->encryptedDataAnalysis_.success = false;
+            this->encryptedDataAnalysis_.errorMessage = exp.what();
         }
     }
 
@@ -293,13 +296,19 @@ private:
                 std::cout << result.testName << " Test failed: " << result.errorMessage << std::endl;
             }
         }
-        if(this->dataAnalysis_.success){
-            std::cout << "\nEncrypted data analysis:\n";
-            std::cout << "Entropy: " << this->dataAnalysis_.entropy << "\n";
-            std::cout << "Correlation: " << this->dataAnalysis_.correlation << "\n";
-            std::cout << "Xi-Square: " << this->dataAnalysis_.xiSquare << std::endl;
-        } else if(!this->dataAnalysis_.errorMessage.empty()){
-            std::cout << "\nData Analysis Failed: " << this->dataAnalysis_.errorMessage << std::endl;
+        if(this->plainDataAnalysis_.success && this->encryptedDataAnalysis_.success){
+            std::cout << "\nData analysis:\n";
+            std::cout << "\t\t Plain\t\t Encrypted\n";
+            std::cout << "Entropy:\t" << this->plainDataAnalysis_.entropy << "\t\t" <<this->encryptedDataAnalysis_.entropy << "\n";
+            std::cout << "Correlation:\t" << this->plainDataAnalysis_.correlation << '\t' << this->encryptedDataAnalysis_.correlation << "\n";
+            std::cout << "Xi-Square:\t" << this->plainDataAnalysis_.xiSquare << '\t' << this->encryptedDataAnalysis_.xiSquare << std::endl;
+        } else{
+            if(!this->plainDataAnalysis_.errorMessage.empty()){
+                std::cout << "\nData Analysis of plain data Failed: " << this->plainDataAnalysis_.errorMessage << std::endl;
+            }
+            if(!this->encryptedDataAnalysis_.errorMessage.empty()){
+                std::cout << "\nData Analysis of encrypted data Failed: " << this->encryptedDataAnalysis_.errorMessage << std::endl;
+            }
         }
     }
 
@@ -326,13 +335,21 @@ private:
             std::cout << "\n";
         }
         std::cout << "  ]";
-        if (dataAnalysis_.success) {
+        if (this->plainDataAnalysis_.success && this->encryptedDataAnalysis_.success) {
             std::cout << ",\n";
-            std::cout << "  \"data_analysis\": {\n";
-            std::cout << "    \"entropy\": " << dataAnalysis_.entropy << ",\n";
-            std::cout << "    \"correlation\": " << dataAnalysis_.correlation << ",\n";
-            std::cout << "    \"xi_square\": " << dataAnalysis_.xiSquare << "\n";
-            std::cout << "  }\n";
+            std::cout << "  \"data_analysis\": [\n";
+            std::cout << "      \"plain_data\": {\n";
+            std::cout << "          \"entropy\": " << plainDataAnalysis_.entropy << ",\n";
+            std::cout << "          \"correlation\": " << plainDataAnalysis_.correlation << ",\n";
+            std::cout << "          \"xi_square\": " << plainDataAnalysis_.xiSquare << "\n";
+            std::cout << "      },\n";
+            std::cout << "      \"encrypted_data\": {\n";
+            std::cout << "          \"entropy\": " << encryptedDataAnalysis_.entropy << ",\n";
+            std::cout << "          \"correlation\": " << encryptedDataAnalysis_.correlation << ",\n";
+            std::cout << "          \"xi_square\": " << encryptedDataAnalysis_.xiSquare << "\n";
+            std::cout << "      }\n";
+            std::cout << "  ]";
+            std::cout << "\n";
         } else {
             std::cout << "\n";
         }
