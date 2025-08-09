@@ -63,8 +63,8 @@ int main(int argc, char* argv[]) {
         std::cout << "\n\t******** Encryption object keys (vector form): ****************************************************************************************************\n";
         ptr_e->printKeys(); std::cout << std::endl;
         std::cout << "\t***************************************************************************************************************************************************\n\n";
+        NTRU::RqPolynomial encMsg;
         if(command == "encrypt"){
-            NTRU::RqPolynomial encMsg;
             try{
                 std::cout << "\tEncrypting file contents...\n";
                 encMsg = ptr_e->encryptFile(argv[3]);                           // -Encrypts file
@@ -87,9 +87,8 @@ int main(int argc, char* argv[]) {
                 std::cerr << "No private key available for decryption process." << std::endl;
                 return EXIT_FAILURE;
             }
-            NTRU::RqPolynomial encMsg;
             try{
-                NTRU::Encryption::RqPolynomialFromFile(argv[3]);                // -Creates encrypted message from file
+                encMsg = NTRU::Encryption::RqPolynomialFromFile(argv[3]);       // -Creates encrypted message from file
             }catch(const std::runtime_error& exp){
                 delete ptr_e;
                 std::cerr << "I could not create NTRU::RqPolynomial object.\n" << exp.what() << '\n';
