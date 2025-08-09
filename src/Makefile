@@ -19,20 +19,21 @@ STATIC_LIB = $(BUILD_DIR_PATH)/lib/libntru.a
 
 .PHONY: all clean deps-check
 
-all: deps-check $(STATIC_LIB) #$(SHARED_LIB)
+all: deps-check $(STATIC_LIB)
 
 deps-check:
 	$(call check_dependencies)
 
- # Expansion -> $(call create_static_lib,$(BUILD_DIR_PATH)/lib/libntru.a,$(call sources_to_objects,$(SOURCES),$(BUILD_DIR_PATH)/src)). $@ Target ;$^ All dependencies
+# Expansion -> $(call create_static_lib,$(BUILD_DIR_PATH)/lib/libntru.a,$(call sources_to_objects,$(SOURCES),$(BUILD_DIR_PATH)/src)). $@ Target ;$^ All dependencies
 $(STATIC_LIB): $(OBJECTS)
 	$(call create_static_lib,$@,$^)
 
- # Expansion -> $(call create_shared_lib,$(BUILD_DIR_PATH)/lib/libntru.so,$(call sources_to_objects,$(SOURCES),$(BUILD_DIR_PATH)/src)). $@ Target ;$^ All dependencies
+# Expansion -> $(call create_shared_lib,$(BUILD_DIR_PATH)/lib/libntru.so,$(call sources_to_objects,$(SOURCES),$(BUILD_DIR_PATH)/src)). $@ Target ;$^ All dependencies
 #$(SHARED_LIB): $(OBJECTS)
 #	$(call create_shared_lib,$@,$^)
 
 # Generic rule for compiling C++ files
+# -fPIC (Position-Independent Code), thougth for shared libraries
 $(BUILD_DIR_PATH)/src/obj/%.o: %.cpp
 	$(call compile_cpp,$<,$@,-fPIC)
 
