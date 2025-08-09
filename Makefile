@@ -4,7 +4,7 @@ include mk/common.mk
 
 .PHONY: all clean test examples
 
-all: lib examples
+all: lib examples test
 
 lib:
 	$(MAKE) -C src
@@ -17,10 +17,10 @@ test: lib
 #	$(BUILD_DIR)/bin/run_all_tests
 
 clean:
-	rm -rf $(BUILD_DIR)
 	$(MAKE) -C src clean
 	$(MAKE) -C tests clean
 	$(MAKE) -C examples clean
+	rm -rf $(BUILD_DIR)
 
 help:
 	$(call show_help)
