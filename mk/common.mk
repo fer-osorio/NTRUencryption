@@ -141,11 +141,13 @@ define show_help
 	@echo -e "  $(GREEN)lib$(RESET_COLOR)       - Build only the library"
 	@echo -e "  $(GREEN)examples$(RESET_COLOR)  - Build example programs"
 	@echo -e "  $(GREEN)test$(RESET_COLOR)      - Build and run tests"
+	@echo -e "  $(GREEN)help$(RESET_COLOR)      - Show this help message"
+	@echo ""
+endef
+
 #	@echo -e "  $(GREEN)docs$(RESET_COLOR)      - Generate documentation"
 #	@echo -e "  $(GREEN)clean$(RESET_COLOR)     - Remove all build artifacts"
 #	@echo -e "  $(GREEN)install$(RESET_COLOR)   - Install library system-wide"
-	@echo -e "  $(GREEN)help$(RESET_COLOR)      - Show this help message"
-	@echo ""
 #	@echo -e "$(BLUE)Build options:$(RESET_COLOR)"
 #	@echo -e "  $(YELLOW)DEBUG=1$(RESET_COLOR)   - Build with debug symbols"
 #	@echo -e "  $(YELLOW)-j N$(RESET_COLOR)      - Build with N parallel jobs"
@@ -154,7 +156,6 @@ define show_help
 #	@echo "  make DEBUG=1           # Debug build"
 #	@echo "  make -j8               # Parallel build with 8 jobs"
 #	@echo "  make clean all         # Clean rebuild"
-endef
 
 # Make help the default if no target is specified
 #.DEFAULT_GOAL := help
