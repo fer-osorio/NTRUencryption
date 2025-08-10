@@ -1,7 +1,7 @@
 #include<iostream>
 #include<memory>
-#include"../../include/ntru/encryption.hpp"
-#include"../../include/ntru/parameters_constants.hpp"
+#include"../../../include/ntru/encryption.hpp"
+#include"../../../include/ntru/parameters_constants.hpp"
 
 using namespace NTRU;
 using namespace Timing;

@@ -1,7 +1,7 @@
-#include"../../include/ntru/polynomials.hpp"
-#include"../../include/ntru/exceptions.hpp"
-#include"../../include/ntru/parameters_constants.hpp"
-#include"../../include/print_debug/print_array_table.hpp"
+#include"../../../include/ntru/polynomials.hpp"
+#include"../../../include/ntru/exceptions.hpp"
+#include"../../../include/ntru/parameters_constants.hpp"
+#include"../../../include/print_debug/print_array_table.hpp"
 
 using namespace NTRU;
 

@@ -1,8 +1,8 @@
 #include<iostream>
-#include"../../include/ntru/parameters_constants.hpp"
-#include"../../include/ntru/encryption.hpp"
-#include"../../include/metrics-analysis/statistical_measures.hpp"
-#include"../../include/print_debug/debug_helpers.hpp"
+#include"../../../include/ntru/parameters_constants.hpp"
+#include"../../../include/ntru/encryption.hpp"
+#include"../../../include/metrics-analysis/statistical_measures.hpp"
+#include"../../../include/print_debug/debug_helpers.hpp"
 
 StatisticalMeasures::DataRandomness NTRU::Encryption::encryptedDataRandomness(const NTRU::Encryption& e, const std::vector<std::byte>& plain_data){
     const size_t plain_blk_sz = e.inputPlainTextMaxSizeInBytes();               // Plain data block size

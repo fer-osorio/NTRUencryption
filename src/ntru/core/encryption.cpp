@@ -1,9 +1,9 @@
 #include<iostream>
 #include<fstream>
 #include<random>
-#include"../../include/ntru/encryption.hpp"
-#include"../../include/ntru/exceptions.hpp"
-#include"../../include/ntru/parameters_constants.hpp"
+#include"../../../include/ntru/encryption.hpp"
+#include"../../../include/ntru/exceptions.hpp"
+#include"../../../include/ntru/parameters_constants.hpp"
 
 using namespace NTRU;
 
