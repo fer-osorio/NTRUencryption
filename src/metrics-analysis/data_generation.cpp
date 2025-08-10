@@ -6,7 +6,7 @@ std::vector<std::byte> simpleDataSource(size_t size){
     return dataSource(
         [](size_t i) ->std::byte {
             size_t FF = 0xFF, q = (i & ~FF)>>8, r = i & FF;                     // i = 256·q + r
-            return std::byte((q+i) & FF);                                       // (q+i) % 256
+            return std::byte((q+r) & FF);                                       // (q+i) % 256
         }
         ,size);
 }
