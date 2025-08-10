@@ -1,5 +1,6 @@
 #include"polynomials.hpp"
-#include"statistical_measures.hpp"
+#include"../metrics-analysis/statistical_measures.hpp"
+#include"../metrics-analysis/timing.hpp"
 
 #ifndef _ENCRYPTION_HPP_
 #define _ENCRYPTION_HPP_
@@ -54,13 +55,13 @@ public:
 	static RpPolynomial randomTernary();					// -Random Rp polynomial generation
 private:
 	// -Runs key generation, ciphering or deciphering test depending on the parameter const TestID&
-	static StatisticalMeasures::Dispersion<uint32_t> encryption_test(const TestID&,const NTRU::Encryption&,const NTRU::RpPolynomial&,const NTRU::RqPolynomial&);
+	static StatisticalMeasures::Dispersion<uint32_t> encryption_test(const Timing::TestID&,const NTRU::Encryption&,const NTRU::RpPolynomial&,const NTRU::RqPolynomial&);
 public:
 	// -Performance measurement
 	static StatisticalMeasures::Dispersion<uint32_t> keyGenerationTime();
-	static StatisticalMeasures::Dispersion<uint32_t> ciphering(const NTRU::Encryption& e, const NTRU::RpPolynomial& msg);// Taking average of encryption time
-	static StatisticalMeasures::Dispersion<uint32_t> deciphering(const NTRU::Encryption& e, const NTRU::RqPolynomial& emsg);// Taking average of decryption time
-	static StatisticalMeasures::DataRandomness encryptedData(const NTRU::Encryption& e, const std::vector<std::byte>& plain_data);
+	static StatisticalMeasures::Dispersion<uint32_t> cipheringTime(const NTRU::Encryption& e, const NTRU::RpPolynomial& msg);// Taking average of encryption time
+	static StatisticalMeasures::Dispersion<uint32_t> decipheringTime(const NTRU::Encryption& e, const NTRU::RqPolynomial& emsg);// Taking average of decryption time
+	static StatisticalMeasures::DataRandomness encryptedDataRandomness(const NTRU::Encryption& e, const std::vector<std::byte>& plain_data);
 
 private:
 	static void interchangeZeroFor(RpPolynomial::Z3 t, RpPolynomial& pl);	// -Randomly selects a coefficient with value 0 and a coefficient with value t and interchanges them.
