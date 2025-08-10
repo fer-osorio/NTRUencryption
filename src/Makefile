@@ -34,8 +34,14 @@ $(STATIC_LIB): $(OBJECTS)
 
 # Generic rule for compiling C++ files
 # -fPIC (Position-Independent Code), thougth for shared libraries
-$(BUILD_DIR_PATH)/src/obj/%.o: %.cpp
+# Compiling ntru files with NTRU_PARAMETERS
+$(BUILD_DIR_PATH)/src/obj/ntru/%.o: ntru/%.cpp
 	$(call compile_cpp,$<,$@,-fPIC $(NTRU_PARAMETERS))
+# The rest of the object files do not need NTRU_PARAMETERS
+$(BUILD_DIR_PATH)/src/obj/metrics-analysis/%.o: metrics-analysis/%.cpp
+	$(call compile_cpp,$<,$@,-fPIC)
+$(BUILD_DIR_PATH)/src/obj/print_debug/%.o: print_debug/%.cpp
+	$(call compile_cpp,$<,$@,-fPIC)
 
 clean:
 	$(call standard_clean,$(BUILD_DIR_PATH)/lib $(BUILD_DIR_PATH)/src)
