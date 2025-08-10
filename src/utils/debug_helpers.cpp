@@ -9,7 +9,7 @@
     //  Returns: Number of characters printed.
 */
 template <typename T>
-static size_t print_obj_byte_view(const T& obj, NumberBaseTwosPower::Base b){
+size_t print_obj_byte_view(const T& obj, NumberBaseTwosPower::Base b){
     const unsigned char* byte_ptr = reinterpret_cast<const unsigned char*>(&obj); // Allows to view the object as an array of unsigned chars
     const size_t obj_sz = sizeof(obj);
     unsigned int buff = 0, lower_bits = static_cast<unsigned int>(b), bit_mask = 0, digit;
@@ -52,7 +52,7 @@ static size_t print_obj_byte_view(const T& obj, NumberBaseTwosPower::Base b){
     //  Return: Viewing the printed output as a sequence of characters, returns the index of the starting character of the element specified by at_index.
 */
 template <typename T>
-static size_t print_slice_centered(const std::vector<T>& v, size_t at_index, size_t slice_width, NumberBaseTwosPower::Base b){
+size_t print_slice_centered(const std::vector<T>& v, size_t at_index, size_t slice_width, NumberBaseTwosPower::Base b){
     if(slice_width > v.size()) slice_width = v.size();                          // Ensuring 'slice_width <= v.size()' inequality
     if(at_index >= v.size()) return 0;                                          // Ensuring 'at_index < v.size()' inequality
     size_t sw_div2 = slice_width >> 1, sw_mod2 = slice_width & 1;               // Equivalent to slice_width / 2 and slice_width % 2
@@ -103,7 +103,7 @@ static size_t print_slice_centered(const std::vector<T>& v, size_t at_index, siz
     //      Case -1: Vectors have different sizes.
     //      Case ">= 0": Vectors are different at the returned index.
 */
-static int print_first_difference(std::vector<char> v1, std::vector<char> v2, std::string diff_msg, std::string v1_slice_front, std::string v2_slice_front, size_t width){
+int print_first_difference(std::vector<char> v1, std::vector<char> v2, std::string diff_msg, std::string v1_slice_front, std::string v2_slice_front, size_t width){
     if(v1 == v2) return -2;
     size_t s1 = v1.size(), s2 = v2.size();
     if(s1 != s2) {

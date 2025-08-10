@@ -40,7 +40,7 @@ struct NumberBaseTwosPower{
     //  Returns: Number of characters printed.
 */
 template <typename T>
-static size_t print_obj_byte_view(const T& obj, NumberBaseTwosPower::Base b);
+size_t print_obj_byte_view(const T& obj, NumberBaseTwosPower::Base b);
 
 /*
     //  Prints the elements of interval specified by the at_index and slice_with parameters.
@@ -50,7 +50,7 @@ static size_t print_obj_byte_view(const T& obj, NumberBaseTwosPower::Base b);
     //  Return: Viewing the printed output as a sequence of characters, returns the index of the starting character of the element specified by at_index.
 */
 template <typename T>
-static size_t print_slice_centered(const std::vector<T>& v, size_t at_index, size_t slice_width, NumberBaseTwosPower::Base b);
+size_t print_slice_centered(const std::vector<T>& v, size_t at_index, size_t slice_width, NumberBaseTwosPower::Base b);
 
 /*
     //  Prints an interval of legth 'with' were the first difference [if exist] is found. If possible, the element were the first difference is found will be
@@ -62,7 +62,7 @@ static size_t print_slice_centered(const std::vector<T>& v, size_t at_index, siz
     //      Case -1: Vectors have different sizes.
     //      Case ">= 0": Vectors are different at the returned index.
 */
-static int print_first_difference(std::vector<char> v1, std::vector<char> v2, std::string diff_msg, std::string v1_slice_front, std::string v2_slice_front, size_t width);
+int print_first_difference(std::vector<char> v1, std::vector<char> v2, std::string diff_msg, std::string v1_slice_front, std::string v2_slice_front, size_t width);
 
 // Printing array of bytes with an specific ofrmat. Format can be "binary" or char
 // Format:
