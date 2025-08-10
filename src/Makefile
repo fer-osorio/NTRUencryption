@@ -11,7 +11,7 @@ SOURCES = $(call find_sources,.,cpp)
 CLEAN_SOURCES = $(call clean_sources,$(SOURCES))                                # Remove the leading ./
 #$(info CLEAN_SOURCES: $(CLEAN_SOURCES))                                         # Debugging purposes
 OBJECTS = $(call sources_to_objects,$(CLEAN_SOURCES),$(BUILD_DIR_PATH)/src)     # This would create build/src/obj/core/encryption.o, build/src/obj/math/R2Polynomial.o, etc.
-$(info OBJECTS: $(OBJECTS))                                                     # Debugging purposes
+#$(info OBJECTS: $(OBJECTS))                                                     # Debugging purposes
 DEPS = $(call objects_to_deps,$(OBJECTS))
 
 STATIC_LIB = $(BUILD_DIR_PATH)/lib/libntru.a
