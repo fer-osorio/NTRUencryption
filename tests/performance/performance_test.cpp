@@ -8,6 +8,7 @@
 #include<map>
 #include<iostream>
 #include"../../include/ntru/ntru.hpp"
+#include"../../include/metrics-analysis/data_generation.hpp"
 
 class NTRUperformanceTester{
 public:
@@ -46,6 +47,19 @@ public:
         double xiSquare = 0.0;
         bool success = false;
         std::string errorMessage = "";
+
+        DataAnalysisResult(){}
+        DataAnalysisResult(StatisticalMeasures::DataRandomness dr, bool successState): success(successState){
+            if(successState){
+                try{
+                    this->entropy = dr.getEntropy().value();
+                    this->correlation = dr.getCorrelationAdjacentByte().value();
+                    this->xiSquare = dr.getChiSquare().value();
+                }catch(const std::exception& exp){
+                    throw;
+                }
+            }
+        }
     };
 
 private:
@@ -235,30 +249,11 @@ private:
     void runDataAnalysisTest(){
         if(this->config_.verbose) std::cout << "Running data analysis test..." << std::endl;
         try{
-            std::vector<std::byte> test_data(256*256*3);
-            size_t bz = this->encryption_->inputPlainTextMaxSizeInBytes();
-            size_t i, k;
-            std::byte bit = std::byte{0x01};
-
-            for(i = 0, k = bz; i < test_data.size(); i++){
-                if(i == k){
-                    test_data[i] = bit;
-                    bit = (bit == std::byte{0x80}) ? std::byte{0x01} : bit << 1;
-                    k += bz+1;
-                } else
-                    test_data[i] = std::byte{0x00};
-            }
+            std::vector<std::byte> test_data = DataGeneration::simpleDataSource(256*256*3);
             StatisticalMeasures::DataRandomness plainStats = StatisticalMeasures::DataRandomness(test_data);
             StatisticalMeasures::DataRandomness encryptedStats = NTRU::Encryption::encryptedDataRandomness(*this->encryption_.get(), test_data);
-
-            this->plainDataAnalysis_.entropy = plainStats.getEntropy().value();           // -If no exception thrown, proceed to organize the results.
-            this->plainDataAnalysis_.xiSquare = plainStats.getChiSquare().value();
-            this->plainDataAnalysis_.correlation = plainStats.getCorrelationAdjacentByte().value();
-            this->plainDataAnalysis_.success = true;
-            this->encryptedDataAnalysis_.entropy = encryptedStats.getEntropy().value();           // -If no exception thrown, proceed to organize the results.
-            this->encryptedDataAnalysis_.xiSquare = encryptedStats.getChiSquare().value();
-            this->encryptedDataAnalysis_.correlation = encryptedStats.getCorrelationAdjacentByte().value();
-            this->encryptedDataAnalysis_.success = true;
+            this->plainDataAnalysis_ = DataAnalysisResult(plainStats,true);
+            this->encryptedDataAnalysis_ = DataAnalysisResult(encryptedStats,true);
         } catch(const std::exception& exp){
             this->plainDataAnalysis_.success = false;
             this->plainDataAnalysis_.errorMessage = exp.what();
