@@ -184,7 +184,7 @@ private:
     void runEncryptionTest(){
         if(this->config_.verbose) std::cout << "Running encryption performance test...\n";
         try{
-            StatisticalMeasures::Dispersion<uint32_t> encryptedStats = NTRU::Encryption::ciphering(*this->encryption_.get(), *this->testMessage_.get());
+            StatisticalMeasures::Dispersion<uint32_t> encryptedStats = NTRU::Encryption::cipheringTime(*this->encryption_.get(), *this->testMessage_.get());
 
             TestResult result;                                                  // -If no exception thrown, proceed to organize the results.
             result.testName = "Encryption";
@@ -209,7 +209,7 @@ private:
         if (this->config_.verbose) std::cout << "Running decryption performance test..." << std::endl;
 
         try {
-            StatisticalMeasures::Dispersion<uint32_t> encryptedStats = NTRU::Encryption::deciphering(*encryption_.get(), *this->testEncMessage_);
+            StatisticalMeasures::Dispersion<uint32_t> encryptedStats = NTRU::Encryption::decipheringTime(*encryption_.get(), *this->testEncMessage_);
 
             TestResult result;                                                  // -If no exception thrown, proceed to organize the results.
             result.testName = "Decryption";
@@ -249,7 +249,7 @@ private:
                     test_data[i] = std::byte{0x00};
             }
             StatisticalMeasures::DataRandomness plainStats = StatisticalMeasures::DataRandomness(test_data);
-            StatisticalMeasures::DataRandomness encryptedStats = NTRU::Encryption::encryptedData(*this->encryption_.get(), test_data);
+            StatisticalMeasures::DataRandomness encryptedStats = NTRU::Encryption::encryptedDataRandomness(*this->encryption_.get(), test_data);
 
             this->plainDataAnalysis_.entropy = plainStats.getEntropy().value();           // -If no exception thrown, proceed to organize the results.
             this->plainDataAnalysis_.xiSquare = plainStats.getChiSquare().value();
