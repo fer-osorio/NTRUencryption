@@ -6,9 +6,9 @@
 
 #define NUMBER_OF_ROUNDS 1024U
 
-using namespace Timing;
+//using namespace Timing; This statement cause error in explicit instatiation of function template.
 
-template<typename T> std::vector<uint32_t> functionExecutionTiming(std::function<T()> func, TestID TID) {
+template<typename T> std::vector<uint32_t> Timing::functionExecutionTiming(std::function<T()> func, Timing::TestID TID) {
     std::chrono::steady_clock::time_point begin;
     std::chrono::steady_clock::time_point end;
     std::vector<uint32_t> time_measures(NUMBER_OF_ROUNDS);
@@ -22,3 +22,5 @@ template<typename T> std::vector<uint32_t> functionExecutionTiming(std::function
     std::cout << TID.get_label() << ". Total number of rounds completed: " << NUMBER_OF_ROUNDS << std::endl;
     return time_measures;
 }
+
+template std::vector<uint32_t> Timing::functionExecutionTiming(std::function<int()>, Timing::TestID);
