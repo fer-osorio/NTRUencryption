@@ -134,6 +134,26 @@ define check_dependencies
 	$(call print_success,Dependencies check completed)
 endef
 
+# Function to check GMPXX availability
+define check_gmpxx_deps
+	@echo "Checking GMPXX dependencies..."
+	@if ! pkg-config --exists gmp; then \
+		echo "Error: GMP library not found. Please install libgmp-dev"; \
+		exit 1; \
+	fi
+	@if ! echo '#include <gmpxx.h>' | $(CXX) -x c++ -E - >/dev/null 2>&1; then \
+		echo "Error: GMPXX headers not found. Please install libgmp-dev or libgmpxx-dev"; \
+		exit 1; \
+	fi
+	@echo "GMPXX dependencies satisfied."
+endef
+
+# Conditional dependency checking
+check-gmpxx:
+ifeq ($(INCLUDE_GMPXX),true)
+	$(call check_gmpxx_deps)
+endif
+
 # Help function - shows available targets
 define show_help
 	@echo -e "$(BLUE)Available targets:$(RESET_COLOR)"
