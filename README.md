@@ -58,12 +58,12 @@ The implementation works with three polynomial rings:
 
 ### Key Generation
 1. Generate random ternary polynomials f and g
-2. Compute f⁻¹ in Rq (private key inverse)
-3. Public key h = g × f⁻¹ (mod q)
+2. Compute F = 1 + p·f then F⁻¹ in Rq (private key inverse)
+3. Public key h = g × F⁻¹ (mod q)
 
 ### Encryption/Decryption
 - **Encryption**: c = h × r + m (mod q), where r is random and m is the message
-- **Decryption**: a = f × c (mod q), then recover m from a
+- **Decryption**: a = F × c (mod q), then recover m from a
 
 ## Configuration
 
