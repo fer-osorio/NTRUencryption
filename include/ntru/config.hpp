@@ -1,4 +1,4 @@
-// Commands the integration of gmpxx library and associated features (and maybe other libraries and feature in the future).
+// Commands the integration of gmpxx library and associated features (and maybe other libraries and features in the future).
 #ifndef NTRU_CONFIG_HPP
 #define NTRU_CONFIG_HPP
 
