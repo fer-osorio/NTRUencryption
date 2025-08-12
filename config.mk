@@ -7,17 +7,33 @@ AR = ar
 NTRU_N ?= 701
 NTRU_q ?= 8192
 
+# Add NTRU parameters as preprocessor defines
+NTRU_PARAMETERS = -DNTRU_N=$(NTRU_N) -DNTRU_q=$(NTRU_q) #-DNTRU_P=$(NTRU_P)
+
 WARNINGS = -Wall -Weffc++ -Wextra -Wsign-conversion -pedantic-errors
 DEBUG    = -ggdb -fno-omit-frame-pointer
 OPTIMIZE = -O2
 STANDARD = -std=c++2a
 
 # Base compiler flags
-CXXFLAGS = $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD)
-LDFLAGS = -lgmp -lgmpxx
+# GMPXX Support Configuration
+INCLUDE_GMPXX ?= false
 
-# Add NTRU parameters as preprocessor defines
-NTRU_PARAMETERS = -DNTRU_N=$(NTRU_N) -DNTRU_q=$(NTRU_q) #-DNTRU_P=$(NTRU_P)
+# Conditional compilation flags
+ifeq ($(INCLUDE_GMPXX),true)
+    GMPXX_FLAGS = -DGMPXX_INCLUDED
+    GMPXX_LIBS = -lgmp -lgmpxx
+    GMPXX_DEPS_CHECK = check-gmpxx
+else
+    GMPXX_FLAGS =
+    GMPXX_LIBS =
+    GMPXX_DEPS_CHECK =
+endif
+
+CXXFLAGS_BASE = $(WARNINGS) $(DEBUG) $(OPTIMIZE) $(STANDARD)
+CXXFLAGS_NTRULIB = $(CXXFLAGS_BASE) $(GMPXX_FLAGS) $(NTRU_PARAMETERS)
+
+LDFLAGS = $(GMPXX_LIBS)
 
 # Directories
 BUILD_DIR = build
