@@ -17,12 +17,24 @@ DEPS = $(call objects_to_deps,$(OBJECTS))
 STATIC_LIB = $(BUILD_DIR_PATH)/lib/libntru.a
 #SHARED_LIB = $(BUILD_DIR_PATH)/lib/libntru.so
 
-.PHONY: all clean deps-check
+ifeq ($(INCLUDE_GMPXX),true)
+GMPXX_DEPS_CHECK = check-gmpxx
+else
+GMPXX_DEPS_CHECK =
+endif
 
-all: deps-check $(STATIC_LIB)
+.PHONY: all clean deps-check $(GMPXX_DEPS_CHECK)
+
+all: deps-check $(GMPXX_DEPS_CHECK) $(STATIC_LIB)
 
 deps-check:
 	$(call check_dependencies)
+
+# Conditional dependency checking
+check-gmpxx:
+ifeq ($(INCLUDE_GMPXX),true)
+	$(call check_gmpxx_deps)
+endif
 
 # Expansion -> $(call create_static_lib,$(BUILD_DIR_PATH)/lib/libntru.a,$(call sources_to_objects,$(SOURCES),$(BUILD_DIR_PATH)/src)). $@ Target ;$^ All dependencies
 $(STATIC_LIB): $(OBJECTS)
@@ -34,10 +46,10 @@ $(STATIC_LIB): $(OBJECTS)
 
 # Generic rule for compiling C++ files
 # -fPIC (Position-Independent Code), thougth for shared libraries
-# Compiling ntru files with NTRU_PARAMETERS
+# Compiling ntru files with NTRULIB_FLAGS
 $(BUILD_DIR_PATH)/src/obj/ntru/%.o: ntru/%.cpp
-	$(call compile_cpp,$<,$@,-fPIC $(NTRU_PARAMETERS))
-# The rest of the object files do not need NTRU_PARAMETERS
+	$(call compile_cpp,$<,$@,-fPIC $(NTRULIB_FLAGS))
+# The rest of the object files do not need NTRULIB_FLAGS
 $(BUILD_DIR_PATH)/src/obj/metrics-analysis/%.o: metrics-analysis/%.cpp
 	$(call compile_cpp,$<,$@,-fPIC)
 $(BUILD_DIR_PATH)/src/obj/print_debug/%.o: print_debug/%.cpp
