@@ -485,8 +485,8 @@ displayByteArray(data, sizeof(data), 8, "hex");
 
 ## Performance Notes
 
-- Key generation is the most expensive operation (~10-50ms)
-- Encryption/decryption are typically fast (~1-5ms)
+- Key generation is the most expensive operation (~5-10ms with N = 701, q = 8192)
+- Encryption/decryption are typically fast (~1ms with N = 701, q = 8192)
 - Performance varies significantly with parameter choices
 - Consider caching `Encryption` objects rather than recreating them
 - File operations add I/O overhead to cryptographic operations
