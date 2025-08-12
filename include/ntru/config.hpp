@@ -16,7 +16,7 @@
     #define NTRU_GMPXX_MEMBER(member_decl) member_decl
     #define NTRU_GMPXX_CONDITIONAL(code) code
 #else
-    #define NTRU_GMPXX_METHOD(method_name) method_name##_unavailable
+    #define NTRU_GMPXX_METHOD(method_name) /* method_name */
     #define NTRU_GMPXX_MEMBER(member_decl) /* member_decl */
     #define NTRU_GMPXX_CONDITIONAL(code) /* code */
 #endif
