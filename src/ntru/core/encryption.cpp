@@ -1,6 +1,7 @@
 #include<iostream>
 #include<fstream>
 #include<random>
+#include<cstring>
 #include"../../../include/ntru/encryption.hpp"
 #include"../../../include/ntru/exceptions.hpp"
 #include"../../../include/ntru/parameters_constants.hpp"
