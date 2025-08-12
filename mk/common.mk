@@ -148,12 +148,6 @@ define check_gmpxx_deps
 	@echo "GMPXX dependencies satisfied."
 endef
 
-# Conditional dependency checking
-check-gmpxx:
-ifeq ($(INCLUDE_GMPXX),true)
-	$(call check_gmpxx_deps)
-endif
-
 # Help function - shows available targets
 define show_help
 	@echo -e "$(BLUE)Available targets:$(RESET_COLOR)"
