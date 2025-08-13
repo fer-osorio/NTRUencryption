@@ -35,12 +35,6 @@ int RpPolynomial::degree() const{
 	return deg;
 }
 
-mpz_class RpPolynomial::toNumber() const{                                       // -Interprets this->coefficients as a number in base 3
-    mpz_class r = 0, base = 3;
-    for(int i = NTRU_N-1; i >= 0; i--) r = r*base + this->coefficients[i];         // -Horner's algorithm
-    return r;
-}
-
 void RpPolynomial::print(const char* name, bool centered, const char* tail) const{
     short coeffs[NTRU_N];
     int coeffAmount = this->degree() + 1, i;
@@ -57,3 +51,20 @@ void RpPolynomial::print(const char* name, bool centered, const char* tail) cons
 void RpPolynomial::println(const char* name, bool centered) const{
 	this->print(name, centered, "\n");
 }
+
+#if NTRU_HAS_GMPXX
+// GMPXX-dependent implementations
+mpz_class RpPolynomial::toNumber() const {
+    mpz_class r = 0, base = 3;
+    for(int i = NTRU_N-1; i >= 0; i--) r = r*base + this->coefficients[i];      // -Horner's algorithm
+    return r;
+}
+
+/*RpPolynomial RpPolynomial::fromNumber(const mpz_class& num) {
+    RpPolynomial result;
+    mpz_class temp = num;
+
+    // Implementation details...
+    return result;
+}*/
+#endif // NTRU_HAS_GMPXX

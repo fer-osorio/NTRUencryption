@@ -1,4 +1,5 @@
-#include"../include/ntru/ntru.hpp"
+#include"../../include/ntru/ntru.hpp"
+#include<cstring>
 #include<iostream>
 
 int main(int argc, const char* argv[]) {
@@ -27,7 +28,7 @@ int main(int argc, const char* argv[]) {
     NTRU::Encryption::RpPolynomialtoBytes(decrypted, decryptedBytes, false);    // Convert back to bytes for your application
     std::cout << "\nDecrypted message: " << decryptedBytes << '\n';
 
-    mpz_class num_r = decrypted.toNumber();                                     // Showing the representation of RpPolynomial through a number
+    /*mpz_class num_r = decrypted.toNumber();                                     // Showing the representation of RpPolynomial through a number
     std::cout << "\nNumber associated with (polynomial) decrypted message:\n" << num_r << '\n' << std::endl;
-    return 0;
+    return 0;*/
 }

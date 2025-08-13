@@ -1,4 +1,5 @@
-#include<gmpxx.h>
+#include<cstdlib>
+#include"config.hpp"
 
 #ifndef POLYNOMIALS_HPP
 #define POLYNOMIALS_HPP
@@ -35,7 +36,10 @@ public:
 	RpPolynomial& operator = (const RpPolynomial& P);			// Assignment
 	int operator[](int i) const;
 	int degree() const;							// Returns degree of polynomial
-	mpz_class toNumber() const;						// -Interprests the coefficientes as a bese 3 number.
+
+	// GMPXX-dependent methods
+	NTRU_GMPXX_METHOD(mpz_class toNumber() const);				// -Interprests the coefficientes as a bese 3 number.
+
 	void print(const char* name = "", bool centered = true, const char* tail = "") const;
 	void println(const char* name = "", bool centered = true) const;
 };
