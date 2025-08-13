@@ -35,7 +35,9 @@ NTRU is a lattice-based public key cryptosystem that offers post-quantum securit
 ```
 include/
 ├── ntru/
-│   ├── encryption.hpp           # Main encryption/decryption interface
+│   ├── ntru.hpp                # Contain all other headers
+│   ├── config.hpp              # Include library configuration
+│   ├── encryption.hpp          # Main encryption/decryption interface
 │   ├── polynomials.hpp         # Polynomial arithmetic (Rp, Rq, R2)
 │   ├── parameters_constants.hpp # NTRU parameter definitions
 │   └── exceptions.hpp          # Custom exception classes
