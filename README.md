@@ -90,7 +90,7 @@ g++ -DNTRU_N=509 -DNTRU_Q=2048 your_files.cpp
 ### Basic Usage
 
 ```cpp
-#include "NTRUencryption.hpp"
+#include "ntru.hpp"
 
 // Create an encryption instance (generates keys automatically)
 NTRU::Encryption ntru;
@@ -162,11 +162,17 @@ NTRU::Encryption::ZpPolynomialWriteFile(decrypted, "output.txt", false);
 
 ## Dependencies
 
+### Required
 - **C++17 or later**: Required for modern C++ features
-- **GMP/GMPXX**: GNU Multiple Precision Arithmetic Library (experimental features only)
 - **Standard Library**: Uses `<vector>`, `<optional>`, `<functional>`, etc.
 
-### Installing Dependencies
+### Optional
+- **GMP/GMPXX**: GNU Multiple Precision Arithmetic Library (experimental features only)
+  - Enable with `INCLUDE_GMPXX=true` during build
+  - Provides extended polynomial arithmetic methods
+  - Not required for core NTRU functionality
+
+### Installing GMP/GMPXX
 
 **Ubuntu/Debian:**
 ```bash
@@ -241,6 +247,9 @@ project_root/
 # Build everything (library + examples + tests)
 make all
 
+# Build with optional GMPXX support (experimental features)
+make INCLUDE_GMPXX=true all
+
 # Build only the library
 make lib
 
@@ -265,6 +274,12 @@ Configure parameters in `config.mk` or pass them directly:
 # Build with N=509, Q=2048
 make NTRU_N=509 NTRU_Q=2048
 
+# Build with GMPXX support enabled
+make INCLUDE_GMPXX=true
+
+# Combine parameter and feature configuration
+make NTRU_N=509 NTRU_Q=2048 INCLUDE_GMPXX=true
+
 # Build optimized version
 make CXXFLAGS="-O3 -DNDEBUG"
 ```
@@ -287,91 +302,17 @@ The build system generates:
 - **Example Executables**: `build/bin/basic-usage/`, `build/bin/file-encryption/`
 - **Test Executables**: `build/bin/performance/`
 
-### Manual Building (Without Makefiles)
-
-If you prefer to build manually or integrate into your own build system:
-
-#### Core Library Compilation
-```bash
-# Create build directories
-mkdir -p build/lib build/obj
-
-# Compile NTRU core files (with parameters)
-g++ -std=c++17 -fPIC -DNTRU_N=701 -DNTRU_Q=8192 -I./include \
-    -c src/ntru/encryption.cpp -o build/obj/encryption.o
-g++ -std=c++17 -fPIC -DNTRU_N=701 -DNTRU_Q=8192 -I./include \
-    -c src/ntru/polynomials.cpp -o build/obj/polynomials.o
-g++ -std=c++17 -fPIC -DNTRU_N=701 -DNTRU_Q=8192 -I./include \
-    -c src/ntru/exceptions.cpp -o build/obj/exceptions.o
-
-# Compile analysis and debug utilities (no parameters needed)
-g++ -std=c++17 -fPIC -I./include \
-    -c src/metrics-analysis/statistical_measures.cpp -o build/obj/statistical_measures.o
-g++ -std=c++17 -fPIC -I./include \
-    -c src/metrics-analysis/timing.cpp -o build/obj/timing.o
-g++ -std=c++17 -fPIC -I./include \
-    -c src/print_debug/debug_helpers.cpp -o build/obj/debug_helpers.o
-
-# Create static library
-ar rcs build/lib/libntru.a build/obj/*.o
-```
-
-#### Example Application
-```bash
-# Compile your application
-g++ -std=c++17 -I./include your_app.cpp build/lib/libntru.a -lgmp -lgmpxx -o your_app
-
-# With custom parameters
-g++ -std=c++17 -DNTRU_N=509 -DNTRU_Q=2048 -I./include \
-    your_app.cpp build/lib/libntru.a -lgmp -lgmpxx -o your_app
-```
-
-#### Optimization Flags
-```bash
-# Release build with optimizations
-g++ -std=c++17 -O3 -DNDEBUG -march=native -I./include \
-    your_app.cpp build/lib/libntru.a -lgmp -lgmpxx -o your_app
-
-# Debug build with symbols
-g++ -std=c++17 -g -O0 -DDEBUG -I./include \
-    your_app.cpp build/lib/libntru.a -lgmp -lgmpxx -o your_app
-```
-
 ### Build Configuration
 
 The build system supports several configuration options that can be set in `config.mk`:
 
 - **NTRU_N**: Polynomial degree (default: 701)
 - **NTRU_Q**: Coefficient modulus (default: 8192)  
+- **INCLUDE_GMPXX**: Enable experimental GMPXX features (default: false)
 - **BUILD_DIR**: Build output directory (default: build)
 - **CXX**: C++ compiler (default: g++)
 - **CXXFLAGS**: Compiler flags
 - **LDFLAGS**: Linker flags
-
-## Binary files for ntru keys
-
-As you can notice, constructor ``Encryption(const char* NTRUkeyFile)`` accept a string representing the name of a file.
-This file, when reeding in binary mode, must have a particular format in order to obtain the oportunity to succeed in
-the creation of the ``Encryption`` object. This format is the same used in the ``Encryption`` member function
-``void saveKeys(const char publicKeyName[] = NULL, const char privateKeyName[] = NULL) const;`` to save the
-criptographic keys. Formats for the key files are:
-
-- Public key:
-  1. The first 13 bytes corresponde to the string (with no line ending) "NTRUpublicKey".
-  2. Next two bytes (byte 14 to byte 15) represents the parameter N.
-  3. Next two bytes (byte 16 to byte 17) represents the parameter q.
-  4. Denoting the size in bytes of public key as publicKeySizeInBytes, then the following publicKeySizeInBytes bytes
-     represent the coefficients of the polynomial in the ring Zq[x]/(x^N-1).
-
-- Private key:
-  1. The first 13 bytes corresponde to the string (with no line ending) "NTRUprivatKey".
-  2. Next two bytes (byte 14 to byte 15) represents the parameter N.
-  3. Next two bytes (byte 16 to byte 17) represents the parameter q.
-  4. Denoting the size in bytes of private key as privateKeySizeInBytes, then the following privateKeySizeInBytes bytes
-     represent the coefficients of the polynomial in its respective ring Zp[x]/(x^N-1).
-
-The idea under this format and ``saveKeys`` function is to ensure the key reatrived from any of this files fulfils all
-the necessary requirements for a NTRU key.
 
 ## Security Considerations
 
