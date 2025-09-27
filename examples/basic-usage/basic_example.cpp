@@ -9,10 +9,11 @@ int main(int argc, const char* argv[]) {
         std::cout << argv[argc-1] << ".\n";
     }
     NTRU::Encryption ntru;                                                      // Create an encryption instance (generates keys automatically)
-    const char* plainText = "Hello, quantum-resistant world!";                  // Encrypt a message
+    ntru.printKeys();
+    const char* plainText = "Wir müssen wissen, wir werden wissen. Die Fakten sind: Wir wissen es nicht, und manchmal werden wir es nie wissen";                  // Encrypt a message
     std::cout << "Plain text: " << plainText << "\n\n";
     // Create a RpPolynomial instance. Using RpPolynomial(const char data[], int dataLength, bool isPlainText)
-    NTRU::RpPolynomial ZpPolyPlainText = NTRU::Encryption::RpPolynomialFromBytes(plainText, strlen(plainText)+1, false);
+    NTRU::RpPolynomial ZpPolyPlainText = NTRU::Encryption::RpPolynomialFromBytes(plainText, strlen(plainText) + 1, false);
     ZpPolyPlainText.println("Plain Text (vector form)");
 
     // Starting with encryption-decryption phase.
@@ -26,6 +27,7 @@ int main(int argc, const char* argv[]) {
 
     char decryptedBytes[1024];
     NTRU::Encryption::RpPolynomialtoBytes(decrypted, decryptedBytes, false);    // Convert back to bytes for your application
+    decryptedBytes[strlen(plainText)] = 0;
     std::cout << "\nDecrypted message: " << decryptedBytes << '\n';
 
     /*mpz_class num_r = decrypted.toNumber();                                     // Showing the representation of RpPolynomial through a number
