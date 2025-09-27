@@ -42,8 +42,7 @@ template <typename T> void print_table(
 	std::string_view title,
 	std::string_view tail,
 	const unsigned int column_width,
-	const unsigned int columns)
-{
+	const unsigned int columns) {
 	if (data == NULL) return;
 
 	std::string default_title = "                    ";
@@ -52,7 +51,7 @@ template <typename T> void print_table(
 	if (!title.empty()) std::cout << "\n" << std::left << std::setw(row_header_sz) << title << "  |";		            // - If provided, Print Title
 	else std::cout << "\n" << std::left << std::setw(row_header_sz) << default_title << "  |";
 	for (unsigned int i = 0; i < columns; ++i) {				                // - Print table header
-		std::cout << std::setw((int)column_width) << std::hex << i << "|";	    // - Setting with to column_with
+		std::cout << std::setw((int)column_width) << i << "|";	    // - Setting with to column_with
 	}
 	std::cout << '\n';
 
@@ -61,7 +60,7 @@ template <typename T> void print_table(
 			std::stringstream ssh;
 			if (i > 0) std::cout << '\n';
 			// Use stringstream to format the line header
-			ssh << std::hex << "[" << (i / columns) << "] " << "(" << i  << " -- " << i + columns << ")";
+			ssh << "[" << (i/columns + 1) << "] " << "(" << i  << " -- " << (data_size - i >= 16 ? (i + columns - 1) : i + data_size%columns - 1) << ")";
 			std::cout << std::left << std::setw(row_header_sz) << ssh.str() << "  |" << std::right;
 		}
 
