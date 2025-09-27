@@ -4,7 +4,7 @@ CXX = g++
 AR = ar
 
 # NTRU Parameters (can be overridden on command line)
-NTRU_N ?= 701
+NTRU_N ?= 821
 NTRU_q ?= 8192
 
 # Add NTRU parameters as preprocessor defines
