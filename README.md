@@ -1,3 +1,5 @@
+## Warning: This branch aims to migrate the source code for polynomial operation from C++ to C.
+
 # NTRU Cryptosystem Implementation
 
 A C++ implementation of the NTRU (Nth Degree Truncated Polynomial Ring) public key cryptosystem with comprehensive performance analysis and debugging tools.
