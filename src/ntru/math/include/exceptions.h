@@ -7,9 +7,10 @@ extern "C" {
 
 enum ExceptionCode {
   NoException,
-  NullSource, NullDestination, NullInput, NullOutput,
-  ZeroLength, InvalidKeyLength, InvalidInputSize,
-  UnknownOperation
+  DivisionByZero,                                                               // Math exception
+  NullSource, NullDestination, NullInput, NullOutput,                           // Null pointer exception
+  ZeroLength, InvalidKeyLength, InvalidInputSize,                               // Invalid size
+  UnknownOperation                                                              // Unknown Operation/Method
 };
 
 #ifdef __cplusplus
