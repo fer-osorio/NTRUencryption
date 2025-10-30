@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+union R2Polynomial_t{
+  uint8_t coeffs[NTRU_N];
+  uint64_t coeffs_64[NTRU_N/64 + 1];
+};
+
 static const size_t NTRUN_div_64_1 = NTRU_N/64 + 1;
 
 enum ExceptionCode R2Polynomial_t_getFromArrayPointer(const uint8_t* source, R2Polynomial_t* dest){
