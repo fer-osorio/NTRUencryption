@@ -16,6 +16,13 @@ enum ExceptionCode R2Polynomial_t_getFromArrayPointer(const uint8_t* source, R2P
   return NoException;
 }
 
+enum ExceptionCode R2Polynomial_t_writeOnArrayPointer(ptrR2Polynomial_t source, uint8_t* dest){
+  if(source == NULL) return NullSource;
+  if(dest   == NULL) return NullDestination;
+  for(size_t i = 0; i < NTRU_N; i++) dest[i] = source->coeffs[i];
+  return NoException;
+}
+
 static void R2Polynomial_t_addition(ptrR2Polynomial_t input1, ptrR2Polynomial_t input2, R2Polynomial_t* output){
   for(size_t i = 0; i < NTRUN_div_64_1; i++)
     output->coeffs_64[i] = input1->coeffs_64[i] ^ input2->coeffs_64[i];
