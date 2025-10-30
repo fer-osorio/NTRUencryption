@@ -35,7 +35,7 @@ static void R2Polynomial_t_rotateLeft(size_t rotAmount, ptrR2Polynomial_t input,
   for(j = 0; i < NTRU_N; i++, j++) output->coeffs[i] = input->coeffs[j];
 }
 
-enum ExceptionCode R2Polynomial_t_convolution(ptrR2Polynomial_t input1, ptrR2Polynomial_t input2, R2Polynomial_t* output){
+enum ExceptionCode R2Polynomial_t_multiply(ptrR2Polynomial_t input1, ptrR2Polynomial_t input2, R2Polynomial_t* output){
   if(input1 == NULL || input2 == NULL) return NullInput;
   if(output == NULL) return NullOutput;
   R2Polynomial_t buff;
@@ -210,7 +210,7 @@ enum ExceptionCode R2Polynomial_t_computePseudoInverse(ptrR2Polynomial_t input, 
 
     // Update Bézout coefficient: tmp[1] = destPseudoInverse - quotient * tmp[0]
     // In Z/2Z: subtraction is identical to addition
-    R2Polynomial_t_convolution(&quotient, &tmp[0], &convResult);
+    R2Polynomial_t_multiply(&quotient, &tmp[0], &convResult);
     R2Polynomial_t_addition(destPseudoInverse, &convResult, &tmp[1]);
 
     // Update values for next iteration
