@@ -125,12 +125,12 @@ R2Polynomial R2Polynomial::gcdXNmns1(R2Polynomial& thisBezout) const{
     Z2 leadCoeff = this->coefficients[deg];                                     // Lead coefficient of this polynomial
     R2Polynomial quoRem[2]={R2Polynomial(), R2Polynomial()};
 
-    quoRem[0].coefficients[NTRU_N-deg] = leadCoeff;                                // Start of division algorithm between virtual polynomial x^N-1 and this
-    for(i = deg-1, j = NTRU_N - 1; i >= 0; i--, j--) {                             // First coefficient of quotient and first subtraction
+    quoRem[0].coefficients[NTRU_N-deg] = leadCoeff;                             // Start of division algorithm between virtual polynomial x^N-1 and this
+    for(i = deg-1, j = NTRU_N - 1; i >= 0; i--, j--) {                          // First coefficient of quotient and first subtraction
         quoRem[1].coefficients[j] = this->coefficients[i];                      // All x in Z2, -x = x
     }
     quoRem[1].coefficients[0] = _1_;                                            // Putting the -1 that is at the end of the polynomial x^N-1. 1 == -1 in Z2
-    for(i = NTRU_N-1 - deg, j = NTRU_N-1; j >= deg; i = j - deg) {                        // Continuing with division algorithm; i is the place of the next coefficient of
+    for(i = NTRU_N-1 - deg, j = NTRU_N-1; j >= deg; i = j - deg) {              // Continuing with division algorithm; i is the place of the next coefficient of
         quoRem[0].coefficients[i] = leadCoeff * quoRem[1].coefficients[j];      // the quotient, j is the degree of the remainders.
         for(k = deg, l = j; k >= 0; k--, l--) {                                 // Multiplication-subtraction step
             quoRem[1].coefficients[l] -=
