@@ -6,14 +6,14 @@ extern "C" {
 #include "exceptions.h"
 #include <stdint.h>
 
-typedef struct RqPolynomial_t RqPolynomial_t;
-typedef const struct RqPolynomial_t* ptrRqPolynomial_t;
+typedef struct R0Polynomial_t R0Polynomial_t;
+typedef const struct R0Polynomial_t* ptrR0Polynomial_t;
 
 // Get and write.
-enum ExceptionCode RqPolynomial_t_getFromArrayPointer(const uint16_t* source, RqPolynomial_t* dest);
-enum ExceptionCode RqPolynomial_t_writeOnArrayPointer(ptrRqPolynomial_t source, uint16_t* dest);
+enum ExceptionCode R0Polynomial_t_getFromArrayPointer(const uint16_t* source, R0Polynomial_t* dest);
+enum ExceptionCode R0Polynomial_t_writeOnArrayPointer(ptrR0Polynomial_t source, uint16_t* dest);
 
-enum ExceptionCode RqPolynomial_t_multiply(ptrRqPolynomial_t input1, ptrRqPolynomial_t input2, RqPolynomial_t* output);
+enum ExceptionCode R0Polynomial_t_multiply(ptrR0Polynomial_t input1, ptrR0Polynomial_t input2, R0Polynomial_t* output);
 
 #ifdef __cplusplus
 }
