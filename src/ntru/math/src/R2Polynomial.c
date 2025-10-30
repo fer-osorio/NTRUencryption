@@ -41,9 +41,13 @@ static bool R2Polynomial_t_isZero(ptrR2Polynomial_t input){
   return true;
 }
 
-static size_t R2Polynomial_t_getDegree(ptrR2Polynomial_t input){
-  for(size_t i = NTRU_N-1; i > 0; i--) if(input->coeffs[i] != 0) return i;
-  return 0;
+/*
+ * Gets degree of polynomial
+ * If polynomial is zero, it signals it by returning -1
+ * */
+static int R2Polynomial_t_getDegree(ptrR2Polynomial_t input){
+  for(int i = NTRU_N-1; i >= 0; i--) if(input->coeffs[i] != 0) return i;
+  return -1;    // Polynomial is zero, returning -1
 }
 
 static void R2Polynomial_t_rewriteAsZero(R2Polynomial_t* output){
@@ -68,8 +72,8 @@ enum ExceptionCode R2Polynomial_t_division(ptrR2Polynomial_t dividend, ptrR2Poly
   }
 
   // Get degrees
-  int dividendDegree = (int)R2Polynomial_t_getDegree(dividend);
-  int divisorDegree  = (int)R2Polynomial_t_getDegree(divisor);
+  int dividendDegree = R2Polynomial_t_getDegree(dividend);
+  int divisorDegree  = R2Polynomial_t_getDegree(divisor);
 
   // Handle case where dividend degree < divisor degree
   if(dividendDegree < divisorDegree) {
@@ -107,5 +111,102 @@ enum ExceptionCode R2Polynomial_t_division(ptrR2Polynomial_t dividend, ptrR2Poly
     // Update degree difference for next iteration
     degreeDiff = remDeg - divisorDegree;
   }
+  return NoException;
+}
+
+enum ExceptionCode R2Polynomial_t_computePseudoInverse(ptrR2Polynomial_t input, R2Polynomial_t* destGCD, R2Polynomial_t* destPseudoInverse){
+  // Input validation
+  if(input == NULL) return NullSource;
+  if(destGCD == NULL || destPseudoInverse == NULL) return NullDestination;
+
+  // Working variables
+  R2Polynomial_t quotient;
+  R2Polynomial_t remainder;
+  R2Polynomial_t pastRemainder;
+  R2Polynomial_t tmp[2];
+  R2Polynomial_t convResult;  // Temporary for multiplication
+
+  // Get degree and leading coefficient of input polynomial
+  int inputDeg = R2Polynomial_t_getDegree(input);
+  if(inputDeg < 0) return DivisionByZero;         // Guarding against zero division
+
+  // Initialize arrays to zero
+  R2Polynomial_t_rewriteAsZero(&tmp[0]);
+  R2Polynomial_t_rewriteAsZero(&tmp[1]);
+  R2Polynomial_t_rewriteAsZero(&quotient);
+  R2Polynomial_t_rewriteAsZero(&remainder);
+
+  // ===== Phase 1: Division of x^N - 1 by input polynomial =====
+
+  // First coefficient of quotient: x^(N-inputDeg) * leadCoeff
+  // In Z/2Z, lead coefficient of any polynomial is always 1
+  quotient.coeffs[NTRU_N - inputDeg] = 1;
+
+  // Initialize remainder with (x^N-1) - input*x^(N-inputDeg)
+  // In Z/2Z, negation is identity, so this is just copying coefficients
+  for(size_t i = inputDeg - 1, j = NTRU_N - 1; i > 0; i--, j--) {
+    remainder.coeffs[j] = input->coeffs[i];
+  }
+  remainder.coeffs[NTRU_N - inputDeg] = input->coeffs[0];                       // Special handling for i = 0
+  remainder.coeffs[0] = 1;                                                      // Add the constant term from x^N - 1 (the "-1" part). In Z/2Z: -1 = 1
+
+  // Continue division algorithm
+  int degDiff, k, l;
+  int remdeg = R2Polynomial_t_getDegree(&remainder);
+  while(remdeg >= inputDeg) {
+    degDiff = remdeg - inputDeg;                                                // Position for next quotient coefficient
+    // New quotient coefficient
+    quotient.coeffs[degDiff] = 1;                                               // In Z/2Z, inverse of lead coefficient times non-zero elements is always 1
+    // Subtract (quotient.coeffs[degDiff] * input) from remainder
+    // In Z/2Z: subtraction is the same as addition (both are XOR)
+    for(k = inputDeg, l = remdeg; k >= 0; k--, l--) {
+      //remainder.coeffs[l] ^= (quotient.coeffs[degDiff] & input->coeffs[k]);   // But quotient.coeffs[degDiff] is 1, defore we obtain the following line
+      remainder.coeffs[l] ^= input->coeffs[k];
+    }
+    // Find the actual degree of current remainder
+    remdeg = R2Polynomial_t_getDegree(&remainder);
+  }
+
+  // ===== Phase 2: Extended Euclidean Algorithm =====
+
+  // Initialize Bézout coefficient tracking
+  // destPseudoInverse = 1 (represents v[-1] in EEA)
+  R2Polynomial_t_rewriteAsZero(destPseudoInverse);
+  destPseudoInverse->coeffs[0] = 1;
+
+  // tmp[1] = quotient (which is -q[1] in EEA, but in Z/2Z negation is identity)
+  R2Polynomial_t_rewriteAs(&tmp[1], &quotient);
+  R2Polynomial_t_rewriteAs(&tmp[0], &tmp[1]);
+
+  // Initialize GCD and pastRemainder
+  R2Polynomial_t_rewriteAs(destGCD, input);
+  R2Polynomial_t_rewriteAs(&pastRemainder, &remainder);
+
+  // Main EEA loop
+  enum ExceptionCode divExcep;
+  while(!R2Polynomial_t_isZero(&pastRemainder)) {
+    divExcep = R2Polynomial_t_division(                                         // Perform division: destGCD / pastRemainder
+      destGCD,
+      &pastRemainder,
+      &quotient,
+      &remainder
+    );
+
+    if(divExcep != NoException) {
+      return divExcep;                                                          // Propagate exception
+    }
+
+    // Update Bézout coefficient: tmp[1] = destPseudoInverse - quotient * tmp[0]
+    // In Z/2Z: subtraction is identical to addition
+    R2Polynomial_t_convolution(&quotient, &tmp[0], &convResult);
+    R2Polynomial_t_addition(destPseudoInverse, &convResult, &tmp[1]);
+
+    // Update values for next iteration
+    R2Polynomial_t_rewriteAs(destPseudoInverse, &tmp[0]);
+    R2Polynomial_t_rewriteAs(&tmp[0], &tmp[1]);
+    R2Polynomial_t_rewriteAs(destGCD, &pastRemainder);
+    R2Polynomial_t_rewriteAs(&pastRemainder, &remainder);
+  }
+
   return NoException;
 }
