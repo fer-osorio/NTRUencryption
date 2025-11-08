@@ -1,5 +1,6 @@
 #include "../include/R0Polynomial.h"
 #include "../include/ZqInteger.h"
+// #include "../include/parameters.h" // Already included in ZqInteger.h
 #include <stdlib.h>
 #include <stdbool.h>
 
@@ -27,6 +28,8 @@ static void R0Polynomial_t_modq(ptrR0Polynomial_t input, R0Polynomial_t* output)
 
 enum ExceptionCode R0Polynomial_t_multiply(ptrR0Polynomial_t input1, ptrR0Polynomial_t input2, R0Polynomial_t* output){
   int i, j, k;
+  if(input1 == NULL || input2 == NULL) return NullInput;
+  if(output == NULL) return NullOutput;
   for(i = 0; i < NTRU_N; i++) {
     k = NTRU_N - i;
     for(j = 0; j < k; j++)                                                      // Ensuring we do not get out of the polynomial
@@ -35,4 +38,5 @@ enum ExceptionCode R0Polynomial_t_multiply(ptrR0Polynomial_t input1, ptrR0Polyno
       output->coeffs[k] += input1->coeffs[i] * input2->coeffs[j];
   }
   R0Polynomial_t_modq(output,output);                                           // Applying mod q
+  return NoException;
 }
