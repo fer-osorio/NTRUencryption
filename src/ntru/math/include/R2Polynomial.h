@@ -2,7 +2,6 @@
 extern "C" {
 #endif
 
-#include "../../../../include/ntru/parameters_constants.hpp"
 #include "exceptions.h"
 #include <stdint.h>
 
