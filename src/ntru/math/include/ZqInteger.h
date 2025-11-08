@@ -1,4 +1,4 @@
-#include "../../../../include/ntru/parameters_constants.hpp"
+#include "parameters.h"
 #include<stdint.h>
 
 const uint16_t q_1     = (uint16_t)NTRU_Q-1;					// Will hold q-1, this will help with mod q operation
