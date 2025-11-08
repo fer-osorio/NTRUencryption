@@ -1,4 +1,5 @@
 #include "../include/R2Polynomial.h"
+#include "../include/parameters.h"
 #include <stdlib.h>
 #include <stdbool.h>
 
